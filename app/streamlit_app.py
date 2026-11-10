@@ -436,8 +436,9 @@ def main() -> None:
 
     # PESTAÑA 2: RESUMEN EJECUTIVO
     with pestana_resumen:
-        st.markdown("### Resumen General")
-        st.write(resultado.resumen_general)
+        if hasattr(resultado, "resumen_general"):
+            st.markdown("### Resumen General")
+            st.write(resultado.resumen_general)
 
         if isinstance(resultado, ResultadoPonencia):
             st.markdown("### Ideas Clave")
