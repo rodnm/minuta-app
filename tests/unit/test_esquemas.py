@@ -283,3 +283,18 @@ def test_fixtures_todas_las_citas_son_literales(nombre_tx, nombre_res, modelo_re
         assert es_literal, (
             f"Cita no literal en {nombre_res}: '{ev.cita}' no encontrada en segmentos {ev.segmento_ids}"
         )
+
+
+def test_validacion_modo_literal():
+    # Valida que solo "solo_llm" y "detector" son admitidos como modo
+    raiz = NodoMapa(id="r", titulo="Raíz")
+    mapa = MapaMental(titulo="M", raiz=raiz)
+    res_valido = ResultadoPonencia(
+        resumen_general="Ok", ideas_clave=[], preguntas=[], mapa=mapa, modo="detector"
+    )
+    assert res_valido.modo == "detector"
+
+    with pytest.raises(ValidationError):
+        ResultadoPonencia(
+            resumen_general="Error", ideas_clave=[], preguntas=[], mapa=mapa, modo="invalido"
+        )

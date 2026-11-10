@@ -6,7 +6,7 @@ Define los esquemas del sistema: transcripción, evidencias literales,
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
@@ -186,7 +186,7 @@ class ResultadoPonencia(BaseModel):
     preguntas: list[Pendiente]
     mapa: MapaMental
     descartados: int = 0
-    modo: str = "solo_llm"
+    modo: Literal["solo_llm", "detector"] = "solo_llm"
 
 
 class ResultadoReunion(BaseModel):
@@ -199,7 +199,7 @@ class ResultadoReunion(BaseModel):
     pendientes: list[Pendiente]
     mapa: MapaMental
     descartados: int = 0
-    modo: str = "solo_llm"
+    modo: Literal["solo_llm", "detector"] = "solo_llm"
 
 
 class ResultadoEntrevista(BaseModel):
@@ -210,4 +210,4 @@ class ResultadoEntrevista(BaseModel):
     resumen_por_codigo: dict[str, str]
     mapa: MapaMental
     descartados: int = 0
-    modo: str = "solo_llm"
+    modo: Literal["solo_llm", "detector"] = "solo_llm"
