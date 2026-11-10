@@ -24,6 +24,7 @@ El proyecto nace de la vivencia directa de la pesada carga operativa que represe
 - **Barrera económica de hardware:** Las grabadoras dedicadas con IA como PLAUD Note cuestan entre **US\$ 159 y US\$ 189**. Aunque incluyen 300 minutos al mes en su plan base, adquirir minutos ilimitados exige suscribirse a un plan anual de **US\$ 239.99**. No existen precios oficiales en moneda local (soles) y obligan al usuario a cargar y sincronizar un dispositivo físico adicional.
 - **Términos en inglés dentro del español:** En investigación y consultoría se emplean constantemente términos mixtos (*paper*, *journal*, *peer review*, *grant*, *ablation study*). En nuestras mediciones empíricas con grabaciones reales (H1), la línea base acústica de Whisper confundió términos técnicos altamente específicos como *arXiv* (transcrito como `"RCIP"`) o *editorial board* (transcrito como `"digital board"`). Minuta aborda esta brecha mediante normalización y corrección contextual en la etapa de estructuración con el LLM.
 - **Privacidad y confidencialidad:** En proyectos de investigación y reuniones de trabajo se maneja información sujeta a convenios de confidencialidad o privacidad, por lo que los usuarios valoran una opción de procesamiento local o privado.
+- **Evidencia validada con usuarios:** 2 conversaciones cualitativas reales con usuarios potenciales documentadas en `docs/research/` ([conversacion-01](docs/research/conversacion-01.md), [conversacion-02](docs/research/conversacion-02.md)): ambas personas graban 1–3 veces por semana con su propio celular, vuelven a escuchar grabaciones completas de 1 a 2 horas para repasar y no comprarían una grabadora dedicada como Plaud, prefiriendo usar software accesible en su smartphone.
 
 ---
 
@@ -41,7 +42,7 @@ El proyecto nace de la vivencia directa de la pesada carga operativa que represe
 ## 5. Why Now?
 
 1. **Madurez de modelos de voz eficientes en CPU:** `faster-whisper 1.2.1` con int8 y VAD procesa una hora de audio en apenas **8.0 minutos en una laptop estándar** (RTF 0.1336, 404 MB RAM), permitiendo transcripción local sin GPU.
-2. **LLMs ultraligeros con costo marginal casi nulo:** Modelos como **Gemini 3.8 / 2.5 Flash** procesan 1 hora de transcripción por menos de **S/ 0.007 soles** ($0.0018 USD), abriendo márgenes de contribución superiores al 99%.
+2. **LLMs ultraligeros con costo marginal reducido:** Modelos como **Gemini 2.5 Flash** junto a faster-whisper procesan 1 hora de audio por aproximadamente **S/ 0.064 soles** ($0.017 USD), permitiendo márgenes de contribución cercanos al 90%.
 3. **Smartphones con micrófonos estéreo avanzados:** La calidad de captura de voz de los teléfonos móviles actuales hace innecesaria la compra de micrófonos dedicados de 180 dólares.
 
 ---
@@ -62,22 +63,22 @@ El proyecto nace de la vivencia directa de la pesada carga operativa que represe
 ## 7. Modelo de Negocio
 
 ### Costo unitario medido por hora de audio (S16)
-- **Transcripción acústica:** S/ 0.00 (CPU local o servidor volátil).
-- **Consumo de tokens LLM:** ~12,000 tokens de entrada y ~3,000 tokens de salida por hora de audio transcrito vía Map-Reduce.
-- **Costo de API (Gemini Flash):** **$0.0018 USD (~S/ 0.007 soles por hora de audio)** en modo estándar, y **$0.0012 USD (~S/ 0.0045 soles)** con filtrado de relleno mmBERT.
-- **Infraestructura:** S/ 0.00 (Streamlit Cloud Community).
+- **Transcripción acústica (Whisper small CPU):** ~8 minutos por hora de audio (US$ 0.0053 en cómputo nube, o S/ 0.00 en laptop del usuario).
+- **Consumo de tokens LLM:** ~14,000 tokens de entrada y ~3,000 tokens de salida (incluyendo razonamiento y estructura) por hora de audio transcrito vía Map-Reduce.
+- **Tarifas vigentes Gemini 2.5 Flash (10/11/2026, [ai.google.dev](https://ai.google.dev/gemini-api/docs/pricing)):** US$ 0.30 / 1M input y US$ 2.50 / 1M output = US$ 0.0117.
+- **Costo total de cómputo por hora:** **US$ 0.017 (~S/ 0.064 soles por hora)** a tipo de cambio oficial 1 USD = 3.75 PEN (SBS / BCRP, 10/11/2026).
 
 ### Planes de suscripción en soles
 
-| Plan | Precio | Horas de Audio / Mes | Costo Marginal en APIs | Margen de Contribución Bruto |
-|---|---|---|---|---|
-| **Estudiante (Gratuito)** | **S/ 0** | Hasta 3 horas | S/ 0.02 / mes | N/A (adquisición de usuarios) |
-| **Investigador** | **S/ 29 / mes** | Hasta 15 horas | S/ 0.11 / mes | **> 99.6 %** |
-| **Laboratorio / Equipo** | **S/ 89 / mes** | Hasta 60 horas | S/ 0.42 / mes | **> 99.5 %** |
+| Plan | Precio | Horas de Audio / Mes | Costo Marginal Directo | Margen de Contribución Mensual | Margen de Contribución (%) |
+|---|---|---|---|---|---|
+| **Gratis** | **S/ 0** | Hasta 2 horas | S/ 0.13 / mes | -S/ 0.13 | N/A (adquisición) |
+| **Estudiante** | **S/ 9.90 / mes** | Hasta 15 horas | S/ 0.96 / mes | **+S/ 8.94 / mes** | **90.3 %** |
+| **Pro** | **S/ 24.90 / mes** | Hasta 40 horas | S/ 2.56 / mes | **+S/ 22.34 / mes** | **89.7 %** |
 
 *Comparación frente a alternativas:*
-- **Frente a PLAUD Note:** Plaud exige un pago inicial de US\$ 159–189 (~S/ 650–750 soles) más US\$ 240/año para uso ilimitado. Minuta usa tu propio celular y ofrece suscripciones en soles desde S/ 29/mes.
-- **Frente a Google NotebookLM:** NotebookLM genera notas y mapas estáticos en la nube, pero no permite verificar la cita textual exacta segundo a segundo con reproductor enlazado, no extrae to-dos con responsable ni ofrece modo privado local desconectado.
+- **Frente a PLAUD Note:** Plaud exige un pago inicial de US\$ 159–189 (~S/ 600–710 soles) más suscripciones adicionales para minutos extendidos. Minuta aprovecha el teléfono existente y ofrece planes en moneda local desde S/ 9.90/mes.
+- **Frente a Google NotebookLM y Zoom AI Notes:** NotebookLM no enlaza el audio segundo a segundo con reproductor interactivo ni extrae to-dos con responsable; Zoom AI Notes se orienta a reuniones corporativas en inglés. Ninguno ofrece modo privado desconectado ni mapas mentales interactivos con trazabilidad de citas literales.
 
 ---
 

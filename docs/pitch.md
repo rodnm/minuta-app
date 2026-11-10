@@ -17,13 +17,13 @@
 >
 > Transcribir y resumir a mano una sola hora de audio toma aproximadamente **cuatro horas de trabajo**, según estimaciones de servicios de transcripción. 
 >
-> En el mercado existe una solución de hardware llamada **PLAUD Note**, pero cuesta entre **US$ 159 y US$ 189 dólares**, exige cargar un dispositivo físico adicional y cobra suscripciones de hasta **US$ 240 dólares al año** sin precios en soles. 
+> En el mercado existe una solución de hardware llamada **PLAUD Note**, pero cuesta entre **US$ 159 y US$ 189 dólares**, exige cargar un dispositivo físico adicional y cobra suscripciones anuales sin precios en soles. 
 >
-> Por otro lado, herramientas gratuitas como Google NotebookLM generan mapas estáticos en la nube, pero no tienen listas de tareas operativas, no permiten verificar las citas textuales segundo a segundo y no ofrecen un modo privado local.
+> Por otro lado, herramientas como Google NotebookLM o Zoom AI Notes no permiten verificar las citas textuales segundo a segundo con audio enlazado, no ofrecen to-dos con responsable ni disponen de un modo privado local.
 >
 > Además, los transcriptores genéricos fallan sistemáticamente con la jerga técnica: en nuestras mediciones empíricas con audio real, Whisper confundió *arXiv* con *'RCIP'* y *editorial board* con *'digital board'*.
 >
-> Lo que necesitan es una herramienta que use el teléfono que ya llevan en el bolsillo."*
+> Las 2 personas con las que hablé graban cada semana clases de 1 a 2 horas y las vuelven a escuchar completas. Ninguna compraría un Plaud: ya usan Zoom AI Notes o NotebookLM. Lo que necesitan es una herramienta que use el teléfono que ya llevan en el bolsillo."*
 
 ---
 
@@ -38,7 +38,7 @@
 > Aquí tenemos nuestra aplicación responsiva optimizada para celular. Subimos una grabación o activamos la demo precalculada de una ponencia académica.
 >
 > En segundos, Minuta genera cuatro salidas estructuradas:
-> 1. Primero, un **mapa mental interactivo con markmap.js**: cada nodo representa un concepto jerárquico. Y aquí está nuestro insight clave: **el mapa es 100% verificable**. Cada nodo hijo incluye su minuto exacto y su cita textual literal. Si pulso este botón `▶ [01:15]`, el reproductor salta automáticamente al segundo exacto donde el expositor dijo esa frase.
+> 1. Primero, un **mapa mental interactivo con markmap.js**: cada nodo representa un concepto jerárquico. Y aquí está nuestro insight clave: **el mapa es verificable**. Cada nodo hijo incluye su minuto exacto y su cita textual literal. Como me dijo una de las personas entrevistadas: *'si estoy apurada voy momento exacto donde quiero escuchar nuevamente la explicación'*. Si pulso este botón `▶ [01:15]`, el reproductor salta automáticamente al segundo exacto donde se pronunció esa frase.
 > 2. Segundo, el **resumen ejecutivo** con ideas clave.
 > 3. Tercero, la lista de **acuerdos y to-dos con responsable**, respaldada por citas literales que nuestra validación matemática verifica que cada cita sea literal.
 > 4. Y cuarto, exportación directa en un clic a **Markdown, HTML autónomo, Microsoft Word y Excel**.
@@ -52,15 +52,14 @@
 > *"Hablemos de los números y el modelo de negocio.
 >
 > ¿Cuánto nos cuesta procesar una hora de audio?
-> Gracias a nuestra arquitectura Map-Reduce con la API de Gemini 3.8 Flash y nuestro detector mmBERT de reducción de relleno, el procesamiento de una hora completa de audio consume aproximadamente 12,000 tokens de transcripción. 
-> Esto representa un costo de API de apenas **0.0018 dólares por hora**, es decir, **menos de un centavo de sol (S/ 0.007)**.
+> Sumando la transcripción acústica con faster-whisper (8 minutos de CPU) y la estructuración contextual con la API de Gemini 2.5 Flash a precios vigentes, el procesamiento de una hora completa de audio nos cuesta apenas **0.017 dólares, es decir, unos 6 céntimos de sol (S/ 0.064)**.
 >
-> Sobre esta estructura de costos ultraligera, definimos tres planes de suscripción en soles:
-> 1. **Plan Estudiante (Gratuito):** 3 horas al mes, costo de API de S/ 0.02.
-> 2. **Plan Investigador:** S/ 29 soles mensuales por 15 horas de audio, con un margen bruto superior al **99.6%**.
-> 3. **Plan Laboratorio / Equipo:** S/ 89 soles mensuales para grupos de investigación y consultores, con un margen bruto superior al **99.5%**.
+> Sobre esta estructura unitaria sostenible, definimos tres planes en soles alineados con lo que los usuarios indicaron pagar:
+> 1. **Plan Gratis:** 2 horas al mes para probar el producto sin costo (inversión de adquisición de apenas S/ 0.13).
+> 2. **Plan Estudiante:** S/ 9.90 soles al mes por 15 horas de audio, con un margen de contribución del **90%** (+S/ 8.94 al mes).
+> 3. **Plan Pro:** S/ 24.90 soles al mes por 40 horas con modo local y exportaciones, dentro del rango de 15 a 25 soles indicado por los usuarios, con un margen del **90%** (+S/ 22.34 al mes).
 >
-> Frente a los 800 soles que cuesta importar una grabadora Plaud, Minuta entrega una solución accesible en moneda local, respetuosa de la privacidad, verificable matemáticamente y al alcance de cualquier estudiante o investigador con un smartphone.
+> Frente a los más de 600 soles que cuesta importar una grabadora Plaud, Minuta entrega una solución accesible en moneda local, respetuosa de la privacidad, verificable matemáticamente y al alcance de cualquier estudiante o investigador con un smartphone.
 >
 > Muchas gracias. Quedo atento a las preguntas del jurado."*
 
@@ -71,4 +70,4 @@
 - [ ] Pestaña del navegador abierta con la URL de Minuta en modo demo.
 - [ ] Video de respaldo (60–90 s) listo en pestaña adyacente por si falla la conexión en vivo.
 - [ ] Citar los fallos reales medidos (*arXiv* → *"RCIP"* y *editorial board* → *"digital board"*).
-- [ ] Citar el costo exacto medido por hora: S/ 0.007 soles.
+- [ ] Citar el costo exacto medido por hora: S/ 0.064 soles.
