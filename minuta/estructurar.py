@@ -16,6 +16,7 @@ import copy
 from typing import Any, Literal, Sequence
 from pydantic import BaseModel
 
+from minuta.detector import DetectorSegmentos
 from minuta.esquemas import (
     Acuerdo,
     CodigoLibro,
@@ -250,6 +251,7 @@ def _generar_prompt_map(
     tipo_plantilla: TipoPlantilla,
     bloque_idx: int = 1,
     total_bloques: int = 1,
+    candidatos_todo: list[Segmento] | None = None,
 ) -> str:
     """Construye el prompt para la fase Map del procesamiento estructurado."""
     texto_segmentos = "\n".join(
@@ -271,6 +273,14 @@ def _generar_prompt_map(
         ),
     }[tipo_plantilla]
 
+    seccion_candidatos = ""
+    if candidatos_todo and tipo_plantilla == "reunion":
+        seccion_candidatos = (
+            "\nSEGMENTOS CANDIDATOS A TAREAS O ACUERDOS DETECTADOS PREVIAMENTE:\n"
+            + "\n".join(f"- [{s.id}] ({s.inicio_s:.1f}s): {s.texto}" for s in candidatos_todo)
+            + "\n"
+        )
+
     return f"""Eres el sistema NLP de estructuración de audio de Minuta.
 Analiza la siguiente transcripción correspondiente al Bloque {bloque_idx} de {total_bloques}.
 
@@ -282,7 +292,7 @@ INSTRUCCIONES CLAVE:
    - El árbol debe tener entre 2 y 4 niveles de profundidad y entre 4 y 8 ramas principales.
    - El nodo raíz no lleva evidencia ('evidencia': null).
    - Todos los nodos hijos y hojas DEBEN llevar 'evidencia' con su respectiva cita literal exacta y tiempo de inicio.
-
+{seccion_candidatos}
 TRANSCRIPCIÓN DEL BLOQUE:
 {texto_segmentos}
 """
@@ -323,6 +333,7 @@ def estructurar_transcripcion(
     tipo_plantilla: TipoPlantilla,
     proveedor: ProveedorLLM,
     modo: ModoEstructuracion = "solo_llm",
+    detector: DetectorSegmentos | None = None,
 ) -> ResultadoPonencia | ResultadoReunion | ResultadoEntrevista:
     """Estructura una transcripción aplicando estrategia Map-Reduce por bloques de ~10 minutos.
 
@@ -331,6 +342,8 @@ def estructurar_transcripcion(
     - tipo_plantilla: "ponencia" (defecto), "reunion" o "entrevista".
     - proveedor: Instancia de ProveedorLLM (Gemini, Ollama o Mock).
     - modo: "solo_llm" o "detector".
+    - detector: Instancia opcional de DetectorSegmentos. Si modo="detector" y no se pasa uno,
+      se intenta instanciar; si el modelo no está disponible, cae suavemente a "solo_llm".
 
     Retorna:
     - ResultadoPonencia, ResultadoReunion o ResultadoEntrevista con evidencias literales estrictas.
@@ -345,36 +358,73 @@ def estructurar_transcripcion(
     else:
         raise ValueError(f"Tipo de plantilla no soportada: '{tipo_plantilla}'")
 
-    if not transcripcion.segmentos:
+    modo_efectivo: ModoEstructuracion = modo
+    segmentos_activos = list(transcripcion.segmentos)
+    candidatos_todo: list[Segmento] = []
+
+    # Integración con el detector de segmentos (filtrado de relleno y extracción de to-do)
+    if modo == "detector":
+        if detector is not None and not detector.disponible:
+            # Detector provisto explícitamente pero no disponible: fallback a solo_llm
+            modo_efectivo = "solo_llm"
+            segmentos_activos = list(transcripcion.segmentos)
+            candidatos_todo = []
+        elif detector is not None and detector.disponible:
+            # Detector provisto y disponible: procesar y filtrar
+            proc = detector.procesar_transcripcion(transcripcion, tipo_plantilla=tipo_plantilla)
+            segmentos_activos = proc["segmentos_procesados"]
+            candidatos_todo = proc.get("candidatos_todo", [])
+            modo_efectivo = "detector"
+            if not segmentos_activos and transcripcion.segmentos:
+                segmentos_activos = list(transcripcion.segmentos)
+        else:
+            # detector is None: intentar instanciar DetectorSegmentos()
+            det_default = DetectorSegmentos()
+            if det_default.disponible:
+                proc = det_default.procesar_transcripcion(transcripcion, tipo_plantilla=tipo_plantilla)
+                segmentos_activos = proc["segmentos_procesados"]
+                candidatos_todo = proc.get("candidatos_todo", [])
+                modo_efectivo = "detector"
+            else:
+                # Si no se pasó detector y el entorno no tiene mmBERT instalado,
+                # mantener modo="detector" sin filtrado de segmentos para compatibilidad de contrato
+                modo_efectivo = "detector"
+                segmentos_activos = list(transcripcion.segmentos)
+                candidatos_todo = []
+
+    if not segmentos_activos:
         # Caso borde: transcripción vacía
         mapa_vacio = MapaMental(titulo="Sin contenido", raiz=NodoMapa(id="root", titulo="Sin contenido"))
         if tipo_plantilla == "ponencia":
             return ResultadoPonencia(
-                resumen_general="", ideas_clave=[], preguntas=[], mapa=mapa_vacio, modo=modo
+                resumen_general="", ideas_clave=[], preguntas=[], mapa=mapa_vacio, modo=modo_efectivo
             )
         if tipo_plantilla == "reunion":
             return ResultadoReunion(
-                resumen_general="", temas=[], acuerdos=[], tareas=[], pendientes=[], mapa=mapa_vacio, modo=modo
+                resumen_general="", temas=[], acuerdos=[], tareas=[], pendientes=[], mapa=mapa_vacio, modo=modo_efectivo
             )
         return ResultadoEntrevista(
-            libro=[], fragmentos=[], resumen_por_codigo={}, mapa=mapa_vacio, modo=modo
+            libro=[], fragmentos=[], resumen_por_codigo={}, mapa=mapa_vacio, modo=modo_efectivo
         )
 
-    # Particionar en bloques de ~10 minutos (<= 600 segundos)
-    if transcripcion.duracion_s <= 600.0:
-        bloques = [list(transcripcion.segmentos)]
+    # Particionar en bloques de ~10 minutos (<= 600 segundos) sobre los segmentos filtrados
+    duracion_activa = sum(max(0.0, s.fin_s - s.inicio_s) for s in segmentos_activos)
+    if duracion_activa <= 600.0:
+        bloques = [list(segmentos_activos)]
     else:
-        bloques = particionar_en_bloques(transcripcion.segmentos, max_duracion_bloque_s=600.0)
+        bloques = particionar_en_bloques(segmentos_activos, max_duracion_bloque_s=600.0)
 
     # Fase MAP: Procesar cada bloque individualmente
     resultados_bloques: list[ResultadoPonencia | ResultadoReunion | ResultadoEntrevista] = []
 
     for idx, bloque_segs in enumerate(bloques, start=1):
+        cands_bloque = [c for c in candidatos_todo if any(s.id == c.id for s in bloque_segs)]
         prompt = _generar_prompt_map(
             bloque_segs,
             tipo_plantilla=tipo_plantilla,
             bloque_idx=idx,
             total_bloques=len(bloques),
+            candidatos_todo=cands_bloque,
         )
         res_bloque = proveedor.generar_estructurado(prompt, esquema_cls)
 
@@ -385,7 +435,7 @@ def estructurar_transcripcion(
     # Si solo hay un bloque, no se requiere fase Reduce compleja
     if len(resultados_bloques) == 1:
         res_unico = resultados_bloques[0]
-        res_unico.modo = modo
+        res_unico.modo = modo_efectivo
         return res_unico
 
     # Fase REDUCE: Unificar resultados parciales de múltiples bloques
@@ -422,7 +472,7 @@ def estructurar_transcripcion(
             preguntas=todas_preguntas,
             mapa=mapa_unificado,
             descartados=total_descartados,
-            modo=modo,
+            modo=modo_efectivo,
         )
 
     if tipo_plantilla == "reunion":
@@ -454,7 +504,7 @@ def estructurar_transcripcion(
             pendientes=todos_pendientes,
             mapa=mapa_unificado,
             descartados=total_descartados,
-            modo=modo,
+            modo=modo_efectivo,
         )
 
     # Entrevista
@@ -482,5 +532,5 @@ def estructurar_transcripcion(
         resumen_por_codigo=resumen_codigos,
         mapa=mapa_unificado,
         descartados=total_descartados,
-        modo=modo,
+        modo=modo_efectivo,
     )
