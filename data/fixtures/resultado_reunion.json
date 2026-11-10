@@ -1,0 +1,238 @@
+{
+  "resumen_general": "Reunión de seguimiento técnico y editorial del proyecto Minuta. Se evaluaron resultados de mmBERT, configuración de APIs, asignación de tareas de redacción del paper y rendición presupuestal del grant.",
+  "temas": [
+    {
+      "titulo": "Resultados de clasificación con mmBERT-small",
+      "resumen": "El modelo afinado obtuvo F1 macro de 0.74 superando la línea base para clasificar segmentos de audio.",
+      "evidencias": [
+        {
+          "segmento_ids": [
+            4
+          ],
+          "inicio_s": 22.0,
+          "cita": "fine-tuning de mmBERT-small para clasificar segmentos de audio en cinco clases."
+        },
+        {
+          "segmento_ids": [
+            5
+          ],
+          "inicio_s": 30.0,
+          "cita": "El F1-score macro alcanzó 0.74 en el conjunto de validación"
+        }
+      ]
+    },
+    {
+      "titulo": "Preparación del manuscrito para el journal IEEE",
+      "resumen": "Coordinación de secciones de introducción, metodología y posicionamiento frente a Plaud.",
+      "evidencias": [
+        {
+          "segmento_ids": [
+            20
+          ],
+          "inicio_s": 156.0,
+          "cita": "call for papers de la revista IEEE Transactions on Learning Technologies cierra a fin de mes."
+        },
+        {
+          "segmento_ids": [
+            23
+          ],
+          "inicio_s": 183.0,
+          "cita": "contrastando nuestra propuesta frente a soluciones propietarias como Plaud."
+        }
+      ]
+    }
+  ],
+  "acuerdos": [
+    {
+      "descripcion": "Definir Gemini Flash como proveedor predeterminado y Ollama como alternativa offline",
+      "evidencia": {
+        "segmento_ids": [
+          13
+        ],
+        "inicio_s": 95.0,
+        "cita": "acordamos dejar la API de Gemini como proveedor predeterminado y Ollama como opción offline."
+      }
+    },
+    {
+      "descripcion": "Prohibir la inclusión de credenciales y archivos .env en el repositorio de git",
+      "evidencia": {
+        "segmento_ids": [
+          18
+        ],
+        "inicio_s": 138.0,
+        "cita": "Queda acordado que ninguna credencial ni archivo .env se versionará en el repositorio público"
+      }
+    },
+    {
+      "descripcion": "Destinar el remanente del grant al financiamiento del APC de acceso abierto",
+      "evidencia": {
+        "segmento_ids": [
+          28
+        ],
+        "inicio_s": 229.0,
+        "cita": "Acordamos destinar el saldo restante del grant a cubrir los costos de publicación APC del journal Open Access."
+      }
+    },
+    {
+      "descripcion": "Fijar la próxima sincronización para el jueves a las 16:00 vía videoconferencia",
+      "evidencia": {
+        "segmento_ids": [
+          37
+        ],
+        "inicio_s": 312.0,
+        "cita": "Fijamos la siguiente sesión de trabajo para el jueves a las cuatro de la tarde vía videoconferencia."
+      }
+    }
+  ],
+  "tareas": [
+    {
+      "descripcion": "Empaquetar dataset y documentar data card en Hugging Face",
+      "responsable": "Andrea",
+      "fecha_limite": "2026-11-13",
+      "evidencia": {
+        "segmento_ids": [
+          8
+        ],
+        "inicio_s": 53.0,
+        "cita": "empaquetar el dataset y documentar el data card en Hugging Face antes del viernes."
+      }
+    },
+    {
+      "descripcion": "Configurar script verificar.py con pruebas y revisión de secretos",
+      "responsable": "Carlos",
+      "fecha_limite": "2026-11-16",
+      "evidencia": {
+        "segmento_ids": [
+          16
+        ],
+        "inicio_s": 120.0,
+        "cita": "configuraré el script verificar.py con las comprobaciones de pytest y seguridad de credenciales para el lunes."
+      }
+    },
+    {
+      "descripcion": "Redactar borrador completo de introducción y metodología del paper",
+      "responsable": "Lucía",
+      "fecha_limite": "2026-11-18",
+      "evidencia": {
+        "segmento_ids": [
+          24
+        ],
+        "inicio_s": 192.0,
+        "cita": "finalizar el borrador completo de la introducción y metodología a más tardar el 18 de noviembre."
+      }
+    },
+    {
+      "descripcion": "Consultar con el Sistema de Bibliotecas convenios transformativos y descuentos de APC",
+      "responsable": "Carlos",
+      "fecha_limite": "2026-11-11",
+      "evidencia": {
+        "segmento_ids": [
+          31
+        ],
+        "inicio_s": 257.0,
+        "cita": "Consultaré mañana con la oficina del Sistema de Bibliotecas para confirmar si aplican descuentos de APC."
+      }
+    },
+    {
+      "descripcion": "Elaborar guion y grabar video demostrativo de 90 segundos en el celular",
+      "responsable": "Andrea",
+      "fecha_limite": "2026-11-17",
+      "evidencia": {
+        "segmento_ids": [
+          34
+        ],
+        "inicio_s": 286.0,
+        "cita": "Andrea preparará el guion y grabará la demo del aplicativo en celular el próximo martes."
+      }
+    }
+  ],
+  "pendientes": [
+    {
+      "descripcion": "Confirmar convenios transformativos universitarios con publishers Elsevier e IEEE",
+      "evidencia": {
+        "segmento_ids": [
+          30
+        ],
+        "inicio_s": 247.0,
+        "cita": "¿la universidad cuenta con convenio transformativo con Elsevier o IEEE?"
+      }
+    },
+    {
+      "descripcion": "Definir inclusión de video demostrativo como material suplementario del paper",
+      "evidencia": {
+        "segmento_ids": [
+          32
+        ],
+        "inicio_s": 266.0,
+        "cita": "definir es si incluiremos el video demostrativo de un minuto como material complementario."
+      }
+    }
+  ],
+  "mapa": {
+    "titulo": "Plan de Acción Minuta",
+    "raiz": {
+      "id": "root",
+      "titulo": "Plan de Acción Minuta",
+      "resumen": null,
+      "evidencia": null,
+      "hijos": [
+        {
+          "id": "nodo_tecnico",
+          "titulo": "Desarrollo y ML",
+          "resumen": "Entrenamiento y validación de componentes de IA",
+          "evidencia": {
+            "segmento_ids": [
+              4
+            ],
+            "inicio_s": 22.0,
+            "cita": "fine-tuning de mmBERT-small para clasificar segmentos de audio"
+          },
+          "hijos": [
+            {
+              "id": "nodo_dataset",
+              "titulo": "Publicación en Hugging Face",
+              "resumen": "Apertura del dataset curado",
+              "evidencia": {
+                "segmento_ids": [
+                  7
+                ],
+                "inicio_s": 45.0,
+                "cita": "subirlos como dataset a Hugging Face."
+              },
+              "hijos": []
+            }
+          ]
+        },
+        {
+          "id": "nodo_publicacion",
+          "titulo": "Manuscrito Académico",
+          "resumen": "Preparación del submission a IEEE",
+          "evidencia": {
+            "segmento_ids": [
+              20
+            ],
+            "inicio_s": 156.0,
+            "cita": "revista IEEE Transactions on Learning Technologies"
+          },
+          "hijos": [
+            {
+              "id": "nodo_financiamiento_apc",
+              "titulo": "Financiamiento APC",
+              "resumen": "Uso de remanente del grant",
+              "evidencia": {
+                "segmento_ids": [
+                  28
+                ],
+                "inicio_s": 229.0,
+                "cita": "destinar el saldo restante del grant a cubrir los costos de publicación APC"
+              },
+              "hijos": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "descartados": 0,
+  "modo": "solo_llm"
+}

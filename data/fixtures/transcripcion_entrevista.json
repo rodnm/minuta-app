@@ -1,0 +1,259 @@
+{
+  "audio_id": "entrevista_profesor_mendoza_001",
+  "duracion_s": 398.0,
+  "modelo": "small",
+  "glosario": [
+    "journal",
+    "paper",
+    "grant",
+    "Plaud",
+    "peer review",
+    "Scopus",
+    "APC",
+    "preprint",
+    "deadline",
+    "SSRN"
+  ],
+  "segmentos": [
+    {
+      "id": 1,
+      "inicio_s": 0.0,
+      "fin_s": 7.0,
+      "texto": "Buenos días profesor Mendoza, le agradezco su tiempo para esta entrevista sobre prácticas de investigación académica."
+    },
+    {
+      "id": 2,
+      "inicio_s": 7.0,
+      "fin_s": 16.0,
+      "texto": "Quisiera comenzar preguntándole: ¿cuántas horas a la semana logra dedicar efectivamente a la redacción de papers?"
+    },
+    {
+      "id": 3,
+      "inicio_s": 16.0,
+      "fin_s": 25.0,
+      "texto": "La verdad es que la carga docente y administrativa nos absorbe casi todo el día laboral regular."
+    },
+    {
+      "id": 4,
+      "inicio_s": 25.0,
+      "fin_s": 34.0,
+      "texto": "Suelo escribir los fines de semana o por las noches, lo que genera un desgaste y cansancio considerable."
+    },
+    {
+      "id": 5,
+      "inicio_s": 34.0,
+      "fin_s": 44.0,
+      "texto": "La falta de tiempo protegido para investigar es la principal barrera que enfrentamos los profesores universitarios."
+    },
+    {
+      "id": 6,
+      "inicio_s": 44.0,
+      "fin_s": 54.0,
+      "texto": "Incluso cuando tenemos un grant aprobado, la burocracia para justificar cada comprobante retrasa el trabajo de campo."
+    },
+    {
+      "id": 7,
+      "inicio_s": 54.0,
+      "fin_s": 63.0,
+      "texto": "¿Cómo ha sido su experiencia utilizando herramientas de inteligencia artificial generativa en su labor investigativa?"
+    },
+    {
+      "id": 8,
+      "inicio_s": 63.0,
+      "fin_s": 73.0,
+      "texto": "Empecé utilizando asistentes de lenguaje principalmente para pulir el estilo y la gramática inglesa de los manuscritos."
+    },
+    {
+      "id": 9,
+      "inicio_s": 73.0,
+      "fin_s": 83.0,
+      "texto": "Para los investigadores hispanohablantes, redactar en inglés para un journal Q1 siempre ha representado una barrera lingüística."
+    },
+    {
+      "id": 10,
+      "inicio_s": 83.0,
+      "fin_s": 92.0,
+      "texto": "Las herramientas actuales ayudan mucho a que el texto suene natural y cumpla con los estándares académicos exigidos."
+    },
+    {
+      "id": 11,
+      "inicio_s": 92.0,
+      "fin_s": 102.0,
+      "texto": "Sin embargo, soy muy cauteloso con el análisis de datos; no permito que la IA invente interpretaciones ni referencias."
+    },
+    {
+      "id": 12,
+      "inicio_s": 102.0,
+      "fin_s": 111.0,
+      "texto": "¿Ha probado sistemas que graben reuniones o ponencias y generen resúmenes automáticos o mapas conceptuales?"
+    },
+    {
+      "id": 13,
+      "inicio_s": 111.0,
+      "fin_s": 120.0,
+      "texto": "He grabado varias clases magistrales y conferencias con la grabadora de voz de mi teléfono móvil."
+    },
+    {
+      "id": 14,
+      "inicio_s": 120.0,
+      "fin_s": 130.0,
+      "texto": "El gran problema es que después nadie tiene cuatro horas libres para volver a escuchar el audio completo y tomar notas."
+    },
+    {
+      "id": 15,
+      "inicio_s": 130.0,
+      "fin_s": 141.0,
+      "texto": "Si tuviera una aplicación que me estructure un mapa mental interactivo con el minuto exacto de cada idea, sería sumamente útil."
+    },
+    {
+      "id": 16,
+      "inicio_s": 141.0,
+      "fin_s": 151.0,
+      "texto": "Me permitiría repasar rápidamente los argumentos centrales de la ponencia y citar con precisión en mis propios artículos."
+    },
+    {
+      "id": 17,
+      "inicio_s": 151.0,
+      "fin_s": 161.0,
+      "texto": "Hablemos de los procesos de evaluación por pares. ¿Cuál es su percepción sobre el sistema actual de peer review?"
+    },
+    {
+      "id": 18,
+      "inicio_s": 161.0,
+      "fin_s": 172.0,
+      "texto": "El arbitraje ciego es fundamental para garantizar la calidad científica, pero los tiempos de espera se han vuelto excesivos."
+    },
+    {
+      "id": 19,
+      "inicio_s": 172.0,
+      "fin_s": 181.0,
+      "texto": "He tenido manuscritos esperando dictamen durante más de nueve meses en revistas indexadas en Scopus."
+    },
+    {
+      "id": 20,
+      "inicio_s": 181.0,
+      "fin_s": 190.0,
+      "texto": "Muchas veces los revisores no leen a fondo la propuesta y hacen sugerencias contradictorias entre sí."
+    },
+    {
+      "id": 21,
+      "inicio_s": 190.0,
+      "fin_s": 201.0,
+      "texto": "Responder a un dictamen de Major Revision exige elaborar response letters de diez a quince páginas bien sustentadas."
+    },
+    {
+      "id": 22,
+      "inicio_s": 201.0,
+      "fin_s": 212.0,
+      "texto": "A pesar de la frustración, reconozco que la crítica constructiva de revisores rigurosos fortalece enormemente el paper final."
+    },
+    {
+      "id": 23,
+      "inicio_s": 212.0,
+      "fin_s": 222.0,
+      "texto": "¿Qué opina sobre los costos de publicación bajo el modelo Open Access y el pago de Article Processing Charges?"
+    },
+    {
+      "id": 24,
+      "inicio_s": 222.0,
+      "fin_s": 232.0,
+      "texto": "El cobro de APC se ha disparado a cifras astronómicas, alcanzando hasta dos mil o tres mil dólares por artículo."
+    },
+    {
+      "id": 25,
+      "inicio_s": 232.0,
+      "fin_s": 243.0,
+      "texto": "Para los grupos de investigación de América Latina, esos montos resultan prohibitivos si no se cuenta con financiamiento externo."
+    },
+    {
+      "id": 26,
+      "inicio_s": 243.0,
+      "fin_s": 253.0,
+      "texto": "Terminamos buscando revistas que no cobren cargos de publicación, aunque tengan plazos de revisión más prolongados."
+    },
+    {
+      "id": 27,
+      "inicio_s": 253.0,
+      "fin_s": 264.0,
+      "texto": "Las universidades deberían promover más convenios institucionales para eximir a los investigadores de esas tarifas tan elevadas."
+    },
+    {
+      "id": 28,
+      "inicio_s": 264.0,
+      "fin_s": 274.0,
+      "texto": "¿Suele compartir sus borradores en formato de preprint antes del envío definitivo a una revista?"
+    },
+    {
+      "id": 29,
+      "inicio_s": 274.0,
+      "fin_s": 284.0,
+      "texto": "Últimamente sí estamos subiendo versiones preliminares a repositorios como SSRN y ResearchGate para proteger la autoría."
+    },
+    {
+      "id": 30,
+      "inicio_s": 284.0,
+      "fin_s": 294.0,
+      "texto": "Nos ha permitido recibir observaciones valiosas de colegas del extranjero antes de enfrentar el arbitraje formal."
+    },
+    {
+      "id": 31,
+      "inicio_s": 294.0,
+      "fin_s": 304.0,
+      "texto": "Además ayuda a que las citas empiecen a acumularse incluso antes de la publicación definitiva en el journal."
+    },
+    {
+      "id": 32,
+      "inicio_s": 304.0,
+      "fin_s": 314.0,
+      "texto": "En cuanto al trabajo en equipo, ¿cómo organiza la división de tareas con sus coautores y asistentes de investigación?"
+    },
+    {
+      "id": 33,
+      "inicio_s": 314.0,
+      "fin_s": 324.0,
+      "texto": "Suelo fijar deadlines estrictos para la entrega de cada sección y realizamos reuniones quincenales de control."
+    },
+    {
+      "id": 34,
+      "inicio_s": 324.0,
+      "fin_s": 335.0,
+      "texto": "Los asistentes de investigación apoyan con la sistematización de la literatura previa y el formateo de referencias bibliográficas."
+    },
+    {
+      "id": 35,
+      "inicio_s": 335.0,
+      "fin_s": 346.0,
+      "texto": "¿Estaría dispuesto a pagar una suscripción mensual por un software en el smartphone que automatice minutas académicas?"
+    },
+    {
+      "id": 36,
+      "inicio_s": 346.0,
+      "fin_s": 357.0,
+      "texto": "Sí, si el costo es accesible, digamos entre diez y veinte dólares al mes, pagaría con gusto con fondos de mi proyecto."
+    },
+    {
+      "id": 37,
+      "inicio_s": 357.0,
+      "fin_s": 368.0,
+      "texto": "Lo que jamás compraría es un dispositivo de hardware exclusivo como Plaud que cueste más de ciento cincuenta dólares."
+    },
+    {
+      "id": 38,
+      "inicio_s": 368.0,
+      "fin_s": 378.0,
+      "texto": "Prefiero mil veces utilizar mi propio teléfono inteligente que siempre llevo conmigo a clases y congresos."
+    },
+    {
+      "id": 39,
+      "inicio_s": 378.0,
+      "fin_s": 388.0,
+      "texto": "Ha sido una conversación sumamente enriquecedora, profesor Mendoza. Le agradezco enormemente sus valiosos testimonios."
+    },
+    {
+      "id": 40,
+      "inicio_s": 388.0,
+      "fin_s": 398.0,
+      "texto": "Ha sido un placer, espero que los resultados de su estudio ayuden a mejorar las condiciones para los investigadores."
+    }
+  ]
+}

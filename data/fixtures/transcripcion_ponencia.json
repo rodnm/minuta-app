@@ -1,0 +1,258 @@
+{
+  "audio_id": "ponencia_investigacion_001",
+  "duracion_s": 600.0,
+  "modelo": "small",
+  "glosario": [
+    "journal",
+    "Scopus",
+    "peer review",
+    "preprint",
+    "grant",
+    "APC",
+    "deadline",
+    "paper",
+    "publisher"
+  ],
+  "segmentos": [
+    {
+      "id": 1,
+      "inicio_s": 0.0,
+      "fin_s": 15.0,
+      "texto": "Buenas tardes a todos los docentes e investigadores presentes en este seminario internacional."
+    },
+    {
+      "id": 2,
+      "inicio_s": 15.0,
+      "fin_s": 30.0,
+      "texto": "Hoy abordaremos las estrategias para publicar en un journal indexado en Scopus y Web of Science."
+    },
+    {
+      "id": 3,
+      "inicio_s": 30.0,
+      "fin_s": 45.0,
+      "texto": "Muchos investigadores enfrentan dificultades cuando envían su primer draft a una revista de alto impacto."
+    },
+    {
+      "id": 4,
+      "inicio_s": 45.0,
+      "fin_s": 60.0,
+      "texto": "El primer filtro suele ser el editor jefe o Desk Reject, donde se descartan manuscritos fuera del scope."
+    },
+    {
+      "id": 5,
+      "inicio_s": 60.0,
+      "fin_s": 75.0,
+      "texto": "Por eso es crucial leer detenidamente la guía para autores y el call for papers correspondiente."
+    },
+    {
+      "id": 6,
+      "inicio_s": 75.0,
+      "fin_s": 90.0,
+      "texto": "Una vez superado el desk review, el manuscrito pasa a la fase formal de peer review con revisores ciegos."
+    },
+    {
+      "id": 7,
+      "inicio_s": 90.0,
+      "fin_s": 105.0,
+      "texto": "Los revisores suelen emitir tres dictámenes posibles: Major Revision, Minor Revision o rechazo definitivo."
+    },
+    {
+      "id": 8,
+      "inicio_s": 105.0,
+      "fin_s": 120.0,
+      "texto": "No deben desanimarse ante un Major Revision, ya que representa una oportunidad valiosa para mejorar el paper."
+    },
+    {
+      "id": 9,
+      "inicio_s": 120.0,
+      "fin_s": 135.0,
+      "texto": "Es fundamental responder punto por punto a los comentarios en la response letter con un tono muy respetuoso."
+    },
+    {
+      "id": 10,
+      "inicio_s": 135.0,
+      "fin_s": 150.0,
+      "texto": "Pasemos ahora a la sección de reproducibilidad y apertura científica en la investigación actual."
+    },
+    {
+      "id": 11,
+      "inicio_s": 150.0,
+      "fin_s": 165.0,
+      "texto": "Subir un preprint a repositorios como arXiv o SSRN permite recibir feedback temprano de la comunidad académica."
+    },
+    {
+      "id": 12,
+      "inicio_s": 165.0,
+      "fin_s": 180.0,
+      "texto": "Además, compartir los datos abiertos y el código en GitHub o Zenodo incrementa notablemente la citation rate."
+    },
+    {
+      "id": 13,
+      "inicio_s": 180.0,
+      "fin_s": 195.0,
+      "texto": "Hablemos de las modalidades de publicación: Open Access dorado versus publicación tradicional sin costo para el autor."
+    },
+    {
+      "id": 14,
+      "inicio_s": 195.0,
+      "fin_s": 210.0,
+      "texto": "El Open Access ofrece mayor visibilidad global, pero exige el pago de un Article Processing Charge o APC."
+    },
+    {
+      "id": 15,
+      "inicio_s": 210.0,
+      "fin_s": 225.0,
+      "texto": "Muchas universidades financian estos APC a través de fondos institucionales o convenios transformativos con publishers."
+    },
+    {
+      "id": 16,
+      "inicio_s": 225.0,
+      "fin_s": 240.0,
+      "texto": "En cuanto al financiamiento, postular a un grant competitivo requiere una formulación rigurosa del problema."
+    },
+    {
+      "id": 17,
+      "inicio_s": 240.0,
+      "fin_s": 255.0,
+      "texto": "Las agencias financiadoras como Concytec o programas internacionales valoran la colaboración interdisciplinaria."
+    },
+    {
+      "id": 18,
+      "inicio_s": 255.0,
+      "fin_s": 270.0,
+      "texto": "Siempre deben planificar el cronograma del grant respetando estrictamente el deadline fijado en las bases."
+    },
+    {
+      "id": 19,
+      "inicio_s": 270.0,
+      "fin_s": 285.0,
+      "texto": "Un error común es descuidar la justificación presupuestal de los equipos y las salidas de campo."
+    },
+    {
+      "id": 20,
+      "inicio_s": 285.0,
+      "fin_s": 300.0,
+      "texto": "Recuerden asignar fondos para la contratación de research assistants que apoyen en la recolección de datos."
+    },
+    {
+      "id": 21,
+      "inicio_s": 300.0,
+      "fin_s": 315.0,
+      "texto": "Respecto a la metodología, el diseño experimental debe contemplar pruebas de robustez estadística."
+    },
+    {
+      "id": 22,
+      "inicio_s": 315.0,
+      "fin_s": 330.0,
+      "texto": "Si aplican encuestas o entrevistas cualitativas, el consentimiento informado y el comité de ética son obligatorios."
+    },
+    {
+      "id": 23,
+      "inicio_s": 330.0,
+      "fin_s": 345.0,
+      "texto": "En ciencias sociales y economía, el análisis de datos con modelos econométricos o machine learning está en auge."
+    },
+    {
+      "id": 24,
+      "inicio_s": 345.0,
+      "fin_s": 360.0,
+      "texto": "Los evaluadores exigen hoy en día el código limpio en Python o R para garantizar la replicabilidad del estudio."
+    },
+    {
+      "id": 25,
+      "inicio_s": 360.0,
+      "fin_s": 375.0,
+      "texto": "Si el código no corre o faltan dependencias, el paper corre serio riesgo de ser cuestionado en la segunda ronda."
+    },
+    {
+      "id": 26,
+      "inicio_s": 375.0,
+      "fin_s": 390.0,
+      "texto": "Por otro lado, la discusión debe contrastar los hallazgos con la literatura previa más citada del área."
+    },
+    {
+      "id": 27,
+      "inicio_s": 390.0,
+      "fin_s": 405.0,
+      "texto": "No basta con describir gráficos; hay que explicar el mecanismo causal que subyace a las correlaciones halladas."
+    },
+    {
+      "id": 28,
+      "inicio_s": 405.0,
+      "fin_s": 420.0,
+      "texto": "Las conclusiones deben destacar las implicancias de política pública y las limitaciones honestas del estudio."
+    },
+    {
+      "id": 29,
+      "inicio_s": 420.0,
+      "fin_s": 435.0,
+      "texto": "Un buen abstract de 200 palabras y un título atractivo son la puerta de entrada para los lectores del journal."
+    },
+    {
+      "id": 30,
+      "inicio_s": 435.0,
+      "fin_s": 450.0,
+      "texto": "Eviten títulos excesivamente técnicos o aburridos que no despierten el interés de la comunidad científica."
+    },
+    {
+      "id": 31,
+      "inicio_s": 450.0,
+      "fin_s": 465.0,
+      "texto": "Ahora abriremos el espacio para preguntas de la audiencia antes de pasar al taller práctico de redacción."
+    },
+    {
+      "id": 32,
+      "inicio_s": 465.0,
+      "fin_s": 480.0,
+      "texto": "¿Qué criterios recomiendan para seleccionar entre un journal Q1 con APC alto y un journal Q2 sin cobro?"
+    },
+    {
+      "id": 33,
+      "inicio_s": 480.0,
+      "fin_s": 495.0,
+      "texto": "¿Cómo podemos saber si una revista invitada por correo electrónico califica como publisher predatorio?"
+    },
+    {
+      "id": 34,
+      "inicio_s": 495.0,
+      "fin_s": 510.0,
+      "texto": "Para identificar revistas predatorias, revisen las listas actualizadas de Beall y consulten directamente Scimago o JCR."
+    },
+    {
+      "id": 35,
+      "inicio_s": 510.0,
+      "fin_s": 525.0,
+      "texto": "¿Cuál es el tiempo promedio aceptable que debería demorar el primer dictamen de peer review?"
+    },
+    {
+      "id": 36,
+      "inicio_s": 525.0,
+      "fin_s": 540.0,
+      "texto": "Normalmente un primer dictamen tarda entre tres y seis meses, dependiendo del campo y la disponibilidad de revisores."
+    },
+    {
+      "id": 37,
+      "inicio_s": 540.0,
+      "fin_s": 555.0,
+      "texto": "Si pasan más de seis meses sin novedades, es prudente enviar un correo de consulta cortés al editor a cargo."
+    },
+    {
+      "id": 38,
+      "inicio_s": 555.0,
+      "fin_s": 570.0,
+      "texto": "Como recomendación final, organicen grupos de escritura entre colegas para realizar revisiones cruzadas previas al envío."
+    },
+    {
+      "id": 39,
+      "inicio_s": 570.0,
+      "fin_s": 585.0,
+      "texto": "Esto reduce sustancialmente los errores ortográficos y vacíos argumentativos antes de someter el manuscrito."
+    },
+    {
+      "id": 40,
+      "inicio_s": 585.0,
+      "fin_s": 600.0,
+      "texto": "Muchas gracias por su atención y mucho éxito en sus próximas publicaciones en journals de primer nivel."
+    }
+  ]
+}
