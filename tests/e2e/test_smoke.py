@@ -101,3 +101,20 @@ def test_smoke_cambio_plantilla_entrevista() -> None:
     at.selectbox[0].select("Entrevista").run()
     assert not at.exception, f"Excepción en plantilla Entrevista: {at.exception}"
     assert at.selectbox[0].value == "Entrevista"
+
+
+def test_smoke_botones_exportacion_disponibles() -> None:
+    """Verifica que los botones de exportación (Markdown, HTML, Word, Excel) se rendericen."""
+    at = AppTest.from_file(RUTA_APP)
+    at.run()
+    assert not at.exception
+
+    # Comprobar presencia de botones de descarga
+    botones_descarga = at.get("download_button")
+    assert len(botones_descarga) == 4, f"Se esperaban 4 botones de exportación, se hallaron {len(botones_descarga)}"
+    download_labels = [b.label for b in botones_descarga]
+    assert any("Markdown" in (lbl or "") for lbl in download_labels), "Falta botón de descarga Markdown"
+    assert any("HTML" in (lbl or "") for lbl in download_labels), "Falta botón de descarga HTML"
+    assert any("Word" in (lbl or "") for lbl in download_labels), "Falta botón de descarga Word"
+    assert any("Excel" in (lbl or "") for lbl in download_labels), "Falta botón de descarga Excel"
+

@@ -12,12 +12,15 @@ from __future__ import annotations
 
 import html
 import json
+import os
 from pathlib import Path
+import tempfile
 from typing import Any
 
 import streamlit as st
 import streamlit.components.v1 as components
 
+from minuta.detector import DetectorSegmentos
 from minuta.esquemas import (
     NodoMapa,
     MapaMental,
@@ -26,6 +29,15 @@ from minuta.esquemas import (
     ResultadoEntrevista,
     Transcripcion,
 )
+from minuta.estructurar import estructurar_transcripcion, TipoPlantilla
+from minuta.exportar import (
+    exportar_docx,
+    exportar_mapa_html,
+    exportar_markdown,
+    exportar_xlsx,
+)
+from minuta.proveedores import ProveedorGemini, ProveedorMock, ProveedorOllama, ProveedorLLM
+from minuta.transcribir import transcribir_audio
 
 # Versión exacta y verificada de markmap-autoloader en CDN jsDelivr
 VERSION_MARKMAP_CDN = "0.17.2"
@@ -329,11 +341,34 @@ def main() -> None:
             help="Carga fixtures locales instantáneamente sin llamar a modelos ni consumir cuota.",
         )
 
+        proveedor_seleccionado = st.selectbox(
+            "Proveedor de IA para estructuración:",
+            options=["Gemini 3.8 Flash (Nube)", "Ollama local (qwen3:4b)"],
+            index=0,
+            help="Selecciona el motor de lenguaje para estructurar el resumen y mapa mental.",
+        )
+        modo_analisis = st.radio(
+            "Modo de análisis:",
+            options=["detector", "solo_llm"],
+            index=0,
+            format_func=lambda m: "Detector mmBERT + LLM (Ahorro de tokens)" if m == "detector" else "Solo LLM directo",
+            help="El detector filtra relleno acústico y prioriza tareas antes de consultar al LLM.",
+        )
+        modelo_whisper = st.selectbox(
+            "Modelo de transcripción Whisper:",
+            options=["small", "base"],
+            index=0,
+            help="small para mayor fidelidad acústica en laptop; base para bajo consumo de memoria.",
+        )
+
     # Si no está en el expander, se muestra la plantilla seleccionada actualmente
     if "plantilla" not in locals():
         plantilla = "Ponencia / Clase / Charla"
     if "modo_demo" not in locals():
         modo_demo = True
+
+    # Clave de plantilla normalizada
+    clave_slug: str = "ponencia" if plantilla == "Ponencia / Clase / Charla" else ("reunion" if plantilla == "Reunión" else "entrevista")
 
     # 3. Carga de audio
     st.subheader("1. Audio de la sesión")
@@ -368,8 +403,71 @@ def main() -> None:
         if fuente_audio is None:
             st.warning("👈 Por favor sube un archivo de audio o activa el Modo Demo para ver un ejemplo inmediato.")
             return
-        st.info("Para procesar un audio nuevo se requiere el backend de transcripción y estructuración.")
-        return
+
+        boton_procesar = st.button("🚀 Procesar Audio con Minuta", type="primary")
+        if boton_procesar:
+            with st.status("Procesando audio con Minuta...", expanded=True) as status_box:
+                st.write("🎙️ 1/3: Transcribiendo audio con faster-whisper...")
+                nombre_archivo = getattr(fuente_audio, "name", "audio.m4a")
+                sufijo = Path(nombre_archivo).suffix or ".m4a"
+                with tempfile.NamedTemporaryFile(suffix=sufijo, delete=False) as tmp_file:
+                    tmp_file.write(fuente_audio.getvalue())
+                    tmp_path = tmp_file.name
+
+                try:
+                    glosario_lista = [t.strip() for t in glosario_texto.split(",") if t.strip()]
+                    transcripcion = transcribir_audio(
+                        tmp_path,
+                        modelo=modelo_whisper,
+                        glosario_adicional=glosario_lista,
+                    )
+                finally:
+                    if os.path.exists(tmp_path):
+                        try:
+                            os.unlink(tmp_path)
+                        except Exception:
+                            pass
+
+                st.write("🧠 2/3: Clasificando y filtrando segmentos con mmBERT...")
+                detector = DetectorSegmentos() if modo_analisis == "detector" else None
+
+                st.write("✨ 3/3: Estructurando mapa mental, resumen y to-dos con IA...")
+                clave_plantilla: TipoPlantilla = clave_slug  # type: ignore
+
+                proveedor: ProveedorLLM
+                if "Gemini" in proveedor_seleccionado:
+                    api_key = os.getenv("GEMINI_API_KEY")
+                    if not api_key:
+                        try:
+                            api_key = st.secrets.get("GEMINI_API_KEY")
+                        except Exception:
+                            api_key = None
+                    if api_key:
+                        proveedor = ProveedorGemini(api_key=api_key)
+                    else:
+                        st.warning("GEMINI_API_KEY no detectada. Empleando proveedor de demostración offline.")
+                        proveedor = ProveedorMock()
+                else:
+                    proveedor = ProveedorOllama()
+
+                resultado = estructurar_transcripcion(
+                    transcripcion=transcripcion,
+                    tipo_plantilla=clave_plantilla,
+                    proveedor=proveedor,
+                    modo=modo_analisis,
+                    detector=detector,
+                )
+
+                st.session_state["resultado_procesado"] = resultado
+                st.session_state["transcripcion_procesada"] = transcripcion
+                status_box.update(label="¡Procesamiento completado con éxito!", state="complete", expanded=False)
+
+        if "resultado_procesado" in st.session_state and fuente_audio is not None:
+            resultado = st.session_state["resultado_procesado"]
+            transcripcion = st.session_state.get("transcripcion_procesada")
+        elif not boton_procesar:
+            st.info("Presiona **🚀 Procesar Audio con Minuta** para iniciar la transcripción y estructuración.")
+            return
 
     if resultado is None:
         return
@@ -587,6 +685,64 @@ def main() -> None:
                 st.write("")
         else:
             st.info("No hay transcripción disponible para esta visualización.")
+
+    # 7. Sección de Exportación (T14 / S2)
+    st.divider()
+    st.subheader("4. Exportar Minuta")
+    st.caption("Descarga tus notas, mapa mental interactivo o listas de tareas en el formato que prefieras:")
+
+    col_md, col_html, col_docx, col_xlsx = st.columns(4)
+    with col_md:
+        try:
+            datos_md = exportar_markdown(resultado)
+            st.download_button(
+                "📄 Markdown (.md)",
+                data=datos_md,
+                file_name=f"minuta_{clave_slug}.md",
+                mime="text/markdown",
+                use_container_width=True,
+            )
+        except Exception as err:
+            st.caption(f"Error MD: {err}")
+
+    with col_html:
+        try:
+            datos_html = exportar_mapa_html(resultado.mapa, titulo=f"Minuta - {resultado.mapa.titulo}")
+            st.download_button(
+                "🌐 Mapa HTML (.html)",
+                data=datos_html,
+                file_name=f"mapa_{clave_slug}.html",
+                mime="text/html",
+                use_container_width=True,
+            )
+        except Exception as err:
+            st.caption(f"Error HTML: {err}")
+
+    with col_docx:
+        try:
+            datos_docx = exportar_docx(resultado)
+            st.download_button(
+                "📝 Word (.docx)",
+                data=datos_docx,
+                file_name=f"minuta_{clave_slug}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True,
+            )
+        except Exception as err:
+            st.caption(f"Error Word: {err}")
+
+    with col_xlsx:
+        try:
+            datos_xlsx = exportar_xlsx(resultado)
+            st.download_button(
+                "📊 Excel (.xlsx)",
+                data=datos_xlsx,
+                file_name=f"minuta_{clave_slug}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
+        except Exception as err:
+            st.caption(f"Error Excel: {err}")
 
 
 if __name__ == "__main__":
