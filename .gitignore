@@ -1,0 +1,30 @@
+# Entorno virtual y dependencias
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Variables de entorno y secretos
+.env
+.streamlit/secrets.toml
+
+# Datos privados y modelos locales (no se versionan)
+data/privado/
+modelos/
+*.ckpt
+*.safetensors
+
+# Todo archivo de audio (L21 - ningún audio se versiona ni se publica)
+*.m4a
+*.mp3
+*.wav
+*.ogg
+*.webm
+*.aac
