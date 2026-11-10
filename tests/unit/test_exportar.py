@@ -113,7 +113,7 @@ def test_exportar_markdown_ponencia(ponencia_fixture: ResultadoPonencia):
 
     md = exportar_markdown(ponencia_fixture)
     assert isinstance(md, str)
-    assert "# Minuta: Ponencia / Clase / Charla" in md
+    assert "# Minuta: Notas de clase (Ponencia / Charla)" in md
     assert "## Resumen General" in md
     assert ponencia_fixture.resumen_general in md
     assert "## Ideas Clave" in md
@@ -128,11 +128,12 @@ def test_exportar_markdown_reunion(reunion_fixture: ResultadoReunion):
     from minuta.exportar import exportar_markdown
 
     md = exportar_markdown(reunion_fixture)
-    assert "# Minuta: Reunión de Trabajo" in md
+    assert "# Minuta: Notas de reunión" in md
     assert "## Resumen General" in md
     assert "## Tareas y To-Do" in md or "## Tareas" in md
     assert "## Acuerdos" in md
-    assert "## Mapa Mental" in md
+    # En plantilla Reunión: NO debe incluir mapa mental (L45)
+    assert "## Mapa Mental" not in md
     assert "Andrea" in md
     assert "Carlos" in md
     assert "mmBERT-small" in md
@@ -142,13 +143,42 @@ def test_exportar_markdown_entrevista(entrevista_fixture: ResultadoEntrevista):
     from minuta.exportar import exportar_markdown
 
     md = exportar_markdown(entrevista_fixture)
-    assert "# Minuta: Entrevista de Investigación" in md
+    assert "# Minuta: Esquema por temas" in md
+    assert "## Esquema por Temas" in md
     assert "## Libro de Códigos" in md
     assert "BARR_TIEMPO" in md
     assert "USO_IA" in md
     assert "## Resumen por Código" in md
     assert "## Fragmentos Codificados" in md
-    assert "## Mapa Mental" in md
+    # En plantilla Entrevista: NO debe incluir componente ni encabezado de mapa mental (L45)
+    assert "## Mapa Mental" not in md
+
+
+def test_exportar_markdown_con_transcripcion(ponencia_fixture: ResultadoPonencia):
+    from minuta.exportar import exportar_markdown
+    from minuta.esquemas import Transcripcion
+
+    ruta_trans = FIXTURES_DIR / "transcripcion_ponencia.json"
+    with open(ruta_trans, "r", encoding="utf-8") as f:
+        trans = Transcripcion.model_validate(json.load(f))
+
+    md = exportar_markdown(ponencia_fixture, transcripcion=trans)
+    assert "## Transcripción Completa" in md
+    assert "[00:00 → 00:05]" in md or "00:00" in md
+
+
+def test_exportar_transcripcion_texto():
+    from minuta.exportar import exportar_transcripcion_texto
+    from minuta.esquemas import Transcripcion
+
+    ruta_trans = FIXTURES_DIR / "transcripcion_ponencia.json"
+    with open(ruta_trans, "r", encoding="utf-8") as f:
+        trans = Transcripcion.model_validate(json.load(f))
+
+    texto = exportar_transcripcion_texto(trans)
+    assert "Transcripción Completa" in texto
+    assert trans.modelo in texto
+    assert "[00:00 → 00:05]" in texto or "00:00" in texto
 
 
 # ==============================================================================
@@ -172,6 +202,7 @@ def test_exportar_docx_reunion_bytes_y_archivo(reunion_fixture: ResultadoReunion
     texto_completo = " ".join(p.text for p in doc.paragraphs)
     assert "Reunión" in texto_completo
     assert "Resumen General" in texto_completo
+    assert "Estructura del Mapa Mental" not in texto_completo
 
     # Validar tablas
     assert len(doc.tables) >= 1
@@ -188,8 +219,9 @@ def test_exportar_docx_ponencia(ponencia_fixture: ResultadoPonencia):
 
     doc = docx.Document(io.BytesIO(docx_bytes))
     texto_completo = " ".join(p.text for p in doc.paragraphs)
-    assert "Ponencia" in texto_completo
+    assert "Notas de clase" in texto_completo or "Ponencia" in texto_completo
     assert "Ideas Clave" in texto_completo
+    assert "Estructura del Mapa Mental" in texto_completo
 
 
 def test_exportar_docx_entrevista(entrevista_fixture: ResultadoEntrevista):
@@ -201,8 +233,9 @@ def test_exportar_docx_entrevista(entrevista_fixture: ResultadoEntrevista):
 
     doc = docx.Document(io.BytesIO(docx_bytes))
     texto_completo = " ".join(p.text for p in doc.paragraphs)
-    assert "Entrevista" in texto_completo
-    assert "Libro de Códigos" in texto_completo or "Códigos" in texto_completo
+    assert "Esquema por temas" in texto_completo or "Entrevista" in texto_completo
+    assert "Esquema Jerárquico por Temas" in texto_completo
+    assert "Estructura del Mapa Mental" not in texto_completo
 
 
 # ==============================================================================

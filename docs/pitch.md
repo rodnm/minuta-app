@@ -37,11 +37,11 @@
 >
 > Aquí tenemos nuestra aplicación responsiva optimizada para celular. Subimos una grabación o activamos la demo precalculada de una ponencia académica.
 >
-> En segundos, Minuta genera cuatro salidas estructuradas:
-> 1. Primero, un **mapa mental interactivo con markmap.js**: cada nodo representa un concepto jerárquico. Y aquí está nuestro insight clave: **el mapa es verificable**. Cada nodo hijo incluye su minuto exacto y su cita textual literal. Como me dijo una de las personas entrevistadas: *'si estoy apurada voy momento exacto donde quiero escuchar nuevamente la explicación'*. Si pulso este botón `▶ [01:15]`, el reproductor salta automáticamente al segundo exacto donde se pronunció esa frase.
-> 2. Segundo, el **resumen ejecutivo** con ideas clave.
-> 3. Tercero, la lista de **acuerdos y to-dos con responsable**, respaldada por citas literales que nuestra validación matemática verifica que cada cita sea literal.
-> 4. Y cuarto, exportación directa en un clic a **Markdown, HTML autónomo, Microsoft Word y Excel**.
+> En segundos, Minuta genera el formato adecuado para cada grabación:
+> 1. Para ponencias y clases: **Notas de clase con mapa mental interactivo** en markmap.js. Cada nodo hijo incluye su minuto exacto y su cita textual literal. Como me dijo una de las personas entrevistadas: *'si estoy apurada voy momento exacto donde quiero escuchar nuevamente la explicación'*. Si pulso este botón `▶ [01:15]`, el reproductor salta automáticamente al segundo exacto donde se pronunció esa frase.
+> 2. Para reuniones: **Notas de reunión** con resumen, temas, acuerdos y **to-dos con responsable y fecha límite**, respaldados por citas verificadas (sin mapas mentales innecesarios).
+> 3. Para entrevistas: **Esquema por temas** estructurado en lista jerárquica con minuto y cita en cada punto, más libro de códigos.
+> 4. Y en todas las plantillas: la transcripción completa y exportación en un clic a **Markdown, Microsoft Word, Excel y texto plano**.
 >
 > Si la reunión es confidencial, Minuta cuenta con un modo local que corre con Whisper int8 y Ollama en la laptop sin que un solo byte salga de la máquina."*
 

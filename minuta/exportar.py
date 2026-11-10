@@ -32,6 +32,7 @@ from minuta.esquemas import (
     ResultadoEntrevista,
     MapaMental,
     NodoMapa,
+    Transcripcion,
 )
 
 VERSION_MARKMAP_CDN = "0.17.2"
@@ -45,6 +46,21 @@ def _segundos_a_tiempo(segundos: float) -> str:
     return f"[{minutos:02d}:{restantes:02d}]"
 
 
+def _formatear_arbol_como_esquema_md(nodo: NodoMapa, nivel: int = 0) -> list[str]:
+    """Formatea recursivamente un árbol de nodos como lista indentada con minutos y citas."""
+    lineas: list[str] = []
+    prefijo = "  " * nivel
+    tag = f" `{_segundos_a_tiempo(nodo.evidencia.inicio_s)}`" if nodo.evidencia else ""
+    lineas.append(f"{prefijo}- **{nodo.titulo}**{tag}")
+    if nodo.resumen:
+        lineas.append(f"{prefijo}  _{nodo.resumen}_")
+    if nodo.evidencia:
+        lineas.append(f"{prefijo}  > \"{nodo.evidencia.cita}\"")
+    for hijo in nodo.hijos:
+        lineas.extend(_formatear_arbol_como_esquema_md(hijo, nivel + 1))
+    return lineas
+
+
 # ==============================================================================
 # 1. EXPORTACIÓN A MARKDOWN
 # ==============================================================================
@@ -52,11 +68,13 @@ def _segundos_a_tiempo(segundos: float) -> str:
 
 def exportar_markdown(
     resultado: ResultadoPonencia | ResultadoReunion | ResultadoEntrevista,
+    transcripcion: Transcripcion | None = None,
 ) -> str:
-    """Genera un documento Markdown completo, elegante y bien estructurado.
+    """Genera un documento Markdown completo, elegante y bien estructurado según la plantilla.
 
     Args:
         resultado: Resultado estructurado de Ponencia, Reunión o Entrevista.
+        transcripcion: Transcripción completa opcional a anexar.
 
     Returns:
         Cadena de texto con el Markdown listo para ser compartido o guardado.
@@ -64,7 +82,7 @@ def exportar_markdown(
     lineas: list[str] = []
 
     if isinstance(resultado, ResultadoPonencia):
-        lineas.append("# Minuta: Ponencia / Clase / Charla")
+        lineas.append("# Minuta: Notas de clase (Ponencia / Charla)")
         lineas.append("")
         lineas.append(f"**Tema central:** {resultado.mapa.titulo}  ")
         lineas.append(f"**Modo de procesamiento:** `{resultado.modo}`  ")
@@ -101,8 +119,13 @@ def exportar_markdown(
         else:
             lineas.append("_No se registraron preguntas abiertas ni temas pendientes._\n")
 
+        lineas.append("## Mapa Mental")
+        lineas.append("")
+        lineas.append(resultado.mapa.to_markdown())
+        lineas.append("")
+
     elif isinstance(resultado, ResultadoReunion):
-        lineas.append("# Minuta: Reunión de Trabajo")
+        lineas.append("# Minuta: Notas de reunión")
         lineas.append("")
         lineas.append(f"**Tema central:** {resultado.mapa.titulo}  ")
         lineas.append(f"**Modo de procesamiento:** `{resultado.modo}`  ")
@@ -164,18 +187,12 @@ def exportar_markdown(
             lineas.append("_No quedaron preguntas pendientes de resolución._\n")
 
     elif isinstance(resultado, ResultadoEntrevista):
-        lineas.append("# Minuta: Entrevista de Investigación")
+        lineas.append("# Minuta: Esquema por temas (Entrevista / Conversación)")
         lineas.append("")
         lineas.append(f"**Tema central:** {resultado.mapa.titulo}  ")
         lineas.append(f"**Modo de procesamiento:** `{resultado.modo}`  ")
         if resultado.descartados > 0:
             lineas.append(f"**Segmentos descartados sin cita literal:** {resultado.descartados}  ")
-        lineas.append("")
-
-        lineas.append("## Libro de Códigos")
-        lineas.append("")
-        for cod in resultado.libro:
-            lineas.append(f"- **`{cod.codigo}`**: {cod.descripcion}")
         lineas.append("")
 
         lineas.append("## Resumen por Código")
@@ -184,6 +201,17 @@ def exportar_markdown(
             lineas.append(f"### Código: {codigo}")
             lineas.append(texto)
             lineas.append("")
+
+        lineas.append("## Esquema por Temas")
+        lineas.append("")
+        lineas.extend(_formatear_arbol_como_esquema_md(resultado.mapa.raiz))
+        lineas.append("")
+
+        lineas.append("## Libro de Códigos")
+        lineas.append("")
+        for cod in resultado.libro:
+            lineas.append(f"- **`{cod.codigo}`**: {cod.descripcion}")
+        lineas.append("")
 
         lineas.append("## Fragmentos Codificados")
         lineas.append("")
@@ -194,11 +222,13 @@ def exportar_markdown(
             lineas.append(f"  > {tag} \"{f.evidencia.cita}\"")
         lineas.append("")
 
-    # Sección final común: Mapa Mental jerárquico
-    lineas.append("## Mapa Mental")
-    lineas.append("")
-    lineas.append(resultado.mapa.to_markdown())
-    lineas.append("")
+    if transcripcion is not None:
+        lineas.append("## Transcripción Completa")
+        lineas.append("")
+        for seg in transcripcion.segmentos:
+            tag = f"[{_segundos_a_tiempo(seg.inicio_s)} → {_segundos_a_tiempo(seg.fin_s)}]"
+            lineas.append(f"- **{tag}** {seg.texto}")
+        lineas.append("")
 
     return "\n".join(lineas)
 
@@ -357,17 +387,23 @@ def _formatear_parrafo_evidencia(p: Any, tiempo_str: str, cita: str) -> None:
 
 def exportar_docx(
     resultado: ResultadoPonencia | ResultadoReunion | ResultadoEntrevista,
+    transcripcion: Transcripcion | None = None,
     ruta_salida: str | Path | None = None,
 ) -> bytes:
-    """Genera un documento Microsoft Word (.docx) profesional y estilizado.
+    """Genera un documento Microsoft Word (.docx) profesional y estilizado según la plantilla.
 
     Args:
         resultado: Estructuración de Ponencia, Reunión o Entrevista.
+        transcripcion: Transcripción completa opcional a anexar.
         ruta_salida: Ruta opcional donde guardar el archivo en disco.
 
     Returns:
         Bytes correspondientes al archivo binario .docx.
     """
+    if isinstance(transcripcion, (str, Path)):
+        ruta_salida = transcripcion
+        transcripcion = None
+
     doc = docx.Document()
 
     # Configuración de márgenes
@@ -379,11 +415,11 @@ def exportar_docx(
 
     # Encabezado principal
     if isinstance(resultado, ResultadoPonencia):
-        nombre_tipo = "Ponencia / Clase / Charla"
+        nombre_tipo = "Notas de clase (Ponencia / Charla)"
     elif isinstance(resultado, ResultadoReunion):
-        nombre_tipo = "Reunión de Trabajo"
+        nombre_tipo = "Notas de reunión"
     else:
-        nombre_tipo = "Entrevista de Investigación"
+        nombre_tipo = "Esquema por temas (Entrevista / Conversación)"
 
     h1 = doc.add_heading(f"Minuta: {nombre_tipo}", level=1)
     h1.alignment = WD_ALIGN_PARAGRAPH.LEFT
@@ -418,6 +454,36 @@ def exportar_docx(
                 _formatear_parrafo_evidencia(p_item, _segundos_a_tiempo(p.evidencia.inicio_s), p.evidencia.cita)
         else:
             doc.add_paragraph("No se registraron preguntas ni temas pendientes.")
+
+        # Sección: Mapa mental jerárquico solo para Ponencia / Clase
+        doc.add_heading("Estructura del Mapa Mental", level=2)
+
+        def _recorrer_nodo_docx(nodo: NodoMapa, nivel: int) -> None:
+            p_nodo = doc.add_paragraph()
+            p_nodo.paragraph_format.left_indent = Inches(0.2 * nivel)
+            tag = nodo.tiempo_tag()
+            tag_str = f" {tag}" if tag else ""
+            run_tit = p_nodo.add_run(f"{'• ' if nivel > 1 else '■ '}{nodo.titulo}{tag_str}")
+            if nivel == 1:
+                run_tit.bold = True
+                run_tit.font.size = Pt(13)
+            elif nivel == 2:
+                run_tit.bold = True
+                run_tit.font.size = Pt(11)
+            else:
+                run_tit.font.size = Pt(10.5)
+
+            if nodo.resumen:
+                p_res = doc.add_paragraph()
+                p_res.paragraph_format.left_indent = Inches(0.2 * nivel + 0.15)
+                r_r = p_res.add_run(nodo.resumen)
+                r_r.italic = True
+                r_r.font.size = Pt(10)
+
+            for hijo in nodo.hijos:
+                _recorrer_nodo_docx(hijo, nivel + 1)
+
+        _recorrer_nodo_docx(resultado.mapa.raiz, 1)
 
     elif isinstance(resultado, ResultadoReunion):
         # 1. Tabla de Tareas (To-Do)
@@ -503,6 +569,28 @@ def exportar_docx(
             doc.add_heading(f"Código [{cod}]", level=3)
             doc.add_paragraph(res_c)
 
+        # Esquema jerárquico por temas con indentación
+        doc.add_heading("Esquema Jerárquico por Temas", level=2)
+
+        def _recorrer_nodo_esquema_docx(nodo: NodoMapa, nivel: int) -> None:
+            p_nodo = doc.add_paragraph(style="List Bullet")
+            p_nodo.paragraph_format.left_indent = Inches(0.25 * max(1, nivel))
+            tag = nodo.tiempo_tag()
+            tag_str = f" {tag}" if tag else ""
+            run_tit = p_nodo.add_run(f"{nodo.titulo}{tag_str}")
+            run_tit.bold = True
+            if nodo.resumen:
+                p_nodo.add_run(f" — {nodo.resumen}")
+            if nodo.evidencia:
+                p_ev = doc.add_paragraph()
+                p_ev.paragraph_format.left_indent = Inches(0.25 * max(1, nivel) + 0.2)
+                _formatear_parrafo_evidencia(p_ev, _segundos_a_tiempo(nodo.evidencia.inicio_s), nodo.evidencia.cita)
+
+            for hijo in nodo.hijos:
+                _recorrer_nodo_esquema_docx(hijo, nivel + 1)
+
+        _recorrer_nodo_esquema_docx(resultado.mapa.raiz, 1)
+
         doc.add_heading("Fragmentos Codificados", level=2)
         for f in resultado.fragmentos:
             p_f = doc.add_paragraph(style="List Bullet")
@@ -514,35 +602,45 @@ def exportar_docx(
                 p_f.add_run("\n")
             _formatear_parrafo_evidencia(p_f, _segundos_a_tiempo(f.evidencia.inicio_s), f.evidencia.cita)
 
-    # Sección final: Mapa mental jerárquico
-    doc.add_heading("Estructura del Mapa Mental", level=2)
+    # Anexar transcripción si se proveyó
+    if transcripcion is not None:
+        doc.add_heading("Transcripción Completa", level=2)
+        for seg in transcripcion.segmentos:
+            p_seg = doc.add_paragraph()
+            p_seg.paragraph_format.space_after = Pt(3)
+            tag = f"[{_segundos_a_tiempo(seg.inicio_s)} → {_segundos_a_tiempo(seg.fin_s)}] "
+            r_tag = p_seg.add_run(tag)
+            r_tag.bold = True
+            r_tag.font.color.rgb = RGBColor(13, 110, 253)
+            p_seg.add_run(seg.texto)
 
-    def _recorrer_nodo_docx(nodo: NodoMapa, nivel: int) -> None:
-        p_nodo = doc.add_paragraph()
-        p_nodo.paragraph_format.left_indent = Inches(0.2 * nivel)
-        tag = nodo.tiempo_tag()
-        tag_str = f" {tag}" if tag else ""
-        run_tit = p_nodo.add_run(f"{'• ' if nivel > 1 else '■ '}{nodo.titulo}{tag_str}")
-        if nivel == 1:
-            run_tit.bold = True
-            run_tit.font.size = Pt(13)
-        elif nivel == 2:
-            run_tit.bold = True
-            run_tit.font.size = Pt(11)
-        else:
-            run_tit.font.size = Pt(10.5)
+    buffer = io.BytesIO()
+    doc.save(buffer)
+    docx_bytes = buffer.getvalue()
 
-        if nodo.resumen:
-            p_res = doc.add_paragraph()
-            p_res.paragraph_format.left_indent = Inches(0.2 * nivel + 0.15)
-            r_r = p_res.add_run(nodo.resumen)
-            r_r.italic = True
-            r_r.font.size = Pt(10)
+    # Guardar en disco si se proporcionó ruta
+    if ruta_salida is not None:
+        ruta_p = Path(ruta_salida)
+        ruta_p.parent.mkdir(parents=True, exist_ok=True)
+        ruta_p.write_bytes(docx_bytes)
 
-        for hijo in nodo.hijos:
-            _recorrer_nodo_docx(hijo, nivel + 1)
+    return docx_bytes
 
-    _recorrer_nodo_docx(resultado.mapa.raiz, 1)
+
+def exportar_transcripcion_texto(transcripcion: Transcripcion) -> str:
+    """Exporta la transcripción completa a texto plano formateado con marcas de tiempo."""
+    minutos = int(transcripcion.duracion_s // 60)
+    segundos = int(transcripcion.duracion_s % 60)
+    lineas = [
+        f"Transcripción Completa ({minutos:02d}:{segundos:02d})",
+        f"Modelo: {transcripcion.modelo} · Segmentos: {len(transcripcion.segmentos)}",
+        "=" * 60,
+        "",
+    ]
+    for seg in transcripcion.segmentos:
+        rango = f"[{_segundos_a_tiempo(seg.inicio_s)} → {_segundos_a_tiempo(seg.fin_s)}]"
+        lineas.append(f"{rango} {seg.texto}")
+    return "\n".join(lineas)
 
     buffer = io.BytesIO()
     doc.save(buffer)

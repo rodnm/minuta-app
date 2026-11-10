@@ -31,7 +31,12 @@ El proyecto nace de la vivencia directa de la pesada carga operativa que represe
 ## 4. Solución e Insight
 
 - **Captura con el celular que ya tienes:** Graba con la grabadora nativa de tu teléfono inteligente en modo avión y sube el archivo (`.m4a`, `.mp3`, `.wav`) directamente desde el navegador móvil.
-- **Mapa mental interactivo con markmap.js:** Visualización jerárquica clara (2 a 4 niveles, 4 a 8 ramas) renderizada con tecnología ligera y responsiva.
+- **El formato adecuado para cada grabación:**
+  - **Ponencia / Clase / Charla (Notas de clase):** Resumen general, ideas clave y preguntas con citas literales, más mapa mental interactivo con markmap.js.
+  - **Reunión de Trabajo (Notas de reunión):** Resumen ejecutivo, temas tratados, acuerdos formales y tareas to-do con responsable y fecha límite (sin mapa mental innecesario).
+  - **Entrevista / Conversación (Esquema por temas):** Esquema temático jerárquico en lista indentada con `[mm:ss]` y cita literal en cada punto (sin diagrama markmap), más libro de códigos.
+  - **En todas:** Pestaña de transcripción completa con marcas de tiempo `[mm:ss]` y descarga directa en `.txt`.
+- **Mapa mental interactivo con markmap.js:** Visualización jerárquica clara (2 a 4 niveles, 4 a 8 ramas) renderizada con tecnología ligera y responsiva (exclusiva para clases y ponencias).
 - **Verificabilidad estricta segundo a segundo:** Cada nodo hijo del mapa mental y cada tarea incluyen su marca de tiempo exacta `[mm:ss]` y su cita textual literal verificada matemáticamente contra la transcripción (`validar_evidencia_literal`). Al hacer clic en `▶ [mm:ss]`, el reproductor salta al segundo exacto donde se pronunció la frase.
 - **To-Do lists y acuerdos confiables:** Extracción automatizada de acuerdos y tareas pendientes con responsable y fecha límite, respaldados por evidencia literal.
 - **Exportación en un clic:** Descarga directa en **Markdown (`.md`)**, **Mapa Mental HTML autónomo (`.html`)**, **Microsoft Word (`.docx`)** formateado y **Microsoft Excel (`.xlsx`)** con hojas de cálculo estructuradas.

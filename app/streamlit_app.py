@@ -35,6 +35,7 @@ from minuta.exportar import (
     exportar_mapa_html,
     exportar_markdown,
     exportar_xlsx,
+    exportar_transcripcion_texto,
 )
 from minuta.proveedores import ProveedorGemini, ProveedorMock, ProveedorOllama, ProveedorLLM
 from minuta.transcribir import transcribir_audio
@@ -496,145 +497,215 @@ def main() -> None:
             unsafe_allow_html=True,
         )
 
-    # 6. Pestañas organizadas
+    # 6. Pestañas organizadas según la plantilla (L45)
     st.subheader("3. Resultados estructurados")
 
-    pestana_mapa, pestana_resumen, pestana_todo, pestana_trans = st.tabs([
-        "🗺️ Mapa Mental",
-        "📋 Resumen Ejecutivo",
-        "✅ To-Do / Acuerdos",
-        "📝 Transcripción",
-    ])
+    # Renderizado condicional según el tipo de plantilla
+    if isinstance(resultado, ResultadoPonencia):
+        pestana_notas, pestana_mapa, pestana_trans = st.tabs([
+            "📝 Notas de clase",
+            "🗺️ Mapa mental",
+            "📄 Transcripción completa",
+        ])
 
-    # PESTAÑA 1: MAPA MENTAL
-    with pestana_mapa:
-        st.markdown(f"**Árbol temático:** *{resultado.mapa.titulo}*")
-        html_mapa = generar_html_markmap(resultado.mapa.to_markdown(), altura_px=460)
-        components.html(html_mapa, height=480, scrolling=False)
-
-        st.markdown("#### Nodos del mapa con marca temporal y cita literal")
-        nodos_tiempo = extraer_nodos_con_tiempo(resultado.mapa.raiz)
-
-        for nodo in nodos_tiempo:
-            col_tiempo, col_titulo = st.columns([1, 3])
-            with col_tiempo:
-                boton_label = f"▶ {nodo['tiempo_tag']}"
-                if st.button(boton_label, key=f"btn_nodo_{nodo['id']}"):
-                    st.session_state["reproductor_inicio_s"] = nodo["inicio_s"]
-                    st.rerun()
-            with col_titulo:
-                st.markdown(f"**{nodo['titulo']}**")
-                if nodo["resumen"]:
-                    st.write(nodo["resumen"])
-                st.markdown(
-                    f'<div class="minuta-quote">"{html.escape(nodo["cita"])}"</div>',
-                    unsafe_allow_html=True,
-                )
-            st.divider()
-
-    # PESTAÑA 2: RESUMEN EJECUTIVO
-    with pestana_resumen:
-        if hasattr(resultado, "resumen_general"):
+        with pestana_notas:
             st.markdown("### Resumen General")
             st.write(resultado.resumen_general)
 
-        if isinstance(resultado, ResultadoPonencia):
             st.markdown("### Ideas Clave")
             for idea in resultado.ideas_clave:
                 st.markdown(f"**• {idea.titulo}**")
                 st.write(idea.resumen)
                 for ev in idea.evidencias:
                     tag = segundos_a_tiempo(ev.inicio_s)
+                    col_t, col_c = st.columns([1, 4])
+                    with col_t:
+                        if st.button(f"▶ {tag}", key=f"btn_idea_{ev.inicio_s}_{ev.cita[:10]}"):
+                            st.session_state["reproductor_inicio_s"] = ev.inicio_s
+                            st.rerun()
+                    with col_c:
+                        st.markdown(
+                            f'<div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(ev.cita)}"</div>',
+                            unsafe_allow_html=True,
+                        )
+
+            st.markdown("### ❓ Preguntas del Público y Pendientes")
+            if resultado.preguntas:
+                for p in resultado.preguntas:
+                    tag = segundos_a_tiempo(p.evidencia.inicio_s)
+                    col_t, col_c = st.columns([1, 4])
+                    with col_t:
+                        if st.button(f"▶ {tag}", key=f"btn_preg_{p.evidencia.inicio_s}_{p.descripcion[:10]}"):
+                            st.session_state["reproductor_inicio_s"] = p.evidencia.inicio_s
+                            st.rerun()
+                    with col_c:
+                        st.markdown(
+                            f"""
+                            <div class="minuta-card">
+                              <strong>? {html.escape(p.descripcion)}</strong>
+                              <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(p.evidencia.cita)}"</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+            else:
+                st.info("No se identificaron preguntas abiertas en la sesión.")
+
+        with pestana_mapa:
+            st.markdown(f"**Árbol temático interactivo:** *{resultado.mapa.titulo}*")
+            html_mapa = generar_html_markmap(resultado.mapa.to_markdown(), altura_px=460)
+            components.html(html_mapa, height=480, scrolling=False)
+
+            st.markdown("#### Nodos del mapa con marca temporal y cita literal")
+            nodos_tiempo = extraer_nodos_con_tiempo(resultado.mapa.raiz)
+
+            for nodo in nodos_tiempo:
+                col_tiempo, col_titulo = st.columns([1, 3])
+                with col_tiempo:
+                    boton_label = f"▶ {nodo['tiempo_tag']}"
+                    if st.button(boton_label, key=f"btn_nodo_{nodo['id']}"):
+                        st.session_state["reproductor_inicio_s"] = nodo["inicio_s"]
+                        st.rerun()
+                with col_titulo:
+                    st.markdown(f"**{nodo['titulo']}**")
+                    if nodo["resumen"]:
+                        st.write(nodo["resumen"])
                     st.markdown(
-                        f'<div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(ev.cita)}"</div>',
+                        f'<div class="minuta-quote">"{html.escape(nodo["cita"])}"</div>',
                         unsafe_allow_html=True,
                     )
+                st.divider()
 
-        elif isinstance(resultado, ResultadoReunion):
+    elif isinstance(resultado, ResultadoReunion):
+        # En plantilla Reunión: NO hay pestaña ni componente de mapa mental (L45)
+        pestana_notas, pestana_trans = st.tabs([
+            "📝 Notas de reunión",
+            "📄 Transcripción completa",
+        ])
+
+        with pestana_notas:
+            st.markdown("### Resumen General")
+            st.write(resultado.resumen_general)
+
             st.markdown("### Temas Tratados")
             for tema in resultado.temas:
                 st.markdown(f"**• {tema.titulo}**")
                 st.write(tema.resumen)
                 for ev in tema.evidencias:
                     tag = segundos_a_tiempo(ev.inicio_s)
-                    st.markdown(
-                        f'<div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(ev.cita)}"</div>',
-                        unsafe_allow_html=True,
-                    )
+                    col_t, col_c = st.columns([1, 4])
+                    with col_t:
+                        if st.button(f"▶ {tag}", key=f"btn_tema_{ev.inicio_s}_{ev.cita[:10]}"):
+                            st.session_state["reproductor_inicio_s"] = ev.inicio_s
+                            st.rerun()
+                    with col_c:
+                        st.markdown(
+                            f'<div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(ev.cita)}"</div>',
+                            unsafe_allow_html=True,
+                        )
 
-        elif isinstance(resultado, ResultadoEntrevista):
-            st.markdown("### Resumen por Código Temático")
-            for cod, res_cod in resultado.resumen_por_codigo.items():
-                st.markdown(f"**• Código [{cod}]**")
-                st.write(res_cod)
+            st.markdown("### 🤝 Acuerdos")
+            if resultado.acuerdos:
+                for a in resultado.acuerdos:
+                    tag = segundos_a_tiempo(a.evidencia.inicio_s)
+                    col_t, col_c = st.columns([1, 4])
+                    with col_t:
+                        if st.button(f"▶ {tag}", key=f"btn_acuerdo_{a.evidencia.inicio_s}_{a.descripcion[:10]}"):
+                            st.session_state["reproductor_inicio_s"] = a.evidencia.inicio_s
+                            st.rerun()
+                    with col_c:
+                        st.markdown(
+                            f"""
+                            <div class="minuta-card">
+                              <strong>• {html.escape(a.descripcion)}</strong>
+                              <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(a.evidencia.cita)}"</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+            else:
+                st.info("No se registraron acuerdos formales.")
 
-    # PESTAÑA 3: TO-DO / ACUERDOS
-    with pestana_todo:
-        if isinstance(resultado, ResultadoReunion):
             st.markdown("### ✅ Tareas (To-Do)")
             if resultado.tareas:
                 for t in resultado.tareas:
                     resp = f" — Responsable: **{t.responsable}**" if t.responsable else ""
                     limite = f" (Límite: {t.fecha_limite})" if t.fecha_limite else ""
                     tag = segundos_a_tiempo(t.evidencia.inicio_s)
-                    st.markdown(
-                        f"""
-                        <div class="minuta-card">
-                          <strong>☑ {html.escape(t.descripcion)}</strong>{resp}{limite}<br>
-                          <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(t.evidencia.cita)}"</div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    col_t, col_c = st.columns([1, 4])
+                    with col_t:
+                        if st.button(f"▶ {tag}", key=f"btn_tarea_{t.evidencia.inicio_s}_{t.descripcion[:10]}"):
+                            st.session_state["reproductor_inicio_s"] = t.evidencia.inicio_s
+                            st.rerun()
+                    with col_c:
+                        st.markdown(
+                            f"""
+                            <div class="minuta-card">
+                              <strong>☑ {html.escape(t.descripcion)}</strong>{resp}{limite}<br>
+                              <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(t.evidencia.cita)}"</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
             else:
                 st.info("No se registraron tareas pendientes.")
-
-            st.markdown("### 🤝 Acuerdos")
-            if resultado.acuerdos:
-                for a in resultado.acuerdos:
-                    tag = segundos_a_tiempo(a.evidencia.inicio_s)
-                    st.markdown(
-                        f"""
-                        <div class="minuta-card">
-                          <strong>• {html.escape(a.descripcion)}</strong>
-                          <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(a.evidencia.cita)}"</div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
 
             st.markdown("### ❓ Preguntas y Pendientes")
             if resultado.pendientes:
                 for p in resultado.pendientes:
                     tag = segundos_a_tiempo(p.evidencia.inicio_s)
-                    st.markdown(
-                        f"""
-                        <div class="minuta-card">
-                          <strong>? {html.escape(p.descripcion)}</strong>
-                          <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(p.evidencia.cita)}"</div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-
-        elif isinstance(resultado, ResultadoPonencia):
-            st.markdown("### ❓ Preguntas del Público y Pendientes")
-            if resultado.preguntas:
-                for p in resultado.preguntas:
-                    tag = segundos_a_tiempo(p.evidencia.inicio_s)
-                    st.markdown(
-                        f"""
-                        <div class="minuta-card">
-                          <strong>? {html.escape(p.descripcion)}</strong>
-                          <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(p.evidencia.cita)}"</div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
+                    col_t, col_c = st.columns([1, 4])
+                    with col_t:
+                        if st.button(f"▶ {tag}", key=f"btn_pend_{p.evidencia.inicio_s}_{p.descripcion[:10]}"):
+                            st.session_state["reproductor_inicio_s"] = p.evidencia.inicio_s
+                            st.rerun()
+                    with col_c:
+                        st.markdown(
+                            f"""
+                            <div class="minuta-card">
+                              <strong>? {html.escape(p.descripcion)}</strong>
+                              <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(p.evidencia.cita)}"</div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
             else:
-                st.info("No se identificaron preguntas abiertas en la sesión.")
+                st.info("No quedaron preguntas pendientes.")
 
-        elif isinstance(resultado, ResultadoEntrevista):
+    else:
+        # En plantilla Entrevista: Esquema por temas en lista indentada sin diagrama markmap (L45)
+        pestana_esquema, pestana_trans = st.tabs([
+            "📑 Esquema por temas",
+            "📄 Transcripción completa",
+        ])
+
+        with pestana_esquema:
+            st.markdown("### Esquema Temático Jerárquico")
+            st.caption("Estructura de la conversación en lista jerárquica con [mm:ss] y citas literales (sin diagrama markmap):")
+
+            nodos_tiempo = extraer_nodos_con_tiempo(resultado.mapa.raiz)
+            for nodo in nodos_tiempo:
+                col_tiempo, col_titulo = st.columns([1, 3])
+                with col_tiempo:
+                    boton_label = f"▶ {nodo['tiempo_tag']}"
+                    if st.button(boton_label, key=f"btn_esq_{nodo['id']}"):
+                        st.session_state["reproductor_inicio_s"] = nodo["inicio_s"]
+                        st.rerun()
+                with col_titulo:
+                    st.markdown(f"**{nodo['titulo']}**")
+                    if nodo["resumen"]:
+                        st.write(nodo["resumen"])
+                    st.markdown(
+                        f'<div class="minuta-quote">"{html.escape(nodo["cita"])}"</div>',
+                        unsafe_allow_html=True,
+                    )
+                st.divider()
+
+            st.markdown("### Resumen por Código Temático")
+            for cod, res_cod in resultado.resumen_por_codigo.items():
+                st.markdown(f"**• Código [{cod}]**")
+                st.write(res_cod)
+
             st.markdown("### 📚 Libro de Códigos de Investigación")
             for c in resultado.libro:
                 st.markdown(
@@ -650,19 +721,25 @@ def main() -> None:
             st.markdown("### 🏷️ Fragmentos Codificados")
             for f in resultado.fragmentos:
                 tag = segundos_a_tiempo(f.evidencia.inicio_s)
-                nota_html = f"<br><small>Nota: {html.escape(f.nota)}</small>" if f.nota else ""
-                st.markdown(
-                    f"""
-                    <div class="minuta-card">
-                      <span class="minuta-badge-sec">{html.escape(f.codigo)}</span>
-                      <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(f.evidencia.cita)}"</div>
-                      {nota_html}
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
+                col_t, col_c = st.columns([1, 4])
+                with col_t:
+                    if st.button(f"▶ {tag}", key=f"btn_frag_{f.evidencia.inicio_s}_{f.codigo}"):
+                        st.session_state["reproductor_inicio_s"] = f.evidencia.inicio_s
+                        st.rerun()
+                with col_c:
+                    nota_html = f"<br><small>Nota: {html.escape(f.nota)}</small>" if f.nota else ""
+                    st.markdown(
+                        f"""
+                        <div class="minuta-card">
+                          <span class="minuta-badge-sec">{html.escape(f.codigo)}</span>
+                          <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(f.evidencia.cita)}"</div>
+                          {nota_html}
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
-    # PESTAÑA 4: TRANSCRIPCIÓN COMPLETA
+    # PESTAÑA COMÚN: TRANSCRIPCIÓN COMPLETA
     with pestana_trans:
         if transcripcion is not None:
             st.markdown(
@@ -686,15 +763,17 @@ def main() -> None:
         else:
             st.info("No hay transcripción disponible para esta visualización.")
 
-    # 7. Sección de Exportación (T14 / S2)
+    # 7. Sección de Exportación (L45 / T14)
     st.divider()
     st.subheader("4. Exportar Minuta")
-    st.caption("Descarga tus notas, mapa mental interactivo o listas de tareas en el formato que prefieras:")
+    st.caption("Descarga tus notas estructuradas, mapa mental o transcripción en el formato que prefieras:")
 
-    col_md, col_html, col_docx, col_xlsx = st.columns(4)
-    with col_md:
+    es_clase = isinstance(resultado, ResultadoPonencia)
+    cols = st.columns(5 if es_clase else 4)
+
+    with cols[0]:
         try:
-            datos_md = exportar_markdown(resultado)
+            datos_md = exportar_markdown(resultado, transcripcion=transcripcion)
             st.download_button(
                 "📄 Markdown (.md)",
                 data=datos_md,
@@ -705,22 +784,9 @@ def main() -> None:
         except Exception as err:
             st.caption(f"Error MD: {err}")
 
-    with col_html:
+    with cols[1]:
         try:
-            datos_html = exportar_mapa_html(resultado.mapa, titulo=f"Minuta - {resultado.mapa.titulo}")
-            st.download_button(
-                "🌐 Mapa HTML (.html)",
-                data=datos_html,
-                file_name=f"mapa_{clave_slug}.html",
-                mime="text/html",
-                use_container_width=True,
-            )
-        except Exception as err:
-            st.caption(f"Error HTML: {err}")
-
-    with col_docx:
-        try:
-            datos_docx = exportar_docx(resultado)
+            datos_docx = exportar_docx(resultado, transcripcion=transcripcion)
             st.download_button(
                 "📝 Word (.docx)",
                 data=datos_docx,
@@ -731,7 +797,7 @@ def main() -> None:
         except Exception as err:
             st.caption(f"Error Word: {err}")
 
-    with col_xlsx:
+    with cols[2]:
         try:
             datos_xlsx = exportar_xlsx(resultado)
             st.download_button(
@@ -743,6 +809,33 @@ def main() -> None:
             )
         except Exception as err:
             st.caption(f"Error Excel: {err}")
+
+    with cols[3]:
+        if transcripcion is not None:
+            texto_trans = exportar_transcripcion_texto(transcripcion)
+            st.download_button(
+                "📜 Transcripción (.txt)",
+                data=texto_trans,
+                file_name=f"transcripcion_{clave_slug}.txt",
+                mime="text/plain",
+                use_container_width=True,
+            )
+        else:
+            st.button("📜 Transcripción (.txt)", disabled=True, use_container_width=True)
+
+    if es_clase and len(cols) > 4:
+        with cols[4]:
+            try:
+                datos_html = exportar_mapa_html(resultado.mapa, titulo=f"Minuta - {resultado.mapa.titulo}")
+                st.download_button(
+                    "🌐 Mapa HTML (.html)",
+                    data=datos_html,
+                    file_name=f"mapa_{clave_slug}.html",
+                    mime="text/html",
+                    use_container_width=True,
+                )
+            except Exception as err:
+                st.caption(f"Error HTML: {err}")
 
 
 if __name__ == "__main__":

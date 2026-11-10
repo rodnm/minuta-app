@@ -104,17 +104,92 @@ def test_smoke_cambio_plantilla_entrevista() -> None:
 
 
 def test_smoke_botones_exportacion_disponibles() -> None:
-    """Verifica que los botones de exportación (Markdown, HTML, Word, Excel) se rendericen."""
+    """Verifica que los botones de exportación se rendericen según la plantilla activa (L45)."""
     at = AppTest.from_file(RUTA_APP)
     at.run()
     assert not at.exception
 
-    # Comprobar presencia de botones de descarga
+    # En Ponencia (plantilla por defecto) se ofrecen 5 botones (incluye Mapa HTML y Transcripción)
     botones_descarga = at.get("download_button")
-    assert len(botones_descarga) == 4, f"Se esperaban 4 botones de exportación, se hallaron {len(botones_descarga)}"
+    assert len(botones_descarga) >= 4, f"Se esperaban al menos 4 botones de exportación, se hallaron {len(botones_descarga)}"
     download_labels = [b.label for b in botones_descarga]
     assert any("Markdown" in (lbl or "") for lbl in download_labels), "Falta botón de descarga Markdown"
-    assert any("HTML" in (lbl or "") for lbl in download_labels), "Falta botón de descarga HTML"
+    assert any("HTML" in (lbl or "") for lbl in download_labels), "Falta botón de descarga HTML en Ponencia"
     assert any("Word" in (lbl or "") for lbl in download_labels), "Falta botón de descarga Word"
     assert any("Excel" in (lbl or "") for lbl in download_labels), "Falta botón de descarga Excel"
+    assert any("Transcripción" in (lbl or "") for lbl in download_labels), "Falta botón de descarga Transcripción"
+
+
+def test_apptest_plantilla_clase_secciones_y_mapa() -> None:
+    """Valida que la plantilla Clase / Ponencia muestre Notas de clase, Mapa mental y Transcripción (L45)."""
+    at = AppTest.from_file(RUTA_APP)
+    at.run()
+    assert not at.exception
+
+    # Verificar que el selectbox esté en Ponencia
+    assert at.selectbox[0].value == "Ponencia / Clase / Charla"
+
+    # Verificar presencia de secciones específicas de Clase
+    markdown_texts = " ".join(m.value for m in at.markdown)
+    assert "Ideas Clave" in markdown_texts
+    assert "Árbol temático interactivo" in markdown_texts or "Mapa mental" in markdown_texts
+    assert "Preguntas del Público" in markdown_texts or "Preguntas" in markdown_texts
+
+    # Verificar que el botón de Mapa HTML está presente
+    labels_descarga = [b.label for b in at.get("download_button")]
+    assert any("HTML" in (lbl or "") for lbl in labels_descarga)
+
+
+def test_apptest_plantilla_reunion_sin_mapa_mental() -> None:
+    """Valida que la plantilla Reunión muestre Notas de reunión, To-dos, Acuerdos y NUNCA el mapa mental (L45)."""
+    at = AppTest.from_file(RUTA_APP)
+    at.run()
+    at.selectbox[0].select("Reunión").run()
+    assert not at.exception
+
+    markdown_texts = " ".join(m.value for m in at.markdown)
+    # Secciones requeridas de reunión
+    assert "Temas Tratados" in markdown_texts
+    assert "Tareas (To-Do)" in markdown_texts or "To-Do" in markdown_texts
+    assert "Acuerdos" in markdown_texts
+
+    # Comprobar que NO aparece mapa mental ni markmap en Reunión (L45)
+    assert "Árbol temático interactivo" not in markdown_texts
+    labels_descarga = [b.label for b in at.get("download_button")]
+    assert not any("HTML" in (lbl or "") for lbl in labels_descarga), "Reunión no debe ofrecer descarga de Mapa HTML"
+
+
+def test_apptest_plantilla_entrevista_esquema_sin_markmap() -> None:
+    """Valida que la plantilla Entrevista muestre Esquema por temas en lista y NO el diagrama markmap (L45)."""
+    at = AppTest.from_file(RUTA_APP)
+    at.run()
+    at.selectbox[0].select("Entrevista").run()
+    assert not at.exception
+
+    markdown_texts = " ".join(m.value for m in at.markdown)
+    # Secciones requeridas de entrevista
+    assert "Esquema Temático Jerárquico" in markdown_texts or "Esquema" in markdown_texts
+    assert "Libro de Códigos" in markdown_texts or "Fragmentos Codificados" in markdown_texts
+
+    # Comprobar que NO aparece el diagrama interactivo markmap (L45)
+    assert "Árbol temático interactivo" not in markdown_texts
+    labels_descarga = [b.label for b in at.get("download_button")]
+    assert not any("HTML" in (lbl or "") for lbl in labels_descarga), "Entrevista no debe ofrecer descarga de Mapa HTML"
+
+
+def test_modo_demo_tres_plantillas() -> None:
+    """Verifica que el modo demo cargue y funcione sin excepciones en las 3 plantillas (L45)."""
+    at = AppTest.from_file(RUTA_APP)
+    at.run()
+
+    for plantilla in ["Ponencia / Clase / Charla", "Reunión", "Entrevista"]:
+        at.selectbox[0].select(plantilla).run()
+        assert not at.exception, f"Fallo al cargar modo demo en {plantilla}: {at.exception}"
+        # Comprobar que se informa el modo demo activo
+        success_texts = " ".join(s.value for s in at.success)
+        assert "Modo Demo activo" in success_texts
+        # Debe haber botones de marca de tiempo [mm:ss] en todas las plantillas
+        botones_tiempo = [b for b in at.button if "▶" in (b.label or "")]
+        assert len(botones_tiempo) > 0, f"Debe haber botones de tiempo en demo para {plantilla}"
+
 
