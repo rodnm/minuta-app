@@ -4,7 +4,7 @@ Este documento contiene la guía de entrevista semiestructurada para validar la 
 
 Se aplica a 3 perfiles accesibles:
 1. Compañero(a) de la diplomatura en Ciencia de Datos (PUCP) que asiste a clases y charlas.
-2. Colega practicante / asistente de investigación en CENTRUM PUCP.
+2. Colega practicante / asistente de investigación en una escuela de negocios.
 3. Economista consultor(a) o egresado(a) de economía que participa en reuniones técnicas y webinars.
 
 ---
@@ -25,7 +25,7 @@ Se aplica a 3 perfiles accesibles:
 ### 2. Herramientas utilizadas y problemas de transcripción
 > "¿Has probado alguna herramienta para transcribir o resumir (como Plaud, NotebookLM, Otter, ChatGPT o la grabadora integrada de tu teléfono)? ¿Qué te pareció? ¿Qué dificultades encontraste, especialmente cuando se mencionan términos técnicos en inglés (como *journal*, *paper*, *deadline*, *reviewers*)?"
 
-- *Objetivo:* Identificar frustración con errores léxicos ("yorno", "encupus") y limitaciones de plataformas actuales.
+- *Objetivo:* Identificar errores al transcribir términos en inglés (por ejemplo, *journal* o *Scopus*) y las limitaciones de las plataformas actuales.
 
 ### 3. Privacidad y confidencialidad
 > "¿Hay grabaciones o reuniones que nunca subirías a un servicio web comercial en la nube de terceros? ¿Por qué? ¿Qué tan importante es para ti contar con un modo privado o que funcione en tu propia laptop sin enviar datos al exterior?"

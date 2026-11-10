@@ -14,11 +14,11 @@ Desarrollado por **Rodrigo Norabuena**, practicante profesional de gestión de l
 
 ## 3. Problema
 
-- **Pérdida de tiempo:** Transcribir y estructurar una hora de audio toma en promedio ~4 horas de trabajo manual.
-- **Hardware costoso:** Dispositivos comerciales como Plaud Note o Note Pro cuestan entre US\$ 159 y US\$ 189 más suscripciones anuales obligatorias.
-- **Errores con jerga bilingüe:** Las herramientas estándar deforman términos de investigación habituales en español (e.g. transcriben "journal" como "yorno" o "Scopus" como "encupus").
-- **Privacidad y confidencialidad:** Gran parte de los usuarios no puede subir audios confidenciales a servidores externos cerrados.
-- **Validación empírica:** Validado en 3 conversaciones con usuarios potenciales (documentadas en `docs/research/`).
+- **Tiempo:** transcribir a mano una hora de audio puede tomar unas 4 horas, según estimaciones de servicios de transcripción. Las conversaciones con usuarios dirán cuánto les toma a ellos.
+- **Hardware:** la grabadora Plaud Note cuesta US\$ 159 y la Note Pro US\$ 189. Incluyen 300 minutos de transcripción al mes; para usar más hay que pagar un plan.
+- **Términos en inglés dentro del español:** en investigación se dice *journal*, *paper*, *peer review* o *Scopus* en medio de frases en español, y un transcriptor automático puede escribirlos mal. Minuta lo mide: comparamos cuántos de esos términos salen bien con y sin glosario (hipótesis H1).
+- **Privacidad:** algunas grabaciones, como entrevistas con consentimiento informado o reuniones internas, no deberían subirse a servicios externos. Las conversaciones con usuarios dirán cuánto pesa esto para ellos.
+- **Evidencia de usuarios:** 3 conversaciones con usuarios potenciales, documentadas en `docs/research/` (en curso).
 
 ## 4. Solución e Insight
 
