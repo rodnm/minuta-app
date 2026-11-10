@@ -248,3 +248,48 @@ def test_modo_simulado_prohibe_escribir_resultados_md(
     assert "ERROR" in captured.err
 
 
+def test_cli_opciones_glosario_y_metodo(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Verifica que el CLI acepte las opciones --tipo-glosario y --metodo-inyeccion."""
+    salida_json = tmp_path / "test_opts.json"
+    args = [
+        "terminos.py",
+        "--guion",
+        str(RUTA_GUION),
+        "--simulado",
+        "--tipo-glosario",
+        "producto",
+        "--metodo-inyeccion",
+        "hotwords",
+        "--salida",
+        str(salida_json),
+    ]
+    monkeypatch.setattr(sys, "argv", args)
+    codigo = terminos_main()
+    assert codigo == 0
+
+    with open(salida_json, encoding="utf-8") as f:
+        datos = json.load(f)
+    assert datos.get("tipo_glosario") == "producto"
+    assert datos.get("metodo_inyeccion") == "hotwords"
+
+
+def test_cli_clip_5min_requiere_audios(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Verifica que --clip-5min aborte con error si no se pasa --audios."""
+    args = [
+        "terminos.py",
+        "--guion",
+        str(RUTA_GUION),
+        "--clip-5min",
+    ]
+    monkeypatch.setattr(sys, "argv", args)
+    codigo = terminos_main()
+    assert codigo == 1
+    captured = capsys.readouterr()
+    assert "ERROR: --clip-5min requiere especificar el directorio de audios con --audios" in captured.err
+
+
+

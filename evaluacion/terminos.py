@@ -203,10 +203,13 @@ def ejecutar_evaluacion(
     modelo_whisper: str = "small",
     modo_simulado: bool = False,
     semilla: int = 42,
+    tipo_glosario: str = "producto",
+    metodo_inyeccion: str = "hotwords",
 ) -> dict[str, Any]:
     """Ejecuta la evaluación comparativa (sin glosario vs con glosario).
 
     Soporta modo simulado determinista o procesamiento sobre audios reales si se suministran.
+    Permite tipo_glosario='producto' (fijado a priori) o 'filtrado', y metodo_inyeccion='hotwords' o 'initial_prompt'.
     """
     rng = random.Random(semilla)
 
@@ -246,11 +249,18 @@ def ejecutar_evaluacion(
             download_root=dir_cache,
         )
 
-        # Construir glosario de términos para initial_prompt
-        todos_terminos: list[str] = []
-        for f in frases:
-            todos_terminos.extend(f["terminos_esperados"])
-        glosario_prompt = ", ".join(sorted(set(todos_terminos)))
+        # Construir glosario según tipo seleccionado
+        if tipo_glosario == "producto":
+            from minuta.glosario import obtener_glosario_defecto, formatear_hotwords
+            glosario_lista = obtener_glosario_defecto()
+            glosario_hotwords = formatear_hotwords(glosario_lista)
+            glosario_prompt = ", ".join(glosario_lista)
+        else:
+            todos_terminos: list[str] = []
+            for f in frases:
+                todos_terminos.extend(f["terminos_esperados"])
+            glosario_prompt = ", ".join(sorted(set(todos_terminos)))
+            glosario_hotwords = glosario_prompt
 
         for f in frases:
             idx = f["id"]
@@ -270,17 +280,25 @@ def ejecutar_evaluacion(
                 evaluaciones_con.append(evaluar_frase(t_esperados, ""))
                 continue
 
-            # Transcribir sin glosario
+            # Transcribir sin glosario (línea base)
             seg_sin, _ = modelo.transcribe(str(audio_file), language="es", vad_filter=True)
             txt_sin = " ".join(s.text for s in seg_sin)
 
-            # Transcribir con glosario en initial_prompt
-            seg_con, _ = modelo.transcribe(
-                str(audio_file),
-                language="es",
-                vad_filter=True,
-                initial_prompt=glosario_prompt,
-            )
+            # Transcribir con glosario según método de inyección
+            if metodo_inyeccion == "hotwords":
+                seg_con, _ = modelo.transcribe(
+                    str(audio_file),
+                    language="es",
+                    vad_filter=True,
+                    hotwords=glosario_hotwords,
+                )
+            else:
+                seg_con, _ = modelo.transcribe(
+                    str(audio_file),
+                    language="es",
+                    vad_filter=True,
+                    initial_prompt=glosario_prompt,
+                )
             txt_con = " ".join(s.text for s in seg_con)
 
             evaluaciones_sin.append(evaluar_frase(t_esperados, txt_sin))
@@ -298,6 +316,90 @@ def ejecutar_evaluacion(
         "con_glosario": metricas_con,
         "hipotesis_h1": hipotesis_h1,
         "modo": "simulado" if (modo_simulado or not directorio_audios) else "audio_real",
+        "tipo_glosario": tipo_glosario,
+        "metodo_inyeccion": metodo_inyeccion,
+    }
+
+
+def evaluar_clip_5min(
+    directorio_audios: str | Path,
+    frases: Sequence[dict[str, Any]],
+    modelo_whisper: str = "small",
+    duracion_s: float = 300.0,
+    tipo_glosario: str = "producto",
+) -> dict[str, Any]:
+    """Evalúa la transcripción continua de ~5 min concatenada en memoria RAM.
+
+    Compara línea base (sin glosario) vs initial_prompt vs hotwords sobre el total de términos esperados.
+    """
+    from evaluacion.velocidad import _aplicar_parches_compatibilidad, obtener_directorio_cache, cargar_y_concatenar_audios
+    _aplicar_parches_compatibilidad()
+    from faster_whisper import WhisperModel
+
+    audio_array = cargar_y_concatenar_audios(directorio_audios, duracion_objetivo_s=duracion_s)
+
+    if tipo_glosario == "producto":
+        from minuta.glosario import obtener_glosario_defecto, formatear_hotwords
+        glosario_lista = obtener_glosario_defecto()
+        glosario_hotwords = formatear_hotwords(glosario_lista)
+        glosario_prompt = ", ".join(glosario_lista)
+    else:
+        todos = []
+        for f in frases:
+            todos.extend(f["terminos_esperados"])
+        glosario_prompt = ", ".join(sorted(set(todos)))
+        glosario_hotwords = glosario_prompt
+
+    todos_terminos: list[str] = []
+    for f in frases:
+        todos_terminos.extend(f["terminos_esperados"])
+
+    dir_cache = obtener_directorio_cache()
+    modelo = WhisperModel(modelo_whisper, device="cpu", compute_type="int8", download_root=dir_cache)
+
+    # 1. Base (sin glosario)
+    segs_base, _ = modelo.transcribe(audio_array, language="es", vad_filter=True)
+    txt_base = " ".join(s.text for s in segs_base)
+    aciertos_base = [t for t in todos_terminos if buscar_termino(t, txt_base)]
+
+    # 2. Initial prompt
+    segs_init, _ = modelo.transcribe(audio_array, language="es", vad_filter=True, initial_prompt=glosario_prompt)
+    txt_init = " ".join(s.text for s in segs_init)
+    aciertos_init = [t for t in todos_terminos if buscar_termino(t, txt_init)]
+
+    # 3. Hotwords
+    segs_hot, _ = modelo.transcribe(audio_array, language="es", vad_filter=True, hotwords=glosario_hotwords)
+    txt_hot = " ".join(s.text for s in segs_hot)
+    aciertos_hot = [t for t in todos_terminos if buscar_termino(t, txt_hot)]
+
+    total = len(todos_terminos)
+    rec_base = len(aciertos_base) / total if total > 0 else 0.0
+    rec_init = len(aciertos_init) / total if total > 0 else 0.0
+    rec_hot = len(aciertos_hot) / total if total > 0 else 0.0
+
+    return {
+        "duracion_audio_s": duracion_s,
+        "total_terminos": total,
+        "tipo_glosario": tipo_glosario,
+        "sin_glosario": {
+            "detectados": len(aciertos_base),
+            "recall": rec_base,
+            "terminos_detectados": aciertos_base,
+        },
+        "initial_prompt": {
+            "detectados": len(aciertos_init),
+            "recall": rec_init,
+            "terminos_detectados": aciertos_init,
+        },
+        "hotwords": {
+            "detectados": len(aciertos_hot),
+            "recall": rec_hot,
+            "terminos_detectados": aciertos_hot,
+        },
+        "comparacion_hotwords_vs_initial": {
+            "diferencia_aciertos": len(aciertos_hot) - len(aciertos_init),
+            "diferencia_pts": (rec_hot - rec_init) * 100.0,
+        },
     }
 
 
@@ -319,12 +421,15 @@ def imprimir_reporte(resultado: dict[str, Any]) -> None:
     con = resultado["con_glosario"]
     h1 = resultado["hipotesis_h1"]
 
+    metodo = resultado.get("metodo_inyeccion", "initial_prompt")
+    tipo_glo = resultado.get("tipo_glosario", "filtrado")
+
     print("=" * 70)
     print("EVALUACIÓN DE TÉRMINOS ES-EN - HIPÓTESIS H1")
     if resultado["modo"] == "simulado":
         print("SIMULADO: no es una medición")
     print("=" * 70)
-    print(f"Modo de ejecución: {resultado['modo']}")
+    print(f"Modo de ejecución: {resultado['modo']} | Tipo glosario: {tipo_glo} | Inyección: {metodo}")
     if resultado["modo"] == "simulado":
         print("SIMULADO: no es una medición")
     print(f"Total de frases evaluadas: {sin['total_frases']}")
@@ -334,7 +439,7 @@ def imprimir_reporte(resultado: dict[str, Any]) -> None:
     print(f"  Términos detectados: {sin['total_detectados']}")
     print(f"  Recall             : {sin['recall_global'] * 100:.2f} %")
     print()
-    print("Con glosario (initial_prompt):")
+    print(f"Con glosario ({tipo_glo} via {metodo}):")
     print(f"  Términos esperados : {con['total_esperados']}")
     print(f"  Términos detectados: {con['total_detectados']}")
     print(f"  Recall             : {con['recall_global'] * 100:.2f} %")
@@ -345,6 +450,23 @@ def imprimir_reporte(resultado: dict[str, Any]) -> None:
     print("  Umbral falsación   : recall < 70.0 % o mejora < 10.0 pts")
     print(f"  VEREDICTO          : {h1['veredicto'].value}")
     print(f"  Detalle            : {h1['motivo']}")
+    print("=" * 70)
+
+
+def imprimir_reporte_clip_5min(resultado: dict[str, Any]) -> None:
+    """Imprime el reporte comparativo del clip de 5 minutos en consola."""
+    print("=" * 70)
+    print("EVALUACIÓN CONTINUA EN CLIP DE ~5 MINUTOS - INITIAL_PROMPT VS HOTWORDS")
+    print("=" * 70)
+    print(f"Duración audio: {resultado['duracion_audio_s']:.1f} s | Glosario: {resultado['tipo_glosario']}")
+    print(f"Total términos esperados: {resultado['total_terminos']}")
+    print("-" * 70)
+    print(f"Sin glosario   : {resultado['sin_glosario']['detectados']}/{resultado['total_terminos']} ({resultado['sin_glosario']['recall'] * 100:.1f} %)")
+    print(f"Initial prompt : {resultado['initial_prompt']['detectados']}/{resultado['total_terminos']} ({resultado['initial_prompt']['recall'] * 100:.1f} %)")
+    print(f"Hotwords       : {resultado['hotwords']['detectados']}/{resultado['total_terminos']} ({resultado['hotwords']['recall'] * 100:.1f} %)")
+    print("-" * 70)
+    comp = resultado["comparacion_hotwords_vs_initial"]
+    print(f"Diferencia (Hotwords - Initial prompt): {comp['diferencia_aciertos']:+d} términos ({comp['diferencia_pts']:+.2f} pts)")
     print("=" * 70)
 
 
@@ -374,6 +496,23 @@ def main() -> int:
         help="Modelo de faster-whisper a emplear para transcripción (default: small).",
     )
     parser.add_argument(
+        "--tipo-glosario",
+        choices=["producto", "filtrado"],
+        default="producto",
+        help="Tipo de glosario a emplear: 'producto' (fijado a priori) o 'filtrado' (de frases).",
+    )
+    parser.add_argument(
+        "--metodo-inyeccion",
+        choices=["hotwords", "initial_prompt"],
+        default="hotwords",
+        help="Método de inyección en faster-whisper: 'hotwords' o 'initial_prompt' (default: hotwords).",
+    )
+    parser.add_argument(
+        "--clip-5min",
+        action="store_true",
+        help="Ejecuta la evaluación sobre el clip continuo de 5 min comparando initial_prompt vs hotwords.",
+    )
+    parser.add_argument(
         "--salida",
         default=None,
         help="Ruta opcional para guardar el reporte en formato JSON.",
@@ -387,11 +526,29 @@ def main() -> int:
         print(f"Error cargando guion: {exc}", file=sys.stderr)
         return 1
 
+    if args.clip_5min:
+        if not args.audios:
+            print("ERROR: --clip-5min requiere especificar el directorio de audios con --audios", file=sys.stderr)
+            return 1
+        res_clip = evaluar_clip_5min(
+            directorio_audios=args.audios,
+            frases=frases,
+            modelo_whisper=args.modelo,
+            tipo_glosario=args.tipo_glosario,
+        )
+        imprimir_reporte_clip_5min(res_clip)
+        if args.salida:
+            with open(args.salida, "w", encoding="utf-8") as f:
+                json.dump(res_clip, f, indent=2, ensure_ascii=False)
+        return 0
+
     resultado = ejecutar_evaluacion(
         frases=frases,
         directorio_audios=args.audios,
         modelo_whisper=args.modelo,
         modo_simulado=args.simulado,
+        tipo_glosario=args.tipo_glosario,
+        metodo_inyeccion=args.metodo_inyeccion,
     )
 
     imprimir_reporte(resultado)
@@ -415,6 +572,8 @@ def main() -> int:
                 "veredicto": resultado["hipotesis_h1"]["veredicto"].value,
             },
             "modo": resultado["modo"],
+            "tipo_glosario": resultado.get("tipo_glosario"),
+            "metodo_inyeccion": resultado.get("metodo_inyeccion"),
         }
         with open(salida_path, "w", encoding="utf-8") as f:
             json.dump(datos_guardar, f, indent=2, ensure_ascii=False)
