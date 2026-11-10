@@ -230,13 +230,21 @@ def ejecutar_evaluacion(
 
         # Intentar importar faster-whisper para audios reales
         try:
+            from evaluacion.velocidad import _aplicar_parches_compatibilidad, obtener_directorio_cache
+            _aplicar_parches_compatibilidad()
             from faster_whisper import WhisperModel  # type: ignore
         except ImportError as e:
             raise RuntimeError(
                 "faster-whisper no está instalado en el entorno. Use --simulado para pruebas sin dependencias de audio."
             ) from e
 
-        modelo = WhisperModel(modelo_whisper, device="cpu", compute_type="int8")
+        dir_cache = obtener_directorio_cache()
+        modelo = WhisperModel(
+            modelo_whisper,
+            device="cpu",
+            compute_type="int8",
+            download_root=dir_cache,
+        )
 
         # Construir glosario de términos para initial_prompt
         todos_terminos: list[str] = []
