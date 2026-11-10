@@ -23,6 +23,7 @@ from typing import Any, Sequence
 import wave
 
 import psutil
+import numpy as np
 
 
 class VeredictoH2(str, Enum):
@@ -212,34 +213,105 @@ def obtener_duracion_audio(ruta_audio: str | Path) -> float:
     return 0.0
 
 
+def cargar_y_concatenar_audios(
+    carpeta: str | Path,
+    duracion_objetivo_s: float = 300.0,
+) -> np.ndarray:
+    """Carga archivos de audio de una carpeta y los concatena en memoria RAM a 16 kHz mono.
+
+    Decodifica cada archivo usando faster_whisper.decode_audio (formato 16 kHz float32 mono).
+    Concatena y repite en memoria hasta alcanzar la duración objetivo (por defecto ~300 s / 5 min).
+    Cumple estrictamente la regla L21: ningún archivo de audio se escribe fuera de data/privado/.
+    Todo el audio concatenado vive únicamente en memoria RAM como numpy array.
+    """
+    p_carpeta = Path(carpeta).resolve()
+    if not p_carpeta.exists() or not p_carpeta.is_dir():
+        raise FileNotFoundError(f"El directorio de audios no existe: {p_carpeta}")
+
+    extensiones_validas = {".m4a", ".wav", ".mp3", ".ogg", ".flac", ".aac", ".webm"}
+    archivos_audio = sorted(
+        [f for f in p_carpeta.iterdir() if f.is_file() and f.suffix.lower() in extensiones_validas],
+        key=lambda f: f.name,
+    )
+
+    if not archivos_audio:
+        raise FileNotFoundError(f"No se encontraron archivos de audio válidos en: {p_carpeta}")
+
+    _aplicar_parches_compatibilidad()
+    from faster_whisper import decode_audio
+
+    audios_decodificados: list[np.ndarray] = []
+    for f_audio in archivos_audio:
+        try:
+            arr = decode_audio(str(f_audio), sampling_rate=16000)
+            if arr is not None and len(arr) > 0:
+                audios_decodificados.append(arr)
+        except Exception:
+            pass
+
+    if not audios_decodificados:
+        raise ValueError(f"No fue posible decodificar ningún archivo de audio en: {p_carpeta}")
+
+    concatenado = np.concatenate(audios_decodificados)
+    if len(concatenado) == 0:
+        raise ValueError("El audio concatenado está vacío.")
+
+    muestras_objetivo = int(duracion_objetivo_s * 16000)
+    if len(concatenado) < muestras_objetivo:
+        repeticiones = math.ceil(muestras_objetivo / len(concatenado))
+        concatenado = np.tile(concatenado, repeticiones)
+
+    concatenado = concatenado[:muestras_objetivo]
+    return concatenado.astype(np.float32)
+
+
 def ejecutar_evaluacion_velocidad(
+    audios_dir: str | Path | None = None,
     audio_path: str | Path | None = None,
     modelos: Sequence[str] | None = None,
-    duracion_segundos: float = 30.0,
+    duracion_segundos: float = 300.0,
     compute_type: str = "int8",
     device: str = "cpu",
     vad: bool = True,
     simulado: bool = False,
 ) -> dict[str, Any]:
-    """Ejecuta la medición de RTF y memoria RSS para los modelos especificados.
+    """Ejecuta la medición de RTF, memoria RSS y conteo de palabras para los modelos especificados.
 
-    Permite ejecución real mediante faster-whisper o modo `--simulado` determinista.
+    Soporta:
+    - --audios <carpeta>: Concatena voz real en memoria RAM hasta duracion_segundos.
+    - --audio <archivo>: Medición con archivo único.
+    - Modo simulado (por defecto si no se pasan audios reales): emite aviso 'SIMULADO: no es una medición'.
     """
     lista_modelos = list(modelos) if modelos else ["base", "small", "large-v3-turbo"]
     es_audio_temporal = False
-    ruta_audio_efectiva: Path
+    ruta_audio_efectiva: Path | None = None
+    audio_memoria: np.ndarray | None = None
 
-    if audio_path is not None:
-        ruta_audio_efectiva = Path(audio_path).resolve()
-        if not ruta_audio_efectiva.exists():
-            raise FileNotFoundError(f"No se encontró el audio especificado en: {ruta_audio_efectiva}")
-        duracion_audio = obtener_duracion_audio(ruta_audio_efectiva)
-        if duracion_audio <= 0:
+    # Si no se pasó ni carpeta de audios ni archivo de audio individual, forzar modo simulado
+    if audios_dir is None and audio_path is None and not simulado:
+        simulado = True
+
+    if not simulado:
+        if audios_dir is not None:
+            audio_memoria = cargar_y_concatenar_audios(audios_dir, duracion_objetivo_s=duracion_segundos)
+            duracion_audio = len(audio_memoria) / 16000.0
+            descripcion_audio = f"directorio:{audios_dir} (en memoria RAM)"
+        elif audio_path is not None:
+            ruta_audio_efectiva = Path(audio_path).resolve()
+            if not ruta_audio_efectiva.exists():
+                raise FileNotFoundError(f"No se encontró el audio especificado en: {ruta_audio_efectiva}")
+            duracion_audio = obtener_duracion_audio(ruta_audio_efectiva)
+            if duracion_audio <= 0:
+                duracion_audio = duracion_segundos
+            descripcion_audio = str(ruta_audio_efectiva)
+        else:
+            ruta_audio_efectiva = generar_audio_sintetico(duracion_segundos=duracion_segundos)
+            es_audio_temporal = True
             duracion_audio = duracion_segundos
+            descripcion_audio = "<sintetico_temporal>"
     else:
-        ruta_audio_efectiva = generar_audio_sintetico(duracion_segundos=duracion_segundos)
-        es_audio_temporal = True
         duracion_audio = duracion_segundos
+        descripcion_audio = f"<simulado_{int(duracion_audio)}s>"
 
     try:
         resultados_modelos: dict[str, dict[str, Any]] = {}
@@ -267,6 +339,7 @@ def ejecutar_evaluacion_velocidad(
                 t_transcripcion = rtf_sim * duracion_audio
                 rtf, min_h = calcular_rtf(t_transcripcion, duracion_audio)
                 eval_h2 = evaluar_hipotesis_h2(rtf)
+                palabras_sim = int(duracion_audio * 2.5)  # ~150 palabras/min
 
                 resultados_modelos[modelo_limpio] = {
                     "tiempo_carga_s": round(t_carga, 3),
@@ -274,6 +347,8 @@ def ejecutar_evaluacion_velocidad(
                     "rtf": round(rtf, 4),
                     "minutos_por_hora": round(min_h, 2),
                     "ram_rss_mb": round(ram_mb, 1),
+                    "palabras_transcritas": palabras_sim,
+                    "valida": True,
                     "veredicto_h2": eval_h2["veredicto"].value,
                     "motivo": eval_h2["motivo"],
                 }
@@ -294,15 +369,17 @@ def ejecutar_evaluacion_velocidad(
                 tiempo_carga_s = time.perf_counter() - t0_carga
 
                 t0_trans = time.perf_counter()
+                entrada_whisper: Any = audio_memoria if audio_memoria is not None else str(ruta_audio_efectiva)
                 segmentos, info = modelo_whisper.transcribe(
-                    str(ruta_audio_efectiva),
+                    entrada_whisper,
                     language="es",
                     vad_filter=vad,
                     temperature=0.0,
                 )
-                # Iterar completamente el generador para procesar todo el audio
-                _ = [s.text for s in segmentos]
+                # Iterar completamente el generador y extraer palabras
+                textos = [s.text for s in segmentos]
                 tiempo_transcripcion_s = time.perf_counter() - t0_trans
+                total_palabras = sum(len(t.split()) for t in textos)
 
                 duracion_efectiva = (
                     info.duration
@@ -312,6 +389,14 @@ def ejecutar_evaluacion_velocidad(
                 rtf, min_h = calcular_rtf(tiempo_transcripcion_s, duracion_efectiva)
                 ram_rss = obtener_ram_rss_mb()
                 eval_h2 = evaluar_hipotesis_h2(rtf)
+                es_valida = total_palabras > 0
+
+                veredicto = eval_h2["veredicto"].value if es_valida else "INVALIDA"
+                motivo = (
+                    eval_h2["motivo"]
+                    if es_valida
+                    else "Medición inválida: 0 palabras transcritas (audio descartado por VAD o sin voz)."
+                )
 
                 resultados_modelos[modelo_limpio] = {
                     "tiempo_carga_s": round(tiempo_carga_s, 3),
@@ -319,8 +404,10 @@ def ejecutar_evaluacion_velocidad(
                     "rtf": round(rtf, 4),
                     "minutos_por_hora": round(min_h, 2),
                     "ram_rss_mb": round(ram_rss, 1),
-                    "veredicto_h2": eval_h2["veredicto"].value,
-                    "motivo": eval_h2["motivo"],
+                    "palabras_transcritas": total_palabras,
+                    "valida": es_valida,
+                    "veredicto_h2": veredicto,
+                    "motivo": motivo,
                 }
 
         # Veredicto general pre-registrado en H2 (basado en 'small')
@@ -332,19 +419,22 @@ def ejecutar_evaluacion_velocidad(
         else:
             veredicto_general = VeredictoH2.INTERMEDIA.value
 
+        medicion_valida = all(m.get("valida", True) for m in resultados_modelos.values())
+
         return {
-            "audio": str(ruta_audio_efectiva) if not es_audio_temporal else "<sintetico_temporal>",
+            "audio": descripcion_audio,
             "duracion_audio_s": round(duracion_audio, 2),
             "device": device,
             "compute_type": compute_type,
             "vad": vad,
             "simulado": simulado,
+            "medicion_valida": medicion_valida,
             "modelos": resultados_modelos,
             "veredicto_general_h2": veredicto_general,
         }
 
     finally:
-        if es_audio_temporal and ruta_audio_efectiva.exists():
+        if es_audio_temporal and ruta_audio_efectiva is not None and ruta_audio_efectiva.exists():
             try:
                 ruta_audio_efectiva.unlink()
             except OSError:
@@ -356,9 +446,10 @@ def formatear_tabla_resultados(datos: dict[str, Any]) -> str:
     lineas: list[str] = []
 
     if datos.get("simulado"):
-        lineas.append("\n" + "=" * 78)
-        lineas.append("  [ADVERTENCIA] SIMULADO: no es una medición real con descarga de modelos.")
-        lineas.append("=" * 78)
+        lineas.append("\n" + "=" * 90)
+        lineas.append("  SIMULADO: no es una medición")
+        lineas.append("  [ADVERTENCIA] Ejecución simulada. Pase --audios <carpeta> para medir con voz real.")
+        lineas.append("=" * 90)
 
     lineas.append(
         f"\nAudio evaluado: {datos.get('audio')} | "
@@ -370,7 +461,7 @@ def formatear_tabla_resultados(datos: dict[str, Any]) -> str:
 
     encabezado = (
         f"{'Modelo':<18} | {'Carga (s)':<10} | {'Trans (s)':<10} | "
-        f"{'RTF':<8} | {'Min/h':<8} | {'RAM (MB)':<10} | {'Veredicto H2':<12}"
+        f"{'RTF':<8} | {'Min/h':<8} | {'RAM (MB)':<10} | {'Palabras':<10} | {'Veredicto H2':<12}"
     )
     separador = "-" * len(encabezado)
 
@@ -386,6 +477,7 @@ def formatear_tabla_resultados(datos: dict[str, Any]) -> str:
             f"{metricas['rtf']:<8.4f} | "
             f"{metricas['minutos_por_hora']:<8.1f} | "
             f"{metricas['ram_rss_mb']:<10.1f} | "
+            f"{metricas.get('palabras_transcritas', 0):<10} | "
             f"{metricas['veredicto_h2']:<12}"
         )
         lineas.append(linea)
@@ -400,6 +492,12 @@ def parsear_argumentos(argv: Sequence[str] | None = None) -> argparse.Namespace:
     """Configura y analiza los argumentos de la línea de comandos."""
     parser = argparse.ArgumentParser(
         description="Medición de velocidad y memoria de Whisper (H2: RTF <= 0.33 para 'small')."
+    )
+    parser.add_argument(
+        "--audios",
+        type=str,
+        default=None,
+        help="Ruta a una carpeta con archivos de audio para concatenar en memoria RAM (~5 min).",
     )
     parser.add_argument(
         "--audio",
@@ -417,7 +515,7 @@ def parsear_argumentos(argv: Sequence[str] | None = None) -> argparse.Namespace:
         "--duracion",
         type=float,
         default=30.0,
-        help="Duración en segundos del audio sintético a generar si --audio no se provee (default: 30.0).",
+        help="Duración en segundos del audio (default: 30.0 s para sintético, 300.0 s / 5 min para --audios).",
     )
     parser.add_argument(
         "--compute-type",
@@ -457,15 +555,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = parsear_argumentos(argv)
     modelos_lista = [m.strip() for m in args.modelos.split(",") if m.strip()]
 
-    resultados = ejecutar_evaluacion_velocidad(
-        audio_path=args.audio,
-        modelos=modelos_lista,
-        duracion_segundos=args.duracion,
-        compute_type=args.compute_type,
-        device=args.device,
-        vad=args.vad,
-        simulado=args.simulado,
-    )
+    # Si no se pasó --audios ni --audio, se activa el modo simulado automáticamente
+    es_simulado = args.simulado or (args.audios is None and args.audio is None)
+    duracion_efectiva = 300.0 if (args.audios and args.duracion == 30.0) else args.duracion
+
+    try:
+        resultados = ejecutar_evaluacion_velocidad(
+            audios_dir=args.audios,
+            audio_path=args.audio,
+            modelos=modelos_lista,
+            duracion_segundos=duracion_efectiva,
+            compute_type=args.compute_type,
+            device=args.device,
+            vad=args.vad,
+            simulado=es_simulado,
+        )
+    except Exception as err:
+        print(f"\n[ERROR] Error durante la evaluación de velocidad: {err}", file=sys.stderr)
+        return 1
 
     tabla = formatear_tabla_resultados(resultados)
     print(tabla)
@@ -477,8 +584,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             json.dump(resultados, f, indent=2, ensure_ascii=False)
         print(f"Resultados guardados en: {p_salida}")
 
+    if not resultados.get("medicion_valida", True):
+        print("\n[ERROR] Medición INVÁLIDA: se transcribieron 0 palabras.", file=sys.stderr)
+        return 1
+
     return 0
 
 
 if __name__ == "__main__":
     sys.exit(main())
+

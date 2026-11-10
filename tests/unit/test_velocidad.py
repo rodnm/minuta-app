@@ -28,6 +28,7 @@ from evaluacion.velocidad import (
     parsear_argumentos,
     formatear_tabla_resultados,
     ejecutar_evaluacion_velocidad,
+    cargar_y_concatenar_audios,
     main as velocidad_main,
 )
 
@@ -226,3 +227,78 @@ def test_main_cli_simulado_guarda_json(tmp_path: Path) -> None:
     assert "modelos" in datos
     assert "small" in datos["modelos"]
     assert datos["veredicto_general_h2"] == datos["modelos"]["small"]["veredicto_h2"]
+
+
+def test_parsear_argumentos_audios_carpeta() -> None:
+    """Verifica que el argumento --audios se parsee correctamente."""
+    args = parsear_argumentos(["--audios", "data/privado/frases/"])
+    assert args.audios == "data/privado/frases/"
+
+
+def test_cargar_y_concatenar_audios_con_mocks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Verifica la carga, concatenación en memoria y repetición hasta duración objetivo."""
+    import numpy as np
+
+    # Crear archivos de audio ficticios en carpeta temporal
+    dir_audios = tmp_path / "audios_test"
+    dir_audios.mkdir()
+    (dir_audios / "f1.m4a").write_bytes(b"dummy1")
+    (dir_audios / "f2.wav").write_bytes(b"dummy2")
+
+    # Mock de faster_whisper.decode_audio: retorna 1 segundo (16000 muestras) de float32
+    def mock_decode(ruta: str, sampling_rate: int = 16000) -> np.ndarray:
+        return np.ones(16000, dtype=np.float32) * 0.1
+
+    import faster_whisper
+    monkeypatch.setattr(faster_whisper, "decode_audio", mock_decode)
+
+    # Solicitar 5 segundos objetivo (5 * 16000 = 80000 muestras)
+    # Como hay 2 archivos de 1 s = 2 s, debe concatenar y repetir hasta 5 s exactos
+    resultado = cargar_y_concatenar_audios(dir_audios, duracion_objetivo_s=5.0)
+
+    assert isinstance(resultado, np.ndarray)
+    assert resultado.dtype == np.float32
+    assert len(resultado) == 5 * 16000
+    assert pytest.approx(float(resultado[0])) == 0.1
+
+
+def test_medicion_invalida_si_cero_palabras(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Verifica que si se transcriben 0 palabras, la medición es inválida y main() sale con código 1."""
+    import faster_whisper
+
+    class MockModel:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def transcribe(self, *args, **kwargs):
+            # Retorna lista de segmentos vacía (0 palabras detectadas)
+            class MockInfo:
+                duration = 10.0
+            return iter([]), MockInfo()
+
+    monkeypatch.setattr(faster_whisper, "WhisperModel", MockModel)
+
+    # Crear audio temporal en tmp_path
+    audio_dummy = tmp_path / "audio_dummy.wav"
+    generar_audio_sintetico(duracion_segundos=1.0, ruta_destino=audio_dummy)
+
+    # Ejecutar main con el audio
+    # Debe abortar con código 1 al tener 0 palabras
+    codigo = velocidad_main([
+        "--audio", str(audio_dummy),
+        "--modelos", "base",
+    ])
+    assert codigo == 1
+    captured = capsys.readouterr()
+    assert "INVÁLIDA" in captured.err or "INVÁLIDA" in captured.out or "0 palabras" in captured.err or "0 palabras" in captured.out
+
+
+def test_modo_sin_audios_imprime_simulado(capsys: pytest.CaptureFixture[str]) -> None:
+    """Verifica que ejecutar velocidad sin --audios muestre advertencia de SIMULADO."""
+    codigo = velocidad_main(["--modelos", "small"])
+    assert codigo == 0
+    captured = capsys.readouterr()
+    assert "SIMULADO: no es una medición" in captured.out
+
