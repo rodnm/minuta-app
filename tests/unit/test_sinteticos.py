@@ -140,7 +140,8 @@ def test_reproducibilidad_con_semilla_fija():
     assert ds1.model_dump() == ds2.model_dump()
 
 
-def test_cli_dry_run_ejecucion():
+def test_cli_dry_run_ejecucion(tmp_path: Path):
+    ruta_tmp = tmp_path / "muestra_cli_test.json"
     cmd = [
         sys.executable,
         "-m",
@@ -148,6 +149,8 @@ def test_cli_dry_run_ejecucion():
         "--n",
         "2",
         "--dry-run",
+        "--salida",
+        str(ruta_tmp),
     ]
     res = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True)
     assert res.returncode == 0, f"Error en CLI: {res.stderr}"
@@ -257,7 +260,8 @@ def test_modo_no_estricto_permite_fallback_a_plantilla():
     assert len(conv.segmentos) == 10
 
 
-def test_cli_argumentos_estricto_y_reporte_unicos():
+def test_cli_argumentos_estricto_y_reporte_unicos(tmp_path: Path):
+    ruta_tmp = tmp_path / "muestra_estricto_test.json"
     cmd = [
         sys.executable,
         "-m",
@@ -268,6 +272,8 @@ def test_cli_argumentos_estricto_y_reporte_unicos():
         "--estricto",
         "--modelo",
         "gemini-3.8-flash",
+        "--salida",
+        str(ruta_tmp),
     ]
     res = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True)
     assert res.returncode == 0
