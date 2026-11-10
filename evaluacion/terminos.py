@@ -293,6 +293,18 @@ def ejecutar_evaluacion(
     }
 
 
+def validar_escritura_resultados(ruta_salida: str | Path | None, modo_simulado: bool) -> None:
+    """Prohíbe que el modo simulado escriba o actualice resultados en docs/resultados.md."""
+    if not ruta_salida or not modo_simulado:
+        return
+    p = Path(ruta_salida).resolve()
+    if p.name.lower() == "resultados.md" or ("docs" in p.parts and "resultados" in p.stem.lower()):
+        raise PermissionError(
+            "El modo --simulado tiene prohibido escribir o actualizar docs/resultados.md. "
+            "Solo las corridas con audio real alimentan H1."
+        )
+
+
 def imprimir_reporte(resultado: dict[str, Any]) -> None:
     """Imprime el reporte estructurado de evaluación en consola."""
     sin = resultado["sin_glosario"]
@@ -301,8 +313,12 @@ def imprimir_reporte(resultado: dict[str, Any]) -> None:
 
     print("=" * 70)
     print("EVALUACIÓN DE TÉRMINOS ES-EN - HIPÓTESIS H1")
+    if resultado["modo"] == "simulado":
+        print("SIMULADO: no es una medición")
     print("=" * 70)
     print(f"Modo de ejecución: {resultado['modo']}")
+    if resultado["modo"] == "simulado":
+        print("SIMULADO: no es una medición")
     print(f"Total de frases evaluadas: {sin['total_frases']}")
     print("-" * 70)
     print("Línea base (sin glosario):")
@@ -374,6 +390,13 @@ def main() -> int:
 
     if args.salida:
         salida_path = Path(args.salida)
+        try:
+            validar_escritura_resultados(
+                salida_path, modo_simulado=(args.simulado or resultado["modo"] == "simulado")
+            )
+        except PermissionError as err:
+            print(f"ERROR: {err}", file=sys.stderr)
+            return 1
         salida_path.parent.mkdir(parents=True, exist_ok=True)
         # Serializar convirtiendo enums a strings
         datos_guardar = {

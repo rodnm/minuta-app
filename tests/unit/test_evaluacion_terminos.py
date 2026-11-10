@@ -25,6 +25,7 @@ from evaluacion.terminos import (
     ejecutar_evaluacion,
     main as terminos_main,
     normalizar_texto,
+    validar_escritura_resultados,
     VeredictoH1,
 )
 
@@ -204,4 +205,46 @@ def test_cli_modo_simulado(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, caps
     assert "sin_glosario" in datos
     assert "con_glosario" in datos
     assert "hipotesis_h1" in datos
+
+
+def test_modo_simulado_imprime_aviso_no_medicion(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Verifica que el modo simulado imprima explícitamente el aviso de no medición."""
+    args = ["terminos.py", "--guion", str(RUTA_GUION), "--simulado"]
+    monkeypatch.setattr(sys, "argv", args)
+    codigo = terminos_main()
+    assert codigo == 0
+    captured = capsys.readouterr()
+    assert "SIMULADO: no es una medición" in captured.out
+
+
+def test_modo_simulado_prohibe_escribir_resultados_md(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Verifica que el modo simulado tenga prohibido escribir en docs/resultados.md."""
+    with pytest.raises(PermissionError):
+        validar_escritura_resultados("docs/resultados.md", modo_simulado=True)
+
+    with pytest.raises(PermissionError):
+        validar_escritura_resultados(Path("docs/resultados.md"), modo_simulado=True)
+
+    # En modo no simulado (audio real), no debe arrojar excepción
+    validar_escritura_resultados("docs/resultados.md", modo_simulado=False)
+
+    # A través de CLI en modo simulado debe salir con código 1
+    args = [
+        "terminos.py",
+        "--guion",
+        str(RUTA_GUION),
+        "--simulado",
+        "--salida",
+        "docs/resultados.md",
+    ]
+    monkeypatch.setattr(sys, "argv", args)
+    codigo = terminos_main()
+    assert codigo == 1
+    captured = capsys.readouterr()
+    assert "ERROR" in captured.err
+
 

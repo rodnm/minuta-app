@@ -22,8 +22,10 @@ from entrenamiento.generar_sinteticos import (
     ConversacionSintetica,
     DatasetSintetico,
     EtiquetaClase,
+    FuenteConversacion,
     SegmentoSintetico,
     calcular_estadisticas_dataset,
+    generar_conversacion_gemini,
     generar_conversacion_sintetica_dry_run,
     generar_dataset_sintetico,
     validar_distribucion_reuniones,
@@ -166,3 +168,109 @@ def test_archivo_muestra_sinteticos_cumple_contrato():
     assert len(dataset.conversaciones) > 0
     cumple_reuniones, detalle = validar_distribucion_reuniones(dataset)
     assert cumple_reuniones, f"La muestra no cumple la distribución de reuniones: {detalle}"
+
+
+def test_conversacion_sintetica_campo_fuente():
+    conv_plantilla = ConversacionSintetica(
+        id="c1",
+        tipo="ponencia",
+        titulo="Ponencia",
+        duracion_s=10.0,
+        fuente="plantilla",
+        segmentos=[],
+    )
+    assert conv_plantilla.fuente == "plantilla"
+
+    conv_gemini = ConversacionSintetica(
+        id="c2",
+        tipo="reunion",
+        titulo="Reunión",
+        duracion_s=20.0,
+        fuente="gemini",
+        segmentos=[],
+    )
+    assert conv_gemini.fuente == "gemini"
+
+    with pytest.raises(ValidationError):
+        ConversacionSintetica(
+            id="c3",
+            tipo="entrevista",
+            titulo="Entrevista",
+            duracion_s=30.0,
+            fuente="fuente_invalida",  # type: ignore
+            segmentos=[],
+        )
+
+
+def test_calcular_estadisticas_incluye_unicos_y_desglose_fuentes():
+    seg1 = SegmentoSintetico(id=1, inicio_s=0.0, fin_s=4.0, texto="Texto A", etiqueta="idea")
+    seg2 = SegmentoSintetico(id=2, inicio_s=4.5, fin_s=8.0, texto="Texto B", etiqueta="tarea")
+    seg3 = SegmentoSintetico(id=3, inicio_s=8.5, fin_s=12.0, texto="Texto A", etiqueta="idea")
+
+    c1 = ConversacionSintetica(
+        id="c1", tipo="ponencia", titulo="P1", duracion_s=15.0, fuente="gemini", segmentos=[seg1, seg2]
+    )
+    c2 = ConversacionSintetica(
+        id="c2", tipo="reunion", titulo="R1", duracion_s=15.0, fuente="plantilla", segmentos=[seg3]
+    )
+
+    ds = DatasetSintetico(
+        total_conversaciones=2,
+        total_segmentos=3,
+        conteo_por_clase={"idea": 2, "tarea": 1, "acuerdo": 0, "pregunta": 0, "relleno": 0},
+        proporciones_por_clase={"idea": 0.6667, "tarea": 0.3333},
+        porcentaje_unicos=66.67,
+        desglose_por_fuente={"gemini": 1, "plantilla": 1},
+        conversaciones=[c1, c2],
+    )
+
+    stats = calcular_estadisticas_dataset(ds)
+    # 2 textos únicos de 3 totales = 2/3 * 100 = 66.67%
+    assert stats["porcentaje_unicos"] == pytest.approx(66.67, 0.01)
+    assert stats["desglose_por_fuente"]["gemini"] == 1
+    assert stats["desglose_por_fuente"]["plantilla"] == 1
+
+
+def test_modo_estricto_falla_ante_error_api():
+    """En modo estricto, si la API falla debe lanzar RuntimeError y no caer a plantilla."""
+    with pytest.raises(RuntimeError):
+        generar_conversacion_gemini(
+            tipo="ponencia",
+            indice=1,
+            num_segmentos=10,
+            estricto=True,
+            api_key="dummy_test_key_invalida",
+        )
+
+
+def test_modo_no_estricto_permite_fallback_a_plantilla():
+    """En modo no estricto, ante error cae a plantilla con fuente='plantilla'."""
+    conv = generar_conversacion_gemini(
+        tipo="ponencia",
+        indice=1,
+        num_segmentos=10,
+        estricto=False,
+        api_key="dummy_test_key_invalida",
+    )
+    assert isinstance(conv, ConversacionSintetica)
+    assert conv.fuente == "plantilla"
+    assert len(conv.segmentos) == 10
+
+
+def test_cli_argumentos_estricto_y_reporte_unicos():
+    cmd = [
+        sys.executable,
+        "-m",
+        "entrenamiento.generar_sinteticos",
+        "--n",
+        "1",
+        "--dry-run",
+        "--estricto",
+        "--modelo",
+        "gemini-3.8-flash",
+    ]
+    res = subprocess.run(cmd, cwd=str(ROOT_DIR), capture_output=True, text=True)
+    assert res.returncode == 0
+    assert "Porcentaje de segmentos únicos:" in res.stdout
+    assert "Desglose por fuente:" in res.stdout
+

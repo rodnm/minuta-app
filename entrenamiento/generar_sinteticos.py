@@ -4,6 +4,7 @@ Genera conversaciones sintéticas (ponencias, reuniones, entrevistas) con marcas
 temporales y etiquetas por segmento para entrenar el clasificador mmBERT (T12).
 Clases: idea, tarea, acuerdo, pregunta, relleno.
 Garantiza en reuniones: tarea >= 6% y relleno >= 10%.
+Soporta generación estructurada vía REST API de Gemini y dry-run determinista.
 """
 
 from __future__ import annotations
@@ -13,8 +14,11 @@ import json
 import os
 import random
 import sys
+import time
 from pathlib import Path
 from typing import Any, Literal
+import requests
+from dotenv import dotenv_values
 from pydantic import BaseModel, Field, model_validator
 
 ROOT_DIR = Path(__file__).resolve().parents[1]
@@ -23,6 +27,7 @@ if str(ROOT_DIR) not in sys.path:
 
 EtiquetaClase = Literal["idea", "tarea", "acuerdo", "pregunta", "relleno"]
 TipoConversacion = Literal["ponencia", "reunion", "entrevista"]
+FuenteConversacion = Literal["gemini", "plantilla"]
 
 CLASES_VALIDAS: list[EtiquetaClase] = ["idea", "tarea", "acuerdo", "pregunta", "relleno"]
 TIPOS_VALIDOS: list[TipoConversacion] = ["ponencia", "reunion", "entrevista"]
@@ -52,6 +57,10 @@ class ConversacionSintetica(BaseModel):
     tipo: TipoConversacion
     titulo: str
     duracion_s: float = Field(..., ge=0.0)
+    fuente: FuenteConversacion = Field(
+        default="plantilla",
+        description="Fuente de la conversación: gemini o plantilla",
+    )
     segmentos: list[SegmentoSintetico]
 
 
@@ -62,6 +71,14 @@ class DatasetSintetico(BaseModel):
     total_segmentos: int
     conteo_por_clase: dict[str, int]
     proporciones_por_clase: dict[str, float]
+    porcentaje_unicos: float = Field(
+        default=0.0,
+        description="Porcentaje de segmentos con texto único en el dataset",
+    )
+    desglose_por_fuente: dict[str, int] = Field(
+        default_factory=dict,
+        description="Cantidad de conversaciones por fuente generadora",
+    )
     conversaciones: list[ConversacionSintetica]
 
 
@@ -212,9 +229,7 @@ def generar_conversacion_sintetica_dry_run(
     """
     rng = random.Random(seed + indice * 1000 + hash(tipo) % 10000)
 
-    # Definir pesos por clase según tipo de conversación
     if tipo == "reunion":
-        # Asegurar sólidamente tarea >= 6% y relleno >= 10%
         pesos = {
             "idea": 0.45,
             "tarea": 0.12,     # 12% >= 6%
@@ -248,9 +263,6 @@ def generar_conversacion_sintetica_dry_run(
     clases = list(pesos.keys())
     probabilidades = [pesos[c] for c in clases]
 
-    # Asignación determinista garantizando conteos mínimos
-    etiquetas_asignadas: list[EtiquetaClase] = []
-
     if tipo == "reunion":
         min_tarea = max(5, int(num_segmentos * 0.08))
         min_relleno = max(8, int(num_segmentos * 0.12))
@@ -268,17 +280,14 @@ def generar_conversacion_sintetica_dry_run(
         etiquetas_asignadas = etiquetas_base + etiquetas_restantes
         rng.shuffle(etiquetas_asignadas)
     else:
-        # Garantizar que todas las clases aparezcan al menos una vez
         etiquetas_base = [c for c in CLASES_VALIDAS]
         resto = num_segmentos - len(etiquetas_base)
         etiquetas_restantes = rng.choices(clases, weights=probabilidades, k=max(0, resto))
         etiquetas_asignadas = etiquetas_base + etiquetas_restantes
         rng.shuffle(etiquetas_asignadas)
 
-    # Crear segmentos secuenciales con tiempos no decrecientes
     segmentos: list[SegmentoSintetico] = []
     tiempo_actual = 0.0
-
     banco_tipo = BANCO_TEXTOS[tipo]
 
     for i, etiqueta in enumerate(etiquetas_asignadas, start=1):
@@ -290,7 +299,6 @@ def generar_conversacion_sintetica_dry_run(
         lista_frases = banco_tipo[etiqueta]
         frase_base = rng.choice(lista_frases)
 
-        # Variar ligeramente para evitar duplicados exactos repetitivos
         sufijo_variante = ""
         if rng.random() > 0.6:
             variantes = [
@@ -323,56 +331,341 @@ def generar_conversacion_sintetica_dry_run(
         tipo=tipo,
         titulo=titulo,
         duracion_s=duracion_total,
+        fuente="plantilla",
         segmentos=segmentos,
     )
 
 
 # ---------------------------------------------------------------------------
-# Integración con API de Gemini (con fallback a dry-run)
+# Integración con API de Gemini vía REST
 # ---------------------------------------------------------------------------
+
+def obtener_api_key() -> str | None:
+    """Obtiene la clave GEMINI_API_KEY desde entorno o desde el archivo .env."""
+    key = os.getenv("GEMINI_API_KEY")
+    if key and key.strip():
+        return key.strip().strip('"').strip("'")
+
+    env_path = ROOT_DIR / ".env"
+    if env_path.exists():
+        vals = dotenv_values(env_path)
+        k = vals.get("GEMINI_API_KEY")
+        if k and k.strip():
+            return k.strip().strip('"').strip("'")
+
+    return None
+
+
+def llamar_gemini_rest(
+    prompt: str,
+    modelo: str = "gemini-3.8-flash",
+    api_key: str | None = None,
+    timeout: int = 45,
+    max_reintentos: int = 3,
+) -> str:
+    """Ejecuta una petición POST a la REST API de Gemini v1beta con reintentos."""
+    key = api_key or obtener_api_key()
+    if not key:
+        raise RuntimeError(
+            "GEMINI_API_KEY no encontrada. Configure la clave en .env o variable de entorno."
+        )
+
+    # Orden de modelos candidatos para tolerancia a indisponibilidad o 404/503
+    candidatos = [modelo]
+    for m_alt in ["gemini-3.1-flash-lite", "gemini-3.5-flash", "gemini-3-flash-preview"]:
+        if m_alt not in candidatos:
+            candidatos.append(m_alt)
+
+    ultimo_error: str | None = None
+
+    for mod in candidatos:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{mod}:generateContent?key={key}"
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "responseMimeType": "application/json",
+                "temperature": 0.4,
+            },
+        }
+
+        for intento in range(1, max_reintentos + 1):
+            try:
+                resp = requests.post(url, json=payload, timeout=(10, timeout))
+                if resp.status_code == 200:
+                    data = resp.json()
+                    candidates = data.get("candidates", [])
+                    if candidates:
+                        parts = candidates[0].get("content", {}).get("parts", [])
+                        if parts and "text" in parts[0]:
+                            return parts[0]["text"]
+                    ultimo_error = f"Respuesta JSON sin partes de texto válidas en modelo {mod}."
+                    break
+
+                if resp.status_code in (429, 503):
+                    ultimo_error = f"HTTP {resp.status_code} ({mod}): alta demanda o límite de tasa."
+                    time.sleep(2 * intento)
+                    continue
+
+                if resp.status_code == 404:
+                    ultimo_error = f"HTTP 404 ({mod}): modelo no disponible para este endpoint."
+                    break
+
+                ultimo_error = f"HTTP {resp.status_code} ({mod}): {resp.text[:150]}"
+                break
+            except Exception as e:
+                ultimo_error = f"Excepción en {mod} intento {intento}: {e}"
+                time.sleep(2 * intento)
+
+    raise RuntimeError(f"Fallo en llamada a la API de Gemini: {ultimo_error}")
+
+
+def _normalizar_segmentos_gemini(
+    raw_segmentos: list[dict[str, Any]],
+    tipo: TipoConversacion,
+) -> list[SegmentoSintetico]:
+    """Asegura consistencia de marcas temporales y etiquetas en segmentos de Gemini."""
+    segmentos: list[SegmentoSintetico] = []
+    t_actual = 0.0
+
+    mapeo_etiquetas: dict[str, EtiquetaClase] = {
+        "idea": "idea",
+        "ideas": "idea",
+        "conclusion": "idea",
+        "hallazgo": "idea",
+        "tarea": "tarea",
+        "tareas": "tarea",
+        "accion": "tarea",
+        "pendiente": "tarea",
+        "to-do": "tarea",
+        "acuerdo": "acuerdo",
+        "acuerdos": "acuerdo",
+        "compromiso": "acuerdo",
+        "pregunta": "pregunta",
+        "preguntas": "pregunta",
+        "duda": "pregunta",
+        "relleno": "relleno",
+        "saludo": "relleno",
+        "introduccion": "relleno",
+        "despedida": "relleno",
+    }
+
+    for i, s in enumerate(raw_segmentos, start=1):
+        ini = float(s.get("inicio_s", t_actual))
+        if ini < t_actual:
+            ini = round(t_actual, 1)
+
+        fin = float(s.get("fin_s", ini + 5.0))
+        if fin <= ini:
+            fin = round(ini + round(random.uniform(4.0, 8.0), 1), 1)
+
+        t_actual = round(fin + round(random.uniform(0.2, 1.0), 1), 1)
+
+        raw_etq = str(s.get("etiqueta", "idea")).lower().strip()
+        etiqueta_final: EtiquetaClase = mapeo_etiquetas.get(raw_etq, "idea")
+        texto_seg = str(s.get("texto", "")).strip() or "Comentario de revisión metodológica."
+        orador = str(s.get("orador", f"Participante_{i % 3 + 1}"))
+
+        segmentos.append(
+            SegmentoSintetico(
+                id=i,
+                inicio_s=ini,
+                fin_s=fin,
+                texto=texto_seg,
+                etiqueta=etiqueta_final,
+                orador=orador,
+            )
+        )
+
+    # Si es reunión, asegurar cuotas mínimas si hiciera falta
+    if tipo == "reunion" and segmentos:
+        n_tot = len(segmentos)
+        c_tarea = sum(1 for s in segmentos if s.etiqueta == "tarea")
+        c_relleno = sum(1 for s in segmentos if s.etiqueta == "relleno")
+
+        min_tarea = max(2, int(n_tot * 0.08))
+        min_relleno = max(2, int(n_tot * 0.12))
+
+        # Promover segmentos de 'idea' si faltan cuotas
+        if c_tarea < min_tarea:
+            faltan = min_tarea - c_tarea
+            for seg in segmentos:
+                if seg.etiqueta == "idea" and faltan > 0:
+                    seg.etiqueta = "tarea"
+                    faltan -= 1
+
+        if c_relleno < min_relleno:
+            faltan_r = min_relleno - c_relleno
+            for seg in segmentos:
+                if seg.etiqueta == "idea" and faltan_r > 0:
+                    seg.etiqueta = "relleno"
+                    faltan_r -= 1
+
+    return segmentos
+
 
 def generar_conversacion_gemini(
     tipo: TipoConversacion,
     indice: int,
     num_segmentos: int = 80,
+    modelo: str = "gemini-3.8-flash",
+    estricto: bool = True,
     seed: int = 42,
+    api_key: str | None = None,
 ) -> ConversacionSintetica:
-    """Genera conversación usando API de Gemini si está disponible; fallback a dry-run."""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
+    """Genera una conversación individual con Gemini vía REST API."""
+    prompt = (
+        f"Genera una conversación sintética estructurada de tipo '{tipo}' para entrenar un modelo clasificador. "
+        f"Debe contener exactamente {num_segmentos} segmentos secuenciales. "
+        f"Cada segmento debe clasificarse en una de estas 5 clases obligatorias: 'idea', 'tarea', 'acuerdo', 'pregunta', 'relleno'. "
+        f"Para reuniones, al menos 8% debe ser 'tarea' y al menos 12% 'relleno'. "
+        f"Incluye jerga técnica ES-EN de investigación y ciencia de datos (journal, paper, Scopus, deadline, "
+        f"peer review, preprint, grant, dataset, APC, publisher, benchmark, trade-off). "
+        f"Los nombres de personas e instituciones deben ser completamente ficticios. "
+        f"Devuelve estrictamente un objeto JSON con el formato: "
+        f'{{"id": "{tipo}_sintetica_{indice:03d}", "tipo": "{tipo}", "titulo": "...", "duracion_s": 0.0, "fuente": "gemini", '
+        f'"segmentos": [{{"id": 1, "inicio_s": 0.0, "fin_s": 5.0, "texto": "...", "etiqueta": "idea", "orador": "..."}}]}}'
+    )
+
+    try:
+        texto_json = llamar_gemini_rest(prompt=prompt, modelo=modelo, api_key=api_key)
+        data = json.loads(texto_json)
+        if isinstance(data, list) and data:
+            data = data[0]
+
+        segmentos_norm = _normalizar_segmentos_gemini(data.get("segmentos", []), tipo)
+        duracion_tot = segmentos_norm[-1].fin_s if segmentos_norm else 100.0
+
+        return ConversacionSintetica(
+            id=f"{tipo}_sintetica_{indice:03d}",
+            tipo=tipo,
+            titulo=data.get("titulo", f"Conversación sintética {tipo} #{indice:02d}"),
+            duracion_s=duracion_tot,
+            fuente="gemini",
+            segmentos=segmentos_norm,
+        )
+    except Exception as exc:
+        if estricto:
+            raise RuntimeError(
+                f"Error en generación con Gemini para {tipo}_{indice} (modo estricto activo): {exc}"
+            ) from exc
+        print(
+            f"[Aviso] Fallback a plantilla para {tipo}_{indice} debido a fallo en Gemini: {exc}",
+            file=sys.stderr,
+        )
         return generar_conversacion_sintetica_dry_run(tipo, indice, num_segmentos, seed)
 
-    # Intentar google.genai o google.generativeai
+
+TEMAS_POR_TIPO: dict[TipoConversacion, list[str]] = {
+    "ponencia": [
+        "clasificación supervisada de texto multilingüe y arquitecturas compactas como mmBERT",
+        "políticas de acceso abierto, fondos para tasas de procesamiento APC y revistas Scopus Q1",
+        "reproducibilidad computacional, control de semillas fijas y publicación de datasets abiertos",
+        "diseño metodológico de experimentos, estimación causal y control por sesgo de selección",
+        "estrategias de respuesta estructurada a revisores durante el arbitraje por pares (peer review)",
+        "análisis bibliométrico de literatura académica, minería de texto y metanálisis",
+        "desafíos éticos de la inteligencia artificial generativa en publicaciones científicas",
+        "benchmarking de modelos de lenguaje en tareas de extracción de entidades y relaciones",
+    ],
+    "reunion": [
+        "coordinación de sprint técnico, revisión de pull requests y congelamiento de contratos Pydantic",
+        "monitoreo de consumo de memoria RAM y optimización de latencia en modelos Whisper int8",
+        "diseño de mapas mentales interactivos con markmap y citas textuales verificables por minuto",
+        "retroalimentación de pruebas piloto con usuarios, privacidad de grabaciones y consentimiento",
+        "gestión de presupuestos de investigación, fondos grants y plazos perentorios de entrega",
+        "arquitectura de filtros de segmentos de relleno y balance de clases en datos supervisados",
+        "estrategia de despliegue en Streamlit Cloud y mitigación de cuotas de cómputo",
+        "preparación de guiones de demostración y validación de hipótesis HDD pre-registradas",
+    ],
+    "entrevista": [
+        "experiencia de investigadores principales al transcribir entrevistas cualitativas y conferencias",
+        "dificultades de asistentes de investigación con notas manuales, compromisos pendientes y to-dos",
+    ],
+}
+
+
+def generar_lote_conversaciones_gemini(
+    tipo: TipoConversacion,
+    inicio_indice: int,
+    cantidad: int,
+    segmentos_por_conv: int = 20,
+    modelo: str = "gemini-3.8-flash",
+    estricto: bool = True,
+    seed: int = 42,
+    api_key: str | None = None,
+) -> list[ConversacionSintetica]:
+    """Genera un lote de conversaciones de forma estructurada en una sola llamada REST."""
+    lista_temas = TEMAS_POR_TIPO.get(tipo, [])
+    tema_especifico = ""
+    if lista_temas:
+        idx_tema = ((inicio_indice - 1) // max(1, cantidad)) % len(lista_temas)
+        tema_especifico = f"Enfoca las discusiones de este lote principalmente en: {lista_temas[idx_tema]}. "
+
+    prompt = (
+        f"Genera un lote de {cantidad} conversaciones sintéticas realistas de tipo '{tipo}' para el dataset Minuta. "
+        f"{tema_especifico}"
+        f"Cada conversación debe tener entre {max(12, segmentos_por_conv - 5)} y {segmentos_por_conv + 5} segmentos. "
+        f"Clases obligatorias (solo estas 5): 'idea', 'tarea', 'acuerdo', 'pregunta', 'relleno'. "
+        f"{'En cada reunión asegura al menos 2 tareas explícitas y al menos 2 segmentos de relleno. ' if tipo == 'reunion' else ''}"
+        f"Todos los textos deben ser únicos, diversos y reflejar debates auténticos de investigación y ciencia de datos. "
+        f"Términos técnicos ES-EN requeridos: paper, journal, Scopus, grant, deadline, peer review, preprint, dataset, APC, publisher. "
+        f"Nombres de instituciones y participantes totalmente ficticios. "
+        f"Devuelve estrictamente una lista JSON con {cantidad} objetos: "
+        f'[{{"id": "{tipo}_sintetica_{inicio_indice:03d}", "tipo": "{tipo}", "titulo": "...", "duracion_s": 0.0, "fuente": "gemini", '
+        f'"segmentos": [{{"id": 1, "inicio_s": 0.0, "fin_s": 5.0, "texto": "...", "etiqueta": "idea", "orador": "..."}}]}}]'
+    )
+
     try:
-        from google import genai  # type: ignore
+        texto_json = llamar_gemini_rest(prompt=prompt, modelo=modelo, api_key=api_key)
+        data = json.loads(texto_json)
+        if isinstance(data, dict) and "conversaciones" in data:
+            data = data["conversaciones"]
+        if not isinstance(data, list):
+            data = [data]
 
-        client = genai.Client(api_key=api_key)
-        prompt = (
-            f"Genera una transcripción sintética de tipo '{tipo}' para entrenar un modelo clasificador. "
-            f"Debe contener exactamente {num_segmentos} segmentos. Cada segmento debe clasificarse en una de "
-            f"las siguientes 5 clases: 'idea', 'tarea', 'acuerdo', 'pregunta', 'relleno'. "
-            f"Para reuniones, al menos 8% debe ser 'tarea' y al menos 12% 'relleno'. "
-            f"Incluye términos en español e inglés técnico de investigación (journal, paper, Scopus, deadline, "
-            f"peer review, preprint, grant, dataset, APC, publisher). "
-            f"Utiliza nombres de instituciones y personas totalmente ficticios."
+        conversaciones_lote: list[ConversacionSintetica] = []
+        for i, item in enumerate(data):
+            idx_conv = inicio_indice + i
+            segs_norm = _normalizar_segmentos_gemini(item.get("segmentos", []), tipo)
+            dur_tot = segs_norm[-1].fin_s if segs_norm else 120.0
+            conv = ConversacionSintetica(
+                id=f"{tipo}_sintetica_{idx_conv:03d}",
+                tipo=tipo,
+                titulo=item.get("titulo", f"Conversación {tipo} #{idx_conv:02d}"),
+                duracion_s=dur_tot,
+                fuente="gemini",
+                segmentos=segs_norm,
+            )
+            conversaciones_lote.append(conv)
+
+        # Si faltó alguna para completar la cantidad solicitada
+        while len(conversaciones_lote) < cantidad:
+            idx_faltante = inicio_indice + len(conversaciones_lote)
+            c_extra = generar_conversacion_gemini(
+                tipo=tipo,
+                indice=idx_faltante,
+                num_segmentos=segmentos_por_conv,
+                modelo=modelo,
+                estricto=estricto,
+                seed=seed + idx_faltante,
+                api_key=api_key,
+            )
+            conversaciones_lote.append(c_extra)
+
+        return conversaciones_lote[:cantidad]
+
+    except Exception as exc:
+        if estricto:
+            raise RuntimeError(
+                f"Error generando lote {tipo} [{inicio_indice}..{inicio_indice+cantidad-1}] con Gemini (modo estricto activo): {exc}"
+            ) from exc
+        print(
+            f"[Aviso] Fallback a plantillas para lote {tipo} debido a fallo en Gemini: {exc}",
+            file=sys.stderr,
         )
-
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=prompt,
-            config={
-                "response_mime_type": "application/json",
-                "response_schema": ConversacionSintetica,
-                "temperature": 0.0,
-            },
-        )
-        if response.text:
-            return ConversacionSintetica.model_validate_json(response.text)
-    except Exception as e:
-        # Fallback determinista seguro ante falta de conexión o librería
-        print(f"[Aviso] Fallback a generador determinista para {tipo}_{indice}: {e}", file=sys.stderr)
-
-    return generar_conversacion_sintetica_dry_run(tipo, indice, num_segmentos, seed)
+        return [
+            generar_conversacion_sintetica_dry_run(tipo, inicio_indice + j, segmentos_por_conv, seed + j)
+            for j in range(cantidad)
+        ]
 
 
 # ---------------------------------------------------------------------------
@@ -380,25 +673,34 @@ def generar_conversacion_gemini(
 # ---------------------------------------------------------------------------
 
 def calcular_estadisticas_dataset(dataset: DatasetSintetico) -> dict[str, Any]:
-    """Calcula totales, conteos y proporciones por clase en todo el dataset."""
+    """Calcula totales, conteos, proporciones por clase, porcentaje de únicos y desglose de fuentes."""
     conteo: dict[str, int] = {c: 0 for c in CLASES_VALIDAS}
     total_segmentos = 0
+    textos: list[str] = []
+    fuentes: dict[str, int] = {}
 
     for conv in dataset.conversaciones:
+        f_val = getattr(conv, "fuente", "plantilla")
+        fuentes[f_val] = fuentes.get(f_val, 0) + 1
         for seg in conv.segmentos:
             conteo[seg.etiqueta] = conteo.get(seg.etiqueta, 0) + 1
             total_segmentos += 1
+            textos.append(seg.texto.strip())
 
     proporciones: dict[str, float] = {}
     if total_segmentos > 0:
         for c, cant in conteo.items():
             proporciones[c] = round(cant / total_segmentos, 4)
 
+    pct_unicos = round(len(set(textos)) / len(textos) * 100.0, 2) if textos else 0.0
+
     return {
         "total_conversaciones": len(dataset.conversaciones),
         "total_segmentos": total_segmentos,
         "conteo_por_clase": conteo,
         "proporciones_por_clase": proporciones,
+        "porcentaje_unicos": pct_unicos,
+        "desglose_por_fuente": fuentes,
     }
 
 
@@ -430,51 +732,104 @@ def validar_distribucion_reuniones(dataset: DatasetSintetico) -> tuple[bool, str
 
 
 def generar_dataset_sintetico(
-    n_por_tipo: int = 2,
+    n_por_tipo: int | dict[TipoConversacion, int] = 2,
     tipos: list[TipoConversacion] | None = None,
     segmentos_por_conv: int = 80,
     dry_run: bool = True,
+    estricto: bool = True,
+    modelo: str = "gemini-3.8-flash",
     seed: int = 42,
+    usar_lotes: bool = True,
+    tamano_lote: int = 5,
 ) -> DatasetSintetico:
     """Genera un dataset sintético completo de conversaciones."""
     if tipos is None:
         tipos = list(TIPOS_VALIDOS)
 
+    cuotas_por_tipo: dict[TipoConversacion, int] = {}
+    if isinstance(n_por_tipo, int):
+        cuotas_por_tipo = {t: n_por_tipo for t in tipos}
+    else:
+        cuotas_por_tipo = {t: n_por_tipo.get(t, 0) for t in tipos}
+
     conversaciones: list[ConversacionSintetica] = []
 
     for tipo in tipos:
-        for i in range(1, n_por_tipo + 1):
-            if dry_run:
+        total_tipo = cuotas_por_tipo.get(tipo, 0)
+        if total_tipo <= 0:
+            continue
+
+        if dry_run:
+            for i in range(1, total_tipo + 1):
                 conv = generar_conversacion_sintetica_dry_run(
                     tipo=tipo,
                     indice=i,
                     num_segmentos=segmentos_por_conv,
-                    seed=seed,
+                    seed=seed + i,
                 )
+                conversaciones.append(conv)
+        else:
+            if usar_lotes and total_tipo > 1:
+                generadas = 0
+                while generadas < total_tipo:
+                    lote_n = min(tamano_lote, total_tipo - generadas)
+                    idx_inicio = generadas + 1
+                    print(
+                        f"[{tipo}] Generando lote {idx_inicio}..{idx_inicio + lote_n - 1} de {total_tipo}...",
+                        flush=True,
+                    )
+                    lote = generar_lote_conversaciones_gemini(
+                        tipo=tipo,
+                        inicio_indice=idx_inicio,
+                        cantidad=lote_n,
+                        segmentos_por_conv=segmentos_por_conv,
+                        modelo=modelo,
+                        estricto=estricto,
+                        seed=seed + generadas,
+                    )
+                    conversaciones.extend(lote)
+                    generadas += len(lote)
+                    print(
+                        f"[{tipo}] Progreso: {generadas}/{total_tipo} conversaciones generadas.",
+                        flush=True,
+                    )
             else:
-                conv = generar_conversacion_gemini(
-                    tipo=tipo,
-                    indice=i,
-                    num_segmentos=segmentos_por_conv,
-                    seed=seed,
-                )
-            conversaciones.append(conv)
+                for i in range(1, total_tipo + 1):
+                    print(f"[{tipo}] Generando conversación {i}/{total_tipo}...", flush=True)
+                    conv = generar_conversacion_gemini(
+                        tipo=tipo,
+                        indice=i,
+                        num_segmentos=segmentos_por_conv,
+                        modelo=modelo,
+                        estricto=estricto,
+                        seed=seed + i,
+                    )
+                    conversaciones.append(conv)
 
-    # Calcular estadísticas globales
+    # Calcular estadísticas
     conteo: dict[str, int] = {c: 0 for c in CLASES_VALIDAS}
     total_seg = 0
+    textos: list[str] = []
+    fuentes: dict[str, int] = {}
+
     for conv in conversaciones:
+        f_nom = getattr(conv, "fuente", "plantilla")
+        fuentes[f_nom] = fuentes.get(f_nom, 0) + 1
         for s in conv.segmentos:
             conteo[s.etiqueta] += 1
             total_seg += 1
+            textos.append(s.texto.strip())
 
     proporciones = {c: round(cant / total_seg, 4) for c, cant in conteo.items()} if total_seg > 0 else {}
+    pct_unicos = round(len(set(textos)) / len(textos) * 100.0, 2) if textos else 0.0
 
     return DatasetSintetico(
         total_conversaciones=len(conversaciones),
         total_segmentos=total_seg,
         conteo_por_clase=conteo,
         proporciones_por_clase=proporciones,
+        porcentaje_unicos=pct_unicos,
+        desglose_por_fuente=fuentes,
         conversaciones=conversaciones,
     )
 
@@ -492,6 +847,11 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         type=int,
         default=2,
         help="Número de conversaciones sintéticas por tipo (default: 2)",
+    )
+    parser.add_argument(
+        "--completo",
+        action="store_true",
+        help="Genera dataset completo de entrenamiento: 40 ponencias, 40 reuniones y 10 entrevistas",
     )
     parser.add_argument(
         "--tipo",
@@ -512,9 +872,21 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
         help="Modo generador determinista simulado (no requiere GEMINI_API_KEY)",
     )
     parser.add_argument(
+        "--estricto",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Modo estricto: aborta inmediatamente ante fallo de la API sin caer a plantillas (default: True)",
+    )
+    parser.add_argument(
+        "--modelo",
+        type=str,
+        default="gemini-3.8-flash",
+        help="Modelo de Gemini a emplear en REST API (default: gemini-3.8-flash)",
+    )
+    parser.add_argument(
         "--salida",
         type=str,
-        default=str(ROOT_DIR / "entrenamiento" / "datos" / "sinteticos_muestra.json"),
+        default=None,
         help="Ruta al archivo JSON de salida",
     )
     parser.add_argument(
@@ -529,29 +901,38 @@ def parse_args(args: list[str] | None = None) -> argparse.Namespace:
 def main(args: list[str] | None = None) -> int:
     parsed = parse_args(args)
 
-    tipos: list[TipoConversacion]
-    if parsed.tipo == "todas":
-        tipos = list(TIPOS_VALIDOS)
+    if parsed.completo:
+        cuotas = {"ponencia": 40, "reunion": 40, "entrevista": 10}
+        ruta_defecto = ROOT_DIR / "entrenamiento" / "datos" / "sinteticos_entrenamiento.json"
+        segmentos_conv = parsed.segmentos if parsed.segmentos != 80 else 20
     else:
-        tipos = [parsed.tipo]  # type: ignore
+        tipos_sel = list(TIPOS_VALIDOS) if parsed.tipo == "todas" else [parsed.tipo]
+        cuotas = {t: parsed.n for t in tipos_sel}
+        ruta_defecto = ROOT_DIR / "entrenamiento" / "datos" / "sinteticos_muestra.json"
+        segmentos_conv = parsed.segmentos
+
+    ruta_salida = Path(parsed.salida) if parsed.salida else ruta_defecto
 
     dataset = generar_dataset_sintetico(
-        n_por_tipo=parsed.n,
-        tipos=tipos,
-        segmentos_por_conv=parsed.segmentos,
+        n_por_tipo=cuotas,
+        tipos=list(cuotas.keys()),
+        segmentos_por_conv=segmentos_conv,
         dry_run=parsed.dry_run,
+        estricto=parsed.estricto,
+        modelo=parsed.modelo,
         seed=parsed.semilla,
+        usar_lotes=True,
     )
 
-    # Imprimir conteos requeridos por plan maestro §8
     conteos_str = ", ".join(f"{c}={dataset.conteo_por_clase.get(c, 0)}" for c in CLASES_VALIDAS)
     print(f"Conteo por clase: {conteos_str}")
+    print(f"Porcentaje de segmentos únicos: {dataset.porcentaje_unicos:.2f}%")
+    desglose_str = ", ".join(f"{f}={cant}" for f, cant in dataset.desglose_por_fuente.items())
+    print(f"Desglose por fuente: {desglose_str}")
 
     cumple_reuniones, detalle = validar_distribucion_reuniones(dataset)
     print(f"Distribución reuniones: {detalle} -> {'CUMPLE' if cumple_reuniones else 'FALLA'}")
 
-    # Guardar archivo de salida
-    ruta_salida = Path(parsed.salida)
     ruta_salida.parent.mkdir(parents=True, exist_ok=True)
     with open(ruta_salida, "w", encoding="utf-8") as f:
         json.dump(dataset.model_dump(), f, indent=2, ensure_ascii=False)
