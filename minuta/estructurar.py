@@ -1,0 +1,486 @@
+"""Módulo de estructuración Map-Reduce de transcripciones para Minuta.
+
+Convierte transcripciones de audio en resultados estructurados y validados con Pydantic v2
+para las tres plantillas del sistema: Ponencia, Reunión y Entrevista.
+
+Aplica estrategia Map-Reduce:
+1. Particiona la transcripción en bloques cronológicos de ~10 minutos (<= 600 segundos).
+2. Fase Map: extrae ideas, to-do, acuerdos y ramas del mapa mental por bloque.
+3. Fase Reduce: agrega y unifica los resultados en el esquema objetivo y construye el MapaMental.
+4. Validación estricta: descarta nodos y elementos cuyas citas no sean subcadenas literales.
+"""
+
+from __future__ import annotations
+
+import copy
+from typing import Any, Literal, Sequence
+from pydantic import BaseModel
+
+from minuta.esquemas import (
+    Acuerdo,
+    CodigoLibro,
+    Evidencia,
+    FragmentoCodificado,
+    MapaMental,
+    NodoMapa,
+    Pendiente,
+    ResultadoEntrevista,
+    ResultadoPonencia,
+    ResultadoReunion,
+    Segmento,
+    Tarea,
+    Tema,
+    Transcripcion,
+    validar_evidencia_literal,
+)
+from minuta.proveedores import ProveedorLLM
+
+TipoPlantilla = Literal["ponencia", "reunion", "entrevista"]
+ModoEstructuracion = Literal["solo_llm", "detector"]
+
+
+def particionar_en_bloques(
+    segmentos: Sequence[Segmento],
+    max_duracion_bloque_s: float = 600.0,
+) -> list[list[Segmento]]:
+    """Agrupa segmentos cronológicos en bloques de duración acumulada <= max_duracion_bloque_s (~10 min).
+
+    Si la transcripción completa dura menos o igual al umbral, retorna un solo bloque.
+    """
+    if not segmentos:
+        return []
+
+    bloques: list[list[Segmento]] = []
+    bloque_actual: list[Segmento] = []
+    duracion_acumulada: float = 0.0
+
+    for seg in segmentos:
+        dur_seg = max(0.0, seg.fin_s - seg.inicio_s)
+        # Si agregar el segmento sobrepasa el límite y el bloque ya tiene segmentos, cerramos bloque
+        if bloque_actual and (duracion_acumulada + dur_seg > max_duracion_bloque_s):
+            bloques.append(bloque_actual)
+            bloque_actual = [seg]
+            duracion_acumulada = dur_seg
+        else:
+            bloque_actual.append(seg)
+            duracion_acumulada += dur_seg
+
+    if bloque_actual:
+        bloques.append(bloque_actual)
+
+    return bloques
+
+
+def _comprobar_cita_literal(ev: Evidencia, segmentos: list[Segmento]) -> bool:
+    """Verifica si la cita de evidencia es una subcadena literal exacta en los segmentos del bloque."""
+    if not ev.cita or not ev.cita.strip():
+        return False
+
+    # 1. Comprobar si coincide con los segmentos específicamente referenciados
+    segs_referenciados = [
+        s for s in segmentos if s.id in ev.segmento_ids or str(s.id) in [str(x) for x in ev.segmento_ids]
+    ]
+    if segs_referenciados and validar_evidencia_literal(ev.cita, segs_referenciados):
+        return True
+
+    # 2. Comprobar en el conjunto completo de segmentos del bloque
+    if validar_evidencia_literal(ev.cita, segmentos):
+        # Localizar el segmento real donde aparece y ajustar segmento_ids si fuera necesario
+        ids_encontrados: list[str | int] = []
+        for s in segmentos:
+            if ev.cita.strip() in s.texto:
+                ids_encontrados.append(s.id)
+        if ids_encontrados:
+            ev.segmento_ids = ids_encontrados
+        return True
+
+    return False
+
+
+def _filtrar_nodos_recursivo(
+    nodos: list[NodoMapa],
+    segmentos: list[Segmento],
+) -> tuple[list[NodoMapa], int]:
+    """Filtra recursivamente los nodos del mapa mental descartando aquellos con citas no literales."""
+    nodos_filtrados: list[NodoMapa] = []
+    descartados: int = 0
+
+    for nodo in nodos:
+        if nodo.evidencia is not None:
+            if not _comprobar_cita_literal(nodo.evidencia, segmentos):
+                # Cita no literal: descartar el nodo completo y contar
+                descartados += 1
+                continue
+
+        # Procesar hijos recursivamente
+        hijos_filtrados, desc_hijos = _filtrar_nodos_recursivo(nodo.hijos, segmentos)
+        descartados += desc_hijos
+
+        nuevo_nodo = NodoMapa(
+            id=nodo.id,
+            titulo=nodo.titulo,
+            resumen=nodo.resumen,
+            evidencia=nodo.evidencia,
+            hijos=hijos_filtrados,
+        )
+        nodos_filtrados.append(nuevo_nodo)
+
+    return nodos_filtrados, descartados
+
+
+def validar_y_descartar_no_literales(
+    resultado: ResultadoPonencia | ResultadoReunion | ResultadoEntrevista,
+    segmentos: list[Segmento],
+) -> tuple[ResultadoPonencia | ResultadoReunion | ResultadoEntrevista, int]:
+    """Valida todas las evidencias del resultado contra los segmentos dados.
+
+    Cualquier elemento o nodo cuya cita no sea una subcadena literal es descartado
+    y contabilizado en el número de descartados.
+    """
+    descartados: int = 0
+
+    # 1. Filtrar MapaMental
+    raiz_original = resultado.mapa.raiz
+    hijos_filtrados, desc_mapa = _filtrar_nodos_recursivo(raiz_original.hijos, segmentos)
+    descartados += desc_mapa
+
+    nueva_raiz = NodoMapa(
+        id=raiz_original.id,
+        titulo=raiz_original.titulo,
+        resumen=raiz_original.resumen,
+        evidencia=None,  # La raíz nunca lleva evidencia
+        hijos=hijos_filtrados,
+    )
+    nuevo_mapa = MapaMental(titulo=resultado.mapa.titulo, raiz=nueva_raiz)
+
+    # 2. Filtrar elementos específicos de la plantilla
+    if isinstance(resultado, ResultadoPonencia):
+        ideas_filtradas: list[Tema] = []
+        for tema in resultado.ideas_clave:
+            evs_validas = [e for e in tema.evidencias if _comprobar_cita_literal(e, segmentos)]
+            descartados += len(tema.evidencias) - len(evs_validas)
+            if evs_validas:
+                ideas_filtradas.append(
+                    Tema(titulo=tema.titulo, resumen=tema.resumen, evidencias=evs_validas)
+                )
+
+        preguntas_filtradas: list[Pendiente] = []
+        for p in resultado.preguntas:
+            if _comprobar_cita_literal(p.evidencia, segmentos):
+                preguntas_filtradas.append(p)
+            else:
+                descartados += 1
+
+        resultado_filtrado = ResultadoPonencia(
+            resumen_general=resultado.resumen_general,
+            ideas_clave=ideas_filtradas,
+            preguntas=preguntas_filtradas,
+            mapa=nuevo_mapa,
+            descartados=resultado.descartados + descartados,
+            modo=resultado.modo,
+        )
+        return resultado_filtrado, descartados
+
+    if isinstance(resultado, ResultadoReunion):
+        temas_filtrados: list[Tema] = []
+        for tema in resultado.temas:
+            evs_validas = [e for e in tema.evidencias if _comprobar_cita_literal(e, segmentos)]
+            descartados += len(tema.evidencias) - len(evs_validas)
+            if evs_validas:
+                temas_filtrados.append(
+                    Tema(titulo=tema.titulo, resumen=tema.resumen, evidencias=evs_validas)
+                )
+
+        acuerdos_filtrados: list[Acuerdo] = []
+        for a in resultado.acuerdos:
+            if _comprobar_cita_literal(a.evidencia, segmentos):
+                acuerdos_filtrados.append(a)
+            else:
+                descartados += 1
+
+        tareas_filtradas: list[Tarea] = []
+        for t in resultado.tareas:
+            if _comprobar_cita_literal(t.evidencia, segmentos):
+                tareas_filtradas.append(t)
+            else:
+                descartados += 1
+
+        pendientes_filtrados: list[Pendiente] = []
+        for p in resultado.pendientes:
+            if _comprobar_cita_literal(p.evidencia, segmentos):
+                pendientes_filtrados.append(p)
+            else:
+                descartados += 1
+
+        resultado_filtrado = ResultadoReunion(
+            resumen_general=resultado.resumen_general,
+            temas=temas_filtrados,
+            acuerdos=acuerdos_filtrados,
+            tareas=tareas_filtradas,
+            pendientes=pendientes_filtrados,
+            mapa=nuevo_mapa,
+            descartados=resultado.descartados + descartados,
+            modo=resultado.modo,
+        )
+        return resultado_filtrado, descartados
+
+    if isinstance(resultado, ResultadoEntrevista):
+        fragmentos_filtrados: list[FragmentoCodificado] = []
+        for f in resultado.fragmentos:
+            if _comprobar_cita_literal(f.evidencia, segmentos):
+                fragmentos_filtrados.append(f)
+            else:
+                descartados += 1
+
+        resultado_filtrado = ResultadoEntrevista(
+            libro=resultado.libro,
+            fragmentos=fragmentos_filtrados,
+            resumen_por_codigo=resultado.resumen_por_codigo,
+            mapa=nuevo_mapa,
+            descartados=resultado.descartados + descartados,
+            modo=resultado.modo,
+        )
+        return resultado_filtrado, descartados
+
+    return resultado, 0
+
+
+def _generar_prompt_map(
+    segmentos: list[Segmento],
+    tipo_plantilla: TipoPlantilla,
+    bloque_idx: int = 1,
+    total_bloques: int = 1,
+) -> str:
+    """Construye el prompt para la fase Map del procesamiento estructurado."""
+    texto_segmentos = "\n".join(
+        f"[{s.id}] ({s.inicio_s:.1f}s - {s.fin_s:.1f}s): {s.texto}" for s in segmentos
+    )
+
+    instrucciones_plantilla = {
+        "ponencia": (
+            "Extrae un resumen_general conciso, las ideas_clave principales (cada una con sus evidencias),\n"
+            "preguntas abiertas o temas no resueltos, y un mapa mental estructurado en árbol."
+        ),
+        "reunion": (
+            "Extrae un resumen_general de la reunión, temas discutidos, acuerdos pactados,\n"
+            "tareas asignadas (to-do lists con responsable y fecha si se mencionan), pendientes y mapa mental."
+        ),
+        "entrevista": (
+            "Extrae el libro de códigos temáticos, fragmentos codificados con evidencia textual estricta,\n"
+            "resumen por cada código temático, y un mapa mental estructurado."
+        ),
+    }[tipo_plantilla]
+
+    return f"""Eres el sistema NLP de estructuración de audio de Minuta.
+Analiza la siguiente transcripción correspondiente al Bloque {bloque_idx} de {total_bloques}.
+
+INSTRUCCIONES CLAVE:
+1. {instrucciones_plantilla}
+2. REGLA ESTRICTA DE EVIDENCIA: Todas las citas en Evidencia (campo 'cita') DEBEN ser subcadenas literales y exactas
+   del texto transcrito en los segmentos. No parafrasees las citas bajo ninguna circunstancia.
+3. MAPA MENTAL:
+   - El árbol debe tener entre 2 y 4 niveles de profundidad y entre 4 y 8 ramas principales.
+   - El nodo raíz no lleva evidencia ('evidencia': null).
+   - Todos los nodos hijos y hojas DEBEN llevar 'evidencia' con su respectiva cita literal exacta y tiempo de inicio.
+
+TRANSCRIPCIÓN DEL BLOQUE:
+{texto_segmentos}
+"""
+
+
+def _unificar_mapas(
+    mapas: list[MapaMental],
+    titulo_general: str,
+    max_ramas: int = 8,
+) -> MapaMental:
+    """Unifica las ramas principales de múltiples árboles de mapa mental bajo una raíz común."""
+    todas_las_ramas: list[NodoMapa] = []
+    titulos_vistos: set[str] = set()
+
+    for m in mapas:
+        for hijo in m.raiz.hijos:
+            clave = hijo.titulo.strip().lower()
+            if clave not in titulos_vistos:
+                titulos_vistos.add(clave)
+                todas_las_ramas.append(hijo)
+
+    # Si excede el máximo de ramas principales (8), conservar las primeras max_ramas
+    if len(todas_las_ramas) > max_ramas:
+        todas_las_ramas = todas_las_ramas[:max_ramas]
+
+    raiz_unificada = NodoMapa(
+        id="root",
+        titulo=titulo_general,
+        resumen=None,
+        evidencia=None,
+        hijos=todas_las_ramas,
+    )
+    return MapaMental(titulo=titulo_general, raiz=raiz_unificada)
+
+
+def estructurar_transcripcion(
+    transcripcion: Transcripcion,
+    tipo_plantilla: TipoPlantilla,
+    proveedor: ProveedorLLM,
+    modo: ModoEstructuracion = "solo_llm",
+) -> ResultadoPonencia | ResultadoReunion | ResultadoEntrevista:
+    """Estructura una transcripción aplicando estrategia Map-Reduce por bloques de ~10 minutos.
+
+    Parámetros:
+    - transcripcion: Objeto Transcripcion validado con segmentos temporales.
+    - tipo_plantilla: "ponencia" (defecto), "reunion" o "entrevista".
+    - proveedor: Instancia de ProveedorLLM (Gemini, Ollama o Mock).
+    - modo: "solo_llm" o "detector".
+
+    Retorna:
+    - ResultadoPonencia, ResultadoReunion o ResultadoEntrevista con evidencias literales estrictas.
+    """
+    esquema_cls: type[ResultadoPonencia | ResultadoReunion | ResultadoEntrevista]
+    if tipo_plantilla == "ponencia":
+        esquema_cls = ResultadoPonencia
+    elif tipo_plantilla == "reunion":
+        esquema_cls = ResultadoReunion
+    elif tipo_plantilla == "entrevista":
+        esquema_cls = ResultadoEntrevista
+    else:
+        raise ValueError(f"Tipo de plantilla no soportada: '{tipo_plantilla}'")
+
+    if not transcripcion.segmentos:
+        # Caso borde: transcripción vacía
+        mapa_vacio = MapaMental(titulo="Sin contenido", raiz=NodoMapa(id="root", titulo="Sin contenido"))
+        if tipo_plantilla == "ponencia":
+            return ResultadoPonencia(
+                resumen_general="", ideas_clave=[], preguntas=[], mapa=mapa_vacio, modo=modo
+            )
+        if tipo_plantilla == "reunion":
+            return ResultadoReunion(
+                resumen_general="", temas=[], acuerdos=[], tareas=[], pendientes=[], mapa=mapa_vacio, modo=modo
+            )
+        return ResultadoEntrevista(
+            libro=[], fragmentos=[], resumen_por_codigo={}, mapa=mapa_vacio, modo=modo
+        )
+
+    # Particionar en bloques de ~10 minutos (<= 600 segundos)
+    if transcripcion.duracion_s <= 600.0:
+        bloques = [list(transcripcion.segmentos)]
+    else:
+        bloques = particionar_en_bloques(transcripcion.segmentos, max_duracion_bloque_s=600.0)
+
+    # Fase MAP: Procesar cada bloque individualmente
+    resultados_bloques: list[ResultadoPonencia | ResultadoReunion | ResultadoEntrevista] = []
+
+    for idx, bloque_segs in enumerate(bloques, start=1):
+        prompt = _generar_prompt_map(
+            bloque_segs,
+            tipo_plantilla=tipo_plantilla,
+            bloque_idx=idx,
+            total_bloques=len(bloques),
+        )
+        res_bloque = proveedor.generar_estructurado(prompt, esquema_cls)
+
+        # Validación y descarte de citas no literales del bloque
+        res_filtrado, desc = validar_y_descartar_no_literales(res_bloque, bloque_segs)
+        resultados_bloques.append(res_filtrado)
+
+    # Si solo hay un bloque, no se requiere fase Reduce compleja
+    if len(resultados_bloques) == 1:
+        res_unico = resultados_bloques[0]
+        res_unico.modo = modo
+        return res_unico
+
+    # Fase REDUCE: Unificar resultados parciales de múltiples bloques
+    total_descartados = sum(r.descartados for r in resultados_bloques)
+    resumen_unificado = "\n\n".join(
+        f"[Bloque {i}] {r.resumen_general}" if len(resultados_bloques) > 1 else r.resumen_general
+        for i, r in enumerate(resultados_bloques, start=1)
+        if r.resumen_general.strip()
+    )
+
+    titulo_mapa = resultados_bloques[0].mapa.titulo or transcripcion.audio_id
+    mapas = [r.mapa for r in resultados_bloques]
+    mapa_unificado = _unificar_mapas(mapas, titulo_general=titulo_mapa)
+
+    if tipo_plantilla == "ponencia":
+        todas_ideas: list[Tema] = []
+        ideas_vistas: set[str] = set()
+        for r in resultados_bloques:
+            assert isinstance(r, ResultadoPonencia)
+            for idea in r.ideas_clave:
+                k = idea.titulo.strip().lower()
+                if k not in ideas_vistas:
+                    ideas_vistas.add(k)
+                    todas_ideas.append(idea)
+
+        todas_preguntas: list[Pendiente] = []
+        for r in resultados_bloques:
+            assert isinstance(r, ResultadoPonencia)
+            todas_preguntas.extend(r.preguntas)
+
+        return ResultadoPonencia(
+            resumen_general=resumen_unificado,
+            ideas_clave=todas_ideas,
+            preguntas=todas_preguntas,
+            mapa=mapa_unificado,
+            descartados=total_descartados,
+            modo=modo,
+        )
+
+    if tipo_plantilla == "reunion":
+        todos_temas: list[Tema] = []
+        temas_vistos: set[str] = set()
+        for r in resultados_bloques:
+            assert isinstance(r, ResultadoReunion)
+            for tema in r.temas:
+                k = tema.titulo.strip().lower()
+                if k not in temas_vistos:
+                    temas_vistos.add(k)
+                    todos_temas.append(tema)
+
+        todos_acuerdos: list[Acuerdo] = []
+        todas_tareas: list[Tarea] = []
+        todos_pendientes: list[Pendiente] = []
+
+        for r in resultados_bloques:
+            assert isinstance(r, ResultadoReunion)
+            todos_acuerdos.extend(r.acuerdos)
+            todas_tareas.extend(r.tareas)
+            todos_pendientes.extend(r.pendientes)
+
+        return ResultadoReunion(
+            resumen_general=resumen_unificado,
+            temas=todos_temas,
+            acuerdos=todos_acuerdos,
+            tareas=todas_tareas,
+            pendientes=todos_pendientes,
+            mapa=mapa_unificado,
+            descartados=total_descartados,
+            modo=modo,
+        )
+
+    # Entrevista
+    todos_libros: list[CodigoLibro] = []
+    codigos_vistos: set[str] = set()
+    todos_fragmentos: list[FragmentoCodificado] = []
+    resumen_codigos: dict[str, str] = {}
+
+    for r in resultados_bloques:
+        assert isinstance(r, ResultadoEntrevista)
+        for lib in r.libro:
+            if lib.codigo not in codigos_vistos:
+                codigos_vistos.add(lib.codigo)
+                todos_libros.append(lib)
+        todos_fragmentos.extend(r.fragmentos)
+        for cod, res_txt in r.resumen_por_codigo.items():
+            if cod in resumen_codigos:
+                resumen_codigos[cod] = f"{resumen_codigos[cod]} {res_txt}".strip()
+            else:
+                resumen_codigos[cod] = res_txt
+
+    return ResultadoEntrevista(
+        libro=todos_libros,
+        fragmentos=todos_fragmentos,
+        resumen_por_codigo=resumen_codigos,
+        mapa=mapa_unificado,
+        descartados=total_descartados,
+        modo=modo,
+    )
