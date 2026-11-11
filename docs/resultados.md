@@ -17,9 +17,8 @@ Este documento reúne lo que se midió, lo que falta medir y el costo por hora d
 
 | Estado | Hipótesis |
 |---|---|
-| Confirmada | H2 (velocidad de Whisper) y H7 (problema real, con n = 2) |
-| Falsada | H1 (glosario de términos en inglés) |
-| No concluyente | H6 (Ollama local) |
+| Confirmada | H2 (velocidad de Whisper en clip y en reunión real) y H7 (problema real, con n = 2) |
+| Falsada | H1 (glosario de términos en inglés) y H6 (Ollama local en CPU: timeout > 600 s) |
 | Pendiente | H3, H4, H5a, H5b, H8 y H9 |
 
 ---
@@ -29,14 +28,14 @@ Este documento reúne lo que se midió, lo que falta medir y el costo por hora d
 | H# | Hipótesis | Confirmada si | Falsada si | Resultado | Veredicto | Oráculo |
 |---|---|---|---|---|---|---|
 | **H1** | El glosario ES-EN en la transcripción mejora los términos técnicos en inglés | Recall ≥ 85 % y ≥ +15 pts sobre la línea base (25 frases) | Mejora < 10 pts o recall < 70 % | Línea base: 86 % (43 de 50). Con el glosario del producto (`hotwords`): 86 % (43 de 50). Mejora: **+0 pts**. En un clip continuo de 5 min: 90 % sin glosario y 88 % con `hotwords`. | **FALSADA** | `python -m evaluacion.terminos --audios data/privado/frases/ --modelo small --tipo-glosario producto` |
-| **H2** | `small` int8 con VAD procesa 1 hora de audio en CPU | ≤ 20 min por hora (RTF ≤ 0.33) | > 30 min por hora | RTF **0.1336** (8.0 min por hora de audio), 404.1 MB de RAM, sobre 300 s de audio real concatenado | **CONFIRMADA** | `python -m evaluacion.velocidad --audios data/privado/frases/ --modelos small` |
+| **H2** | `small` int8 con VAD procesa 1 hora de audio en CPU | ≤ 20 min por hora (RTF ≤ 0.33) | > 30 min por hora | Clip 300 s: RTF **0.1336** (8.0 min/h), 404.1 MB RAM. Reunión real (64.42 min, 2,396 segmentos): **12.68 min**, RTF **0.1969**. | **CONFIRMADA** | Fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local (`evaluacion.privado`); y clip de 300 s (`evaluacion.velocidad`) |
 | **H3** | La app cabe en Streamlit Community Cloud | < 2.7 GB de RAM y clip de 60 s en ≤ 60 s | Falla por memoria o > 120 s | Sin desplegar. Whisper `base` usó 225.9 MB de RAM en local. | **PENDIENTE** | Despliegue de prueba y clip de 60 s desde el celular |
 | **H4** | mmBERT-small afinado con sintéticos clasifica segmentos y generaliza | F1 macro ≥ 0.70 y recall de `tarea` ≥ 0.80 | F1 macro < 0.55 o recall de `tarea` < 0.65 | Hay 1,351 segmentos sintéticos (98.45 % únicos). El modelo no está entrenado ni evaluado. | **PENDIENTE** | `python -m evaluacion.detector --modelo <modelo> --etiquetas data/eval/reunion_etiquetada.csv` |
 | **H5a** | El detector ahorra tokens y tiempo en reuniones | −60 % de tokens, −40 % de tiempo y caída del recall de tareas ≤ 5 pts | Ahorro < 40 % o caída > 10 pts | Sin medición: el detector no está entrenado. | **PENDIENTE** | `python -m evaluacion.eficiencia --entrada <reunion.json> --modos solo_llm,detector` |
 | **H5b** | El detector ahorra tokens en ponencias | −25 % de tokens y caída de cobertura del mapa ≤ 10 % | Ahorro < 10 % | Sin medición: el detector no está entrenado. | **PENDIENTE** | Ídem, con `<ponencia.json>` |
-| **H6** | Ollama `qwen3:4b` devuelve JSON válido, incluido el mapa | ≥ 95 % válido y < 60 s por bloque | < 85 % o > 120 s por bloque | 100 % válido (2 de 2 bloques, `think=false`), con **64.09 s** por bloque en CPU | **NO_CONCLUYENTE** | `python -m evaluacion.validez_json --proveedor ollama --modelo qwen3:4b --bloques data/fixtures/ --max-bloques 2` |
+| **H6** | Ollama `qwen3:4b` devuelve JSON válido, incluido el mapa | ≥ 95 % válido y < 60 s por bloque | < 85 % o > 120 s por bloque | En reunión real de 64 min (6 bloques), el bloque 1 no respondió en 600 s (timeout, 0 de 1 válidos, 0.0 % válido, latencia > 120 s). Limitación: transcribe en tu PC; la estructuración local necesita GPU. | **FALSADA** | Fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local (`evaluacion.privado`); fixtures en `evaluacion.validez_json` |
 | **H7** | El problema es real para quien graba con el celular | ≥ 2 de 3 graban ≥ 2 veces al mes, dedican ≥ 30 min por grabación y no pagarían un aparato como Plaud | 0 o 1 de 3 | 2 de 2 cumplen los 3 criterios, con 2 de las 3 conversaciones requeridas | **CONFIRMADA** (n = 2) | Notas en `docs/research/conversacion-01.md` y `docs/research/conversacion-02.md` |
-| **H8** | Las tareas son confiables | Precisión ≥ 0.80, recall ≥ 0.70 y 100 % de citas literales | Precisión < 0.65 o alguna cita no literal | Falta la referencia etiquetada a mano. | **PENDIENTE** | `python -m evaluacion.todos --pred <salida.json> --ref data/eval/todos_manual.csv` |
+| **H8** | Las tareas son confiables | Precisión ≥ 0.80, recall ≥ 0.70 y 100 % de citas literales | Precisión < 0.65 o alguna cita no literal | Falta la referencia etiquetada a mano (no hay lista de referencia de la reunión real). | **PENDIENTE** | `python -m evaluacion.todos --pred <salida.json> --ref data/eval/todos_manual.csv` |
 | **H9** | El mapa mental es verificable y útil (solo plantilla Clase) | ≥ 90 % de nodos con cita literal, 2–4 niveles, 4–8 ramas en 1 h y mediana de utilidad ≥ 4/5 | < 75 % con cita o mediana < 3/5 | Falta una grabación real completa. El fixture de prueba tiene 3 ramas. | **PENDIENTE** | `python -m evaluacion.mapa --pred <salida.json> --transcripcion <transcripcion.json>` |
 
 ---
@@ -88,6 +87,15 @@ Se midió `faster-whisper 1.2.1` con int8 y VAD sobre 300 s de audio real concat
 
 El umbral pedía 1 hora de audio en ≤ 20 minutos (RTF ≤ 0.33). `small` tardó **8.0 minutos por hora** con 404 MB de RAM. El resultado vale para esa computadora; en una laptop más modesta el tiempo puede ser mayor.
 
+**Medición con audio real largo (reunión de 64 min):**
+Se procesó una reunión real completa de 64.42 min (2,396 segmentos) con `faster-whisper small int8` en la misma máquina local en CPU:
+- Duración del audio: 64.42 min.
+- Tiempo de transcripción: 12.68 min.
+- RTF observado: **0.1969** (equivalente a 11.8 min por hora de audio).
+- Veredicto: **CONFIRMADA** con audio real largo (RTF 0.1969 ≤ 0.33 y 12.68 min ≤ 20 min).
+
+Fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local.
+
 ---
 
 ### 3.3 H5a y H5b: ahorro con el detector (PENDIENTE)
@@ -96,12 +104,18 @@ No hay medición. El detector mmBERT no está entrenado y la app usa "Solo LLM".
 
 ---
 
-### 3.4 H6: salida estructurada local con Ollama (NO_CONCLUYENTE)
+### 3.4 H6: salida estructurada local con Ollama (FALSADA)
 
-Se evaluó `qwen3:4b` en Ollama (`temperature=0.0`, `think=false`) con 2 bloques de `data/fixtures/` (`--max-bloques 2`). Las transcripciones de los fixtures duran 600, 346 y 398 s, no 10 minutos cada una.
-- **Validez del JSON y del esquema Pydantic:** 100 % (2 de 2 bloques).
-- **Latencia en CPU:** 64.09 s por bloque en promedio.
-- **Veredicto:** supera los 60 s de la meta, pero queda lejos de los 120 s de la falsación: NO_CONCLUYENTE, con n = 2. `qwen3:4b` se mantiene como opción experimental del modo local.
+Se evaluó `qwen3:4b` en Ollama (`temperature=0.0`, `think=false`) en dos escenarios:
+1. **Fixtures cortos:** 2 de 2 bloques válidos (100 %) con 64.09 s por bloque en promedio.
+2. **Reunión real completa de 64 min (6 bloques):** en el bloque 1, `qwen3:4b` no respondió en 600 s (timeout configurado), con 0 de 1 bloques válidos (0.0 % de JSON válido) y latencia superior a los 120 s del umbral de falsación.
+
+Fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local.
+
+**Decisión y limitación declarada:** H6 queda **FALSADA** para estructuración en CPU. Siguiendo el plan pre-registrado y sin re-medir con 8b (que aumentaría la carga en CPU), se declara la limitación del modo local en CPU:
+> *"transcribe en tu PC; la estructuración local necesita GPU"*
+
+Whisper int8 resuelve la transcripción en local en CPU (H2 confirmada), mientras que la estructuración del mapa y notas requiere aceleración por GPU local o la API en la nube (Gemini Flash).
 
 ---
 
