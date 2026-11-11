@@ -63,7 +63,7 @@
   - **En todas:** la transcripción completa con marcas `[mm:ss]`.
 - **Cada punto con su cita:** cada idea, tarea y nodo lleva una cita comprobada como texto literal de la transcripción, y el minuto del inicio del segmento que contiene la cita. Las citas que no aparecen en la transcripción se descartan.
 - **▶ [mm:ss]:** salta a ese minuto en el audio subido en la sesión.
-- **Mapa mental:** se le pide al modelo un árbol de 2 a 4 niveles y de 4 a 8 ramas.
+- **Mapa mental:** se le pide al modelo un árbol de 2 a 4 niveles y de 4 a 8 ramas. Si devuelve menos de 2 ramas (en pruebas reales, Gemini devolvió la raíz vacía), la app arma el mapa desde las ideas clave ya validadas: cada idea es una rama y cada cita, una hoja con su minuto.
 - **Exportación:** Markdown, Word, Excel, la transcripción en `.txt` y el mapa mental en HTML.
 - **Modo local (experimental):** faster-whisper y Ollama (`qwen3:4b`) en la laptop. El audio y el texto no salen de ella, pero markmap se carga desde un CDN y los modelos se descargan la primera vez.
 

@@ -348,6 +348,73 @@ def _seleccionar_ramas_por_cupo(
     return [rama for _, _, rama in elegidas]
 
 
+MIN_RAMAS_MAPA = 2
+MAX_RAMAS_MAPA = 8
+
+
+def _hoja_de_cita(id_nodo: str, ev: Evidencia) -> NodoMapa:
+    """Hoja del mapa cuyo título es la cita literal (recortada si es muy larga)."""
+    titulo = ev.cita if len(ev.cita) <= 90 else ev.cita[:87].rstrip() + "…"
+    return NodoMapa(id=id_nodo, titulo=titulo, evidencia=ev)
+
+
+def _asegurar_mapa(
+    resultado: ResultadoPonencia | ResultadoReunion | ResultadoEntrevista,
+) -> ResultadoPonencia | ResultadoReunion | ResultadoEntrevista:
+    """Arma el mapa desde el contenido ya validado si el modelo devolvió menos de 2 ramas.
+
+    En llamadas reales, Gemini devolvió la raíz del mapa sin hijos aunque el prompt pide de 4 a 8
+    ramas. Las ideas, temas, acuerdos, tareas y fragmentos ya pasaron la validación de cita literal,
+    así que el mapa derivado conserva la misma evidencia. Un mapa del modelo con 2 o más ramas se
+    deja tal cual.
+    """
+    if len(resultado.mapa.raiz.hijos) >= MIN_RAMAS_MAPA:
+        return resultado
+
+    ramas: list[NodoMapa] = []
+    if isinstance(resultado, (ResultadoPonencia, ResultadoReunion)):
+        temas = resultado.ideas_clave if isinstance(resultado, ResultadoPonencia) else resultado.temas
+        for i, tema in enumerate(temas, start=1):
+            ramas.append(NodoMapa(
+                id=f"t{i}",
+                titulo=tema.titulo,
+                resumen=tema.resumen,
+                evidencia=tema.evidencias[0] if tema.evidencias else None,
+                hijos=[_hoja_de_cita(f"t{i}-c{j}", ev) for j, ev in enumerate(tema.evidencias, start=1)],
+            ))
+    if isinstance(resultado, ResultadoPonencia) and resultado.preguntas:
+        ramas.append(NodoMapa(id="preguntas", titulo="Preguntas abiertas", hijos=[
+            NodoMapa(id=f"p{j}", titulo=p.descripcion, evidencia=p.evidencia)
+            for j, p in enumerate(resultado.preguntas, start=1)
+        ]))
+    if isinstance(resultado, ResultadoReunion):
+        for nombre, elementos in (("Acuerdos", resultado.acuerdos), ("Tareas", resultado.tareas)):
+            if elementos:
+                ramas.append(NodoMapa(id=nombre.lower(), titulo=nombre, hijos=[
+                    NodoMapa(id=f"{nombre.lower()}{j}", titulo=e.descripcion, evidencia=e.evidencia)
+                    for j, e in enumerate(elementos, start=1)
+                ]))
+    if isinstance(resultado, ResultadoEntrevista):
+        descripciones = {c.codigo: c.descripcion for c in resultado.libro}
+        por_codigo: dict[str, list[FragmentoCodificado]] = {}
+        for frag in resultado.fragmentos:
+            por_codigo.setdefault(frag.codigo, []).append(frag)
+        for i, (codigo, frags) in enumerate(por_codigo.items(), start=1):
+            ramas.append(NodoMapa(
+                id=f"c{i}",
+                titulo=codigo,
+                resumen=resultado.resumen_por_codigo.get(codigo) or descripciones.get(codigo),
+                evidencia=frags[0].evidencia,
+                hijos=[_hoja_de_cita(f"c{i}-f{j}", f.evidencia) for j, f in enumerate(frags, start=1)],
+            ))
+
+    if len(ramas) <= len(resultado.mapa.raiz.hijos):
+        return resultado
+    raiz = resultado.mapa.raiz.model_copy(update={"hijos": ramas[:MAX_RAMAS_MAPA]})
+    resultado.mapa = resultado.mapa.model_copy(update={"raiz": raiz})
+    return resultado
+
+
 def _unificar_mapas(
     mapas: list[MapaMental],
     titulo_general: str,
@@ -482,7 +549,7 @@ def estructurar_transcripcion(
     if len(resultados_bloques) == 1:
         res_unico = resultados_bloques[0]
         res_unico.modo = modo_efectivo
-        return res_unico
+        return _asegurar_mapa(res_unico)
 
     # Fase REDUCE: Unificar resultados parciales de múltiples bloques
     total_descartados = sum(r.descartados for r in resultados_bloques)
@@ -515,14 +582,14 @@ def estructurar_transcripcion(
             assert isinstance(r, ResultadoPonencia)
             todas_preguntas.extend(r.preguntas)
 
-        return ResultadoPonencia(
+        return _asegurar_mapa(ResultadoPonencia(
             resumen_general=_unificar_resumenes(),
             ideas_clave=todas_ideas,
             preguntas=todas_preguntas,
             mapa=mapa_unificado,
             descartados=total_descartados,
             modo=modo_efectivo,
-        )
+        ))
 
     if tipo_plantilla == "reunion":
         todos_temas: list[Tema] = []
@@ -545,7 +612,7 @@ def estructurar_transcripcion(
             todas_tareas.extend(r.tareas)
             todos_pendientes.extend(r.pendientes)
 
-        return ResultadoReunion(
+        return _asegurar_mapa(ResultadoReunion(
             resumen_general=_unificar_resumenes(),
             temas=todos_temas,
             acuerdos=todos_acuerdos,
@@ -554,7 +621,7 @@ def estructurar_transcripcion(
             mapa=mapa_unificado,
             descartados=total_descartados,
             modo=modo_efectivo,
-        )
+        ))
 
     # Entrevista
     todos_libros: list[CodigoLibro] = []
@@ -575,11 +642,11 @@ def estructurar_transcripcion(
             else:
                 resumen_codigos[cod] = res_txt
 
-    return ResultadoEntrevista(
+    return _asegurar_mapa(ResultadoEntrevista(
         libro=todos_libros,
         fragmentos=todos_fragmentos,
         resumen_por_codigo=resumen_codigos,
         mapa=mapa_unificado,
         descartados=total_descartados,
         modo=modo_efectivo,
-    )
+    ))
