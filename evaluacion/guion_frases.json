@@ -1,0 +1,127 @@
+[
+  {
+    "id": 1,
+    "texto_guion": "Tenemos que enviar el paper al journal antes de que termine el mes.",
+    "terminos_esperados": ["paper", "journal"]
+  },
+  {
+    "id": 2,
+    "texto_guion": "La revista está indexada en Scopus y también en Web of Science.",
+    "terminos_esperados": ["Scopus", "Web of Science"]
+  },
+  {
+    "id": 3,
+    "texto_guion": "El proceso de peer review demoró seis meses pero los reviewers enviaron sugerencias valiosas.",
+    "terminos_esperados": ["peer review", "reviewers"]
+  },
+  {
+    "id": 4,
+    "texto_guion": "El deadline para remitir el manuscrito según el call for papers es este viernes.",
+    "terminos_esperados": ["deadline", "call for papers"]
+  },
+  {
+    "id": 5,
+    "texto_guion": "Publicamos una versión preliminar como preprint en arXiv para registrar la autoría con anticipación.",
+    "terminos_esperados": ["preprint", "arXiv"]
+  },
+  {
+    "id": 6,
+    "texto_guion": "Postulamos a un grant internacional donde actuaré como principal investigator del proyecto.",
+    "terminos_esperados": ["grant", "principal investigator"]
+  },
+  {
+    "id": 7,
+    "texto_guion": "Liberamos un nuevo dataset público para que sirva de benchmark a la comunidad científica.",
+    "terminos_esperados": ["dataset", "benchmark"]
+  },
+  {
+    "id": 8,
+    "texto_guion": "Ayer envié el primer draft a todos los coauthors para recibir observaciones de redacción.",
+    "terminos_esperados": ["draft", "coauthors"]
+  },
+  {
+    "id": 9,
+    "texto_guion": "Revisamos el citation count y el h-index del autor en su perfil de investigación.",
+    "terminos_esperados": ["citation count", "h-index"]
+  },
+  {
+    "id": 10,
+    "texto_guion": "Optamos por publicar en modalidad open access cubriendo el APC correspondiente.",
+    "terminos_esperados": ["open access", "APC"]
+  },
+  {
+    "id": 11,
+    "texto_guion": "Confirmamos la submission del artículo y quedamos a la espera del editorial board.",
+    "terminos_esperados": ["submission", "editorial board"]
+  },
+  {
+    "id": 12,
+    "texto_guion": "Comparamos la precisión contra el baseline y superamos el state of the art.",
+    "terminos_esperados": ["baseline", "state of the art"]
+  },
+  {
+    "id": 13,
+    "texto_guion": "Presentaremos los avances en un workshop cuyas actas se publican en conference proceedings.",
+    "terminos_esperados": ["workshop", "conference proceedings"]
+  },
+  {
+    "id": 14,
+    "texto_guion": "Debemos sintetizar el abstract y elegir cinco keywords representativas del estudio.",
+    "terminos_esperados": ["abstract", "keywords"]
+  },
+  {
+    "id": 15,
+    "texto_guion": "Identificamos un trade-off relevante entre latencia y exactitud durante el ablation study.",
+    "terminos_esperados": ["trade-off", "ablation study"]
+  },
+  {
+    "id": 16,
+    "texto_guion": "Diseñamos un framework reproducible que automatiza por completo el pipeline de inferencia.",
+    "terminos_esperados": ["framework", "pipeline"]
+  },
+  {
+    "id": 17,
+    "texto_guion": "Recibimos feedback detallado del editor solicitando una major revision antes de aprobar el texto.",
+    "terminos_esperados": ["feedback", "major revision"]
+  },
+  {
+    "id": 18,
+    "texto_guion": "El manuscrito calza con el scope del special issue dedicado a ciencia de datos aplicada.",
+    "terminos_esperados": ["scope", "special issue"]
+  },
+  {
+    "id": 19,
+    "texto_guion": "Iniciamos la investigación con una literature review exhaustiva que estructurará el survey.",
+    "terminos_esperados": ["literature review", "survey"]
+  },
+  {
+    "id": 20,
+    "texto_guion": "Es momento de preparar la versión camera-ready y firmar el formulario de copyright transfer.",
+    "terminos_esperados": ["camera-ready", "copyright transfer"]
+  },
+  {
+    "id": 21,
+    "texto_guion": "Efectuamos el fine-tuning del modelo para evaluar su desempeño en tareas de zero-shot learning.",
+    "terminos_esperados": ["fine-tuning", "zero-shot learning"]
+  },
+  {
+    "id": 22,
+    "texto_guion": "Contrastamos las salidas con el ground truth para verificar que no haya overfitting.",
+    "terminos_esperados": ["ground truth", "overfitting"]
+  },
+  {
+    "id": 23,
+    "texto_guion": "Divulgamos los primeros resultados en un working paper antes de redactar el policy brief.",
+    "terminos_esperados": ["working paper", "policy brief"]
+  },
+  {
+    "id": 24,
+    "texto_guion": "El artículo pasó satisfactoriamente una doble blind review a cargo de un referee externo.",
+    "terminos_esperados": ["blind review", "referee"]
+  },
+  {
+    "id": 25,
+    "texto_guion": "Utilizamos cross-validation estratificada para mitigar los sesgos provocados por el sample size.",
+    "terminos_esperados": ["cross-validation", "sample size"]
+  }
+]

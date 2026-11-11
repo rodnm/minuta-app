@@ -1,0 +1,166 @@
+{
+  "libro": [
+    {
+      "codigo": "BARR_TIEMPO",
+      "descripcion": "Sobrecarga docente y administrativa que limita el tiempo de investigación"
+    },
+    {
+      "codigo": "USO_IA",
+      "descripcion": "Adopción de asistentes inteligentes para redacción en inglés y estructuración"
+    },
+    {
+      "codigo": "PEER_REVIEW",
+      "descripcion": "Percepción sobre demoras, calidad de arbitraje y cartas de respuesta"
+    },
+    {
+      "codigo": "COSTOS_APC",
+      "descripcion": "Barreras financieras por cargos de procesamiento de artículos en Open Access"
+    },
+    {
+      "codigo": "DISPOSICION_PAGO",
+      "descripcion": "Disposición a pagar suscripción de app en smartphone versus rechazo a hardware como Plaud"
+    }
+  ],
+  "fragmentos": [
+    {
+      "codigo": "BARR_TIEMPO",
+      "evidencia": {
+        "segmento_ids": [
+          5
+        ],
+        "inicio_s": 34.0,
+        "cita": "La falta de tiempo protegido para investigar es la principal barrera que enfrentamos los profesores universitarios."
+      },
+      "nota": "El informante destaca la carencia estructural de horas dedicadas formalmente a investigación."
+    },
+    {
+      "codigo": "USO_IA",
+      "evidencia": {
+        "segmento_ids": [
+          9
+        ],
+        "inicio_s": 73.0,
+        "cita": "redactar en inglés para un journal Q1 siempre ha representado una barrera lingüística."
+      },
+      "nota": "La IA actúa como nivelador idiomático en publicaciones de impacto."
+    },
+    {
+      "codigo": "USO_IA",
+      "evidencia": {
+        "segmento_ids": [
+          15
+        ],
+        "inicio_s": 130.0,
+        "cita": "aplicación que me estructure un mapa mental interactivo con el minuto exacto de cada idea, sería sumamente útil."
+      },
+      "nota": "Validación de la propuesta de valor de Minuta con citas temporales."
+    },
+    {
+      "codigo": "PEER_REVIEW",
+      "evidencia": {
+        "segmento_ids": [
+          19
+        ],
+        "inicio_s": 172.0,
+        "cita": "manuscritos esperando dictamen durante más de nueve meses en revistas indexadas en Scopus."
+      },
+      "nota": "Tiempos excesivos de arbitraje editorial en Scopus."
+    },
+    {
+      "codigo": "COSTOS_APC",
+      "evidencia": {
+        "segmento_ids": [
+          24
+        ],
+        "inicio_s": 222.0,
+        "cita": "El cobro de APC se ha disparado a cifras astronómicas, alcanzando hasta dos mil o tres mil dólares"
+      },
+      "nota": "Impacto prohibitivo de los APC para la región."
+    },
+    {
+      "codigo": "DISPOSICION_PAGO",
+      "evidencia": {
+        "segmento_ids": [
+          37
+        ],
+        "inicio_s": 357.0,
+        "cita": "Lo que jamás compraría es un dispositivo de hardware exclusivo como Plaud que cueste más de ciento cincuenta dólares."
+      },
+      "nota": "Rechazo contundente a comprar hardware propietario costoso."
+    }
+  ],
+  "resumen_por_codigo": {
+    "BARR_TIEMPO": "Los docentes sufren sobrecarga administrativa que relega la investigación a horas nocturnas o fines de semana.",
+    "USO_IA": "Se adopta IA para mejorar estilo en inglés y estructuración, con alto interés en mapas mentales con enlaces a minutos de audio.",
+    "PEER_REVIEW": "Se valora el rigor del arbitraje ciego pero se critican fuertemente los plazos de hasta nueve meses.",
+    "COSTOS_APC": "Las tarifas elevadas de publicación en acceso abierto marginan a investigadores latinoamericanos sin subvención.",
+    "DISPOSICION_PAGO": "Aceptación de suscripción de software en smartphone (10-20 USD/mes) frente al rechazo de dispositivos como Plaud (159+ USD)."
+  },
+  "mapa": {
+    "titulo": "Percepciones de Investigación Académica",
+    "raiz": {
+      "id": "root",
+      "titulo": "Percepciones de Investigación Académica",
+      "resumen": null,
+      "evidencia": null,
+      "hijos": [
+        {
+          "id": "nodo_barreras",
+          "titulo": "Barreras en la Labor Docente",
+          "resumen": "Limitaciones de tiempo y financiamiento",
+          "evidencia": {
+            "segmento_ids": [
+              3
+            ],
+            "inicio_s": 16.0,
+            "cita": "carga docente y administrativa nos absorbe casi todo el día laboral regular."
+          },
+          "hijos": [
+            {
+              "id": "nodo_apc_barrera",
+              "titulo": "Tarifas de Publicación APC",
+              "resumen": "Costos de hasta 3000 USD por artículo",
+              "evidencia": {
+                "segmento_ids": [
+                  25
+                ],
+                "inicio_s": 232.0,
+                "cita": "América Latina, esos montos resultan prohibitivos si no se cuenta con financiamiento externo."
+              },
+              "hijos": []
+            }
+          ]
+        },
+        {
+          "id": "nodo_tecnologia",
+          "titulo": "Tecnología y Necesidades de Audio",
+          "resumen": "Uso de grabaciones y preferencia por el celular",
+          "evidencia": {
+            "segmento_ids": [
+              13
+            ],
+            "inicio_s": 111.0,
+            "cita": "He grabado varias clases magistrales y conferencias con la grabadora de voz de mi teléfono móvil."
+          },
+          "hijos": [
+            {
+              "id": "nodo_modelo_plaud",
+              "titulo": "Preferencia Celular vs Plaud",
+              "resumen": "Rechazo al hardware dedicado",
+              "evidencia": {
+                "segmento_ids": [
+                  38
+                ],
+                "inicio_s": 368.0,
+                "cita": "Prefiero mil veces utilizar mi propio teléfono inteligente que siempre llevo conmigo"
+              },
+              "hijos": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "descartados": 0,
+  "modo": "solo_llm"
+}

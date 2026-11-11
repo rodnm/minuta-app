@@ -1,0 +1,191 @@
+{
+  "resumen_general": "Ponencia magistral sobre estrategias efectivas para publicar en revistas Scopus, gestión del proceso de peer review, financiamiento mediante grants y prácticas de ciencia abierta.",
+  "ideas_clave": [
+    {
+      "titulo": "Estrategias de publicación en journals de alto impacto",
+      "resumen": "Recomendaciones para superar el filtro inicial del editor y gestionar con éxito las rondas de revisión por pares.",
+      "evidencias": [
+        {
+          "segmento_ids": [
+            2
+          ],
+          "inicio_s": 15.0,
+          "cita": "publicar en un journal indexado en Scopus y Web of Science."
+        },
+        {
+          "segmento_ids": [
+            7
+          ],
+          "inicio_s": 90.0,
+          "cita": "Major Revision, Minor Revision o rechazo definitivo."
+        }
+      ]
+    },
+    {
+      "titulo": "Ciencia abierta, preprints y reproducibilidad",
+      "resumen": "Uso de repositorios de preprints y publicación de datos y código para elevar la tasa de citación y la transparencia.",
+      "evidencias": [
+        {
+          "segmento_ids": [
+            11
+          ],
+          "inicio_s": 150.0,
+          "cita": "Subir un preprint a repositorios como arXiv o SSRN permite recibir feedback temprano"
+        },
+        {
+          "segmento_ids": [
+            12
+          ],
+          "inicio_s": 165.0,
+          "cita": "compartir los datos abiertos y el código en GitHub o Zenodo incrementa notablemente la citation rate."
+        }
+      ]
+    },
+    {
+      "titulo": "Postulación y gestión de grants de investigación",
+      "resumen": "Formulación rigurosa del problema, colaboración interdisciplinaria y cumplimiento estricto de deadlines.",
+      "evidencias": [
+        {
+          "segmento_ids": [
+            16
+          ],
+          "inicio_s": 225.0,
+          "cita": "postular a un grant competitivo requiere una formulación rigurosa del problema."
+        },
+        {
+          "segmento_ids": [
+            18
+          ],
+          "inicio_s": 255.0,
+          "cita": "cronograma del grant respetando estrictamente el deadline fijado en las bases."
+        }
+      ]
+    }
+  ],
+  "preguntas": [
+    {
+      "descripcion": "Criterios de elección entre journals Q1 con APC versus Q2 sin costo",
+      "evidencia": {
+        "segmento_ids": [
+          32
+        ],
+        "inicio_s": 465.0,
+        "cita": "¿Qué criterios recomiendan para seleccionar entre un journal Q1 con APC alto y un journal Q2 sin cobro?"
+      }
+    },
+    {
+      "descripcion": "Identificación de publishers y revistas predatorias",
+      "evidencia": {
+        "segmento_ids": [
+          33
+        ],
+        "inicio_s": 480.0,
+        "cita": "¿Cómo podemos saber si una revista invitada por correo electrónico califica como publisher predatorio?"
+      }
+    },
+    {
+      "descripcion": "Tiempo promedio estándar para el primer dictamen de peer review",
+      "evidencia": {
+        "segmento_ids": [
+          35
+        ],
+        "inicio_s": 510.0,
+        "cita": "¿Cuál es el tiempo promedio aceptable que debería demorar el primer dictamen de peer review?"
+      }
+    }
+  ],
+  "mapa": {
+    "titulo": "Publicación Científica y Grants",
+    "raiz": {
+      "id": "root",
+      "titulo": "Publicación Científica y Grants",
+      "resumen": null,
+      "evidencia": null,
+      "hijos": [
+        {
+          "id": "nodo_editorial",
+          "titulo": "Proceso Editorial",
+          "resumen": "Fases desde la sumisión hasta el dictamen",
+          "evidencia": {
+            "segmento_ids": [
+              6
+            ],
+            "inicio_s": 75.0,
+            "cita": "fase formal de peer review con revisores ciegos."
+          },
+          "hijos": [
+            {
+              "id": "nodo_response_letter",
+              "titulo": "Respuesta a Revisor",
+              "resumen": "Respuesta detallada y respetuosa punto por punto",
+              "evidencia": {
+                "segmento_ids": [
+                  9
+                ],
+                "inicio_s": 120.0,
+                "cita": "responder punto por punto a los comentarios en la response letter"
+              },
+              "hijos": []
+            }
+          ]
+        },
+        {
+          "id": "nodo_acceso_abierto",
+          "titulo": "Acceso Abierto y Preprints",
+          "resumen": "Modelos de divulgación y visibilidad científica",
+          "evidencia": {
+            "segmento_ids": [
+              14
+            ],
+            "inicio_s": 195.0,
+            "cita": "Open Access ofrece mayor visibilidad global"
+          },
+          "hijos": [
+            {
+              "id": "nodo_preprints",
+              "titulo": "Repositorios de Preprints",
+              "resumen": "Feedback temprano y registro de autoría",
+              "evidencia": {
+                "segmento_ids": [
+                  11
+                ],
+                "inicio_s": 150.0,
+                "cita": "Subir un preprint a repositorios como arXiv o SSRN"
+              },
+              "hijos": []
+            }
+          ]
+        },
+        {
+          "id": "nodo_financiamiento",
+          "titulo": "Financiamiento y Fondos",
+          "resumen": "Convocatorias competitivas de grants",
+          "evidencia": {
+            "segmento_ids": [
+              17
+            ],
+            "inicio_s": 240.0,
+            "cita": "agencias financiadoras como Concytec o programas internacionales valoran la colaboración interdisciplinaria."
+          },
+          "hijos": [
+            {
+              "id": "nodo_asistentes",
+              "titulo": "Recursos Humanos del Proyecto",
+              "resumen": "Apoyo de research assistants",
+              "evidencia": {
+                "segmento_ids": [
+                  20
+                ],
+                "inicio_s": 285.0,
+                "cita": "contratación de research assistants que apoyen en la recolección de datos."
+              },
+              "hijos": []
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "descartados": 0,
+  "modo": "solo_llm"
+}

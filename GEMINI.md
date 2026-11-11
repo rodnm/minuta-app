@@ -4,9 +4,9 @@ Minuta es una **alternativa económica a las grabadoras con IA como Plaud que us
 - transcripción;
 - resumen;
 - un **mapa mental interactivo**;
-- listas de tareas (to-do).
+- listas de tareas.
 
-Cada nodo y cada elemento lleva su minuto y su cita literal. Entiende español con términos en inglés y tiene un modo privado o local. Es el proyecto final de la Diplomatura Q-Lab PUCP (issue d2cml-ai/Data-Science-Python#204).
+Cada nodo y cada elemento lleva su minuto y su cita literal. Transcribe español con términos en inglés y tiene un modo local (experimental). Es el proyecto final de la Diplomatura Q-Lab PUCP (issue d2cml-ai/Data-Science-Python#204).
 
 Plantillas: **Ponencia / Clase / Charla** (por defecto), **Reunión** y **Entrevista**. El mapa mental se arma con un LLM con salida estructurada (árbol `MapaMental`) y se dibuja con markmap.js, con una versión de CDN fija.
 
@@ -21,7 +21,7 @@ La conversación principal actúa como **Lead Senior Project Manager**. Los dem�
 ## Metodología
 
 - **ODD:** `C:\Users\DOKU\.gemini\antigravity-cli\skills\odd\SKILL.md`. Documento de feature, test-first, commits por unidad de trabajo y una Risk line en cada entrega.
-- **HDD:** `C:\Users\DOKU\.gemini\antigravity-cli\skills\hdd\SKILL.md`. Las hipótesis H1–H8 están pre-registradas en `odd/tasks/minuta.md`, y sus umbrales no se cambian después de ver los datos.
+- **HDD:** `C:\Users\DOKU\.gemini\antigravity-cli\skills\hdd\SKILL.md`. Las hipótesis H1–H9 están pre-registradas en `odd/tasks/minuta.md`, y sus umbrales no se cambian después de ver los datos.
 - **Oleadas:** como máximo 3 trabajadores en paralelo, con superficies de edición disjuntas. Nunca dos trabajos pesados de modelo a la vez (Whisper, entrenamiento o evaluación).
 
 ## T00: antes del primer `git add` (obligatorio)
@@ -74,9 +74,10 @@ Español neutro y profesional, sin voseo ni regionalismos, en la UI, el README, 
 
 ```powershell
 python -m venv .venv; .\.venv\Scripts\Activate.ps1; pip install -r requirements.txt
+pip install -r requirements-dev.txt         # pruebas y evaluación (pytest, psutil, numpy)
 pytest -q                                   # suite completa
 python scripts/verificar.py                 # pruebas + secretos + .env fuera del índice
-streamlit run app/streamlit_app.py          # app (modo demo sin red)
+streamlit run app/streamlit_app.py          # app (.env con GEMINI_API_KEY; el modo demo arranca apagado)
 python -m minuta.transcribir <audio> --modelo small --salida out.json
 python -m evaluacion.<terminos|velocidad|detector|todos|eficiencia|validez_json> ...
 ```

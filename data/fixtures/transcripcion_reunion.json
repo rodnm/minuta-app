@@ -1,0 +1,259 @@
+{
+  "audio_id": "reunion_seguimiento_minuta_001",
+  "duracion_s": 346.0,
+  "modelo": "small",
+  "glosario": [
+    "paper",
+    "deadline",
+    "mmBERT",
+    "Hugging Face",
+    "Gemini",
+    "Ollama",
+    "journal",
+    "Plaud",
+    "grant",
+    "APC"
+  ],
+  "segmentos": [
+    {
+      "id": 1,
+      "inicio_s": 0.0,
+      "fin_s": 6.0,
+      "texto": "Buenos días equipo, iniciamos la reunión de seguimiento del proyecto Minuta."
+    },
+    {
+      "id": 2,
+      "inicio_s": 6.0,
+      "fin_s": 14.0,
+      "texto": "El objetivo de hoy es revisar el estado del paper y coordinar las tareas previas al deadline."
+    },
+    {
+      "id": 3,
+      "inicio_s": 14.0,
+      "fin_s": 22.0,
+      "texto": "Andrea, por favor cuéntanos cómo van los avances del modelo de procesamiento de lenguaje natural."
+    },
+    {
+      "id": 4,
+      "inicio_s": 22.0,
+      "fin_s": 30.0,
+      "texto": "Hemos terminado el fine-tuning de mmBERT-small para clasificar segmentos de audio en cinco clases."
+    },
+    {
+      "id": 5,
+      "inicio_s": 30.0,
+      "fin_s": 38.0,
+      "texto": "El F1-score macro alcanzó 0.74 en el conjunto de validación, superando el baseline inicial."
+    },
+    {
+      "id": 6,
+      "inicio_s": 38.0,
+      "fin_s": 45.0,
+      "texto": "Excelente resultado, eso nos da suficiente solidez para la sección de experimentos del paper."
+    },
+    {
+      "id": 7,
+      "inicio_s": 45.0,
+      "fin_s": 53.0,
+      "texto": "Sin embargo, todavía falta limpiar los datos de prueba y subirlos como dataset a Hugging Face."
+    },
+    {
+      "id": 8,
+      "inicio_s": 53.0,
+      "fin_s": 62.0,
+      "texto": "Yo me puedo encargar de empaquetar el dataset y documentar el data card en Hugging Face antes del viernes."
+    },
+    {
+      "id": 9,
+      "inicio_s": 62.0,
+      "fin_s": 69.0,
+      "texto": "Perfecto Andrea, queda anotado como compromiso prioritario para cerrar la reproducibilidad."
+    },
+    {
+      "id": 10,
+      "inicio_s": 69.0,
+      "fin_s": 77.0,
+      "texto": "Carlos, respecto a la infraestructura en la nube y el backend, ¿cuál es la situación actual?"
+    },
+    {
+      "id": 11,
+      "inicio_s": 77.0,
+      "fin_s": 86.0,
+      "texto": "Estuve probando la API de Gemini Flash y responde en menos de dos segundos por bloque de texto."
+    },
+    {
+      "id": 12,
+      "inicio_s": 86.0,
+      "fin_s": 95.0,
+      "texto": "También evalué Ollama con qwen local, pero en la máquina de prueba consume cerca de 4 GB de memoria RAM."
+    },
+    {
+      "id": 13,
+      "inicio_s": 95.0,
+      "fin_s": 104.0,
+      "texto": "Entonces acordamos dejar la API de Gemini como proveedor predeterminado y Ollama como opción offline."
+    },
+    {
+      "id": 14,
+      "inicio_s": 104.0,
+      "fin_s": 112.0,
+      "texto": "Me parece una decisión muy acertada para asegurar que la demo corra fluida durante la presentación."
+    },
+    {
+      "id": 15,
+      "inicio_s": 112.0,
+      "fin_s": 120.0,
+      "texto": "Carlos, ¿podrías preparar el script de verificación y pruebas automáticas para el pipeline completo?"
+    },
+    {
+      "id": 16,
+      "inicio_s": 120.0,
+      "fin_s": 130.0,
+      "texto": "Sí, yo configuraré el script verificar.py con las comprobaciones de pytest y seguridad de credenciales para el lunes."
+    },
+    {
+      "id": 17,
+      "inicio_s": 130.0,
+      "fin_s": 138.0,
+      "texto": "Asegúrate de que ese script valide que ninguna clave de API quede expuesta en el historial de git."
+    },
+    {
+      "id": 18,
+      "inicio_s": 138.0,
+      "fin_s": 148.0,
+      "texto": "Queda acordado que ninguna credencial ni archivo .env se versionará en el repositorio público bajo ninguna circunstancia."
+    },
+    {
+      "id": 19,
+      "inicio_s": 148.0,
+      "fin_s": 156.0,
+      "texto": "Pasemos a la redacción del manuscrito que someteremos al journal de investigación."
+    },
+    {
+      "id": 20,
+      "inicio_s": 156.0,
+      "fin_s": 165.0,
+      "texto": "El call for papers de la revista IEEE Transactions on Learning Technologies cierra a fin de mes."
+    },
+    {
+      "id": 21,
+      "inicio_s": 165.0,
+      "fin_s": 174.0,
+      "texto": "Lucía, ¿cómo va la introducción y el estado del arte sobre herramientas de transcripción con IA?"
+    },
+    {
+      "id": 22,
+      "inicio_s": 174.0,
+      "fin_s": 183.0,
+      "texto": "He revisado veinte artículos recientes sobre speech-to-text y generación de mapas conceptuales automáticos."
+    },
+    {
+      "id": 23,
+      "inicio_s": 183.0,
+      "fin_s": 192.0,
+      "texto": "He redactado las primeras tres páginas contrastando nuestra propuesta frente a soluciones propietarias como Plaud."
+    },
+    {
+      "id": 24,
+      "inicio_s": 192.0,
+      "fin_s": 202.0,
+      "texto": "Lucía, te encargas de finalizar el borrador completo de la introducción y metodología a más tardar el 18 de noviembre."
+    },
+    {
+      "id": 25,
+      "inicio_s": 202.0,
+      "fin_s": 211.0,
+      "texto": "De acuerdo, tendré listo el draft para que todos podamos hacer revisión cruzada antes del submission."
+    },
+    {
+      "id": 26,
+      "inicio_s": 211.0,
+      "fin_s": 220.0,
+      "texto": "Un tema clave es la justificación presupuestal del grant institucional otorgado por el vicerrectorado."
+    },
+    {
+      "id": 27,
+      "inicio_s": 220.0,
+      "fin_s": 229.0,
+      "texto": "Debemos rendir los gastos de licencias de software y servidores antes del cierre del año fiscal."
+    },
+    {
+      "id": 28,
+      "inicio_s": 229.0,
+      "fin_s": 239.0,
+      "texto": "Acordamos destinar el saldo restante del grant a cubrir los costos de publicación APC del journal Open Access."
+    },
+    {
+      "id": 29,
+      "inicio_s": 239.0,
+      "fin_s": 247.0,
+      "texto": "Eso nos asegurará que el paper tenga libre acceso para toda la comunidad académica internacional."
+    },
+    {
+      "id": 30,
+      "inicio_s": 247.0,
+      "fin_s": 257.0,
+      "texto": "Queda un punto pendiente por resolver: ¿la universidad cuenta con convenio transformativo con Elsevier o IEEE?"
+    },
+    {
+      "id": 31,
+      "inicio_s": 257.0,
+      "fin_s": 266.0,
+      "texto": "Consultaré mañana con la oficina del Sistema de Bibliotecas para confirmar si aplican descuentos de APC."
+    },
+    {
+      "id": 32,
+      "inicio_s": 266.0,
+      "fin_s": 276.0,
+      "texto": "Otro asunto que debemos definir es si incluiremos el video demostrativo de un minuto como material complementario."
+    },
+    {
+      "id": 33,
+      "inicio_s": 276.0,
+      "fin_s": 286.0,
+      "texto": "Considero que un video de 90 segundos mostrando la interfaz en el smartphone fortalecerá mucho la postulación."
+    },
+    {
+      "id": 34,
+      "inicio_s": 286.0,
+      "fin_s": 295.0,
+      "texto": "Andrea preparará el guion y grabará la demo del aplicativo en celular el próximo martes."
+    },
+    {
+      "id": 35,
+      "inicio_s": 295.0,
+      "fin_s": 304.0,
+      "texto": "Excelente iniciativa, eso ilustrará perfectamente el caso de uso real de un investigador en campo."
+    },
+    {
+      "id": 36,
+      "inicio_s": 304.0,
+      "fin_s": 312.0,
+      "texto": "Revisemos el calendario de las próximas reuniones de sincronización del equipo."
+    },
+    {
+      "id": 37,
+      "inicio_s": 312.0,
+      "fin_s": 321.0,
+      "texto": "Fijamos la siguiente sesión de trabajo para el jueves a las cuatro de la tarde vía videoconferencia."
+    },
+    {
+      "id": 38,
+      "inicio_s": 321.0,
+      "fin_s": 330.0,
+      "texto": "Por favor recuerden actualizar sus avances en el tablero Kanban antes de la próxima reunión."
+    },
+    {
+      "id": 39,
+      "inicio_s": 330.0,
+      "fin_s": 338.0,
+      "texto": "No habiendo más puntos urgentes que tratar, damos por concluida la reunión de hoy."
+    },
+    {
+      "id": 40,
+      "inicio_s": 338.0,
+      "fin_s": 346.0,
+      "texto": "Muchas gracias a todos por su compromiso y excelente trabajo en este proyecto."
+    }
+  ]
+}

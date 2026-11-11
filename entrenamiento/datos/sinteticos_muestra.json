@@ -1,0 +1,1971 @@
+{
+  "total_conversaciones": 3,
+  "total_segmentos": 240,
+  "conteo_por_clase": {
+    "idea": 101,
+    "tarea": 29,
+    "acuerdo": 19,
+    "pregunta": 51,
+    "relleno": 40
+  },
+  "proporciones_por_clase": {
+    "idea": 0.4208,
+    "tarea": 0.1208,
+    "acuerdo": 0.0792,
+    "pregunta": 0.2125,
+    "relleno": 0.1667
+  },
+  "porcentaje_unicos": 58.33,
+  "desglose_por_fuente": {
+    "plantilla": 3
+  },
+  "conversaciones": [
+    {
+      "id": "ponencia_sintetica_001",
+      "tipo": "ponencia",
+      "titulo": "Ponencia académica sobre ciencia de datos #01",
+      "duracion_s": 576.5,
+      "fuente": "plantilla",
+      "segmentos": [
+        {
+          "id": 1,
+          "inicio_s": 0.0,
+          "fin_s": 8.8,
+          "texto": "Las políticas de acceso abierto de este publisher contemplan la exención parcial del pago de APC.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 2,
+          "inicio_s": 9.6,
+          "fin_s": 18.2,
+          "texto": "El equipo de coautores debe formatear la bibliografía siguiendo estrictamente la guía del journal.",
+          "etiqueta": "tarea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 3,
+          "inicio_s": 19.0,
+          "fin_s": 24.7,
+          "texto": "El análisis de regresión muestra coeficientes significativos luego del control por sesgo de selección respecto al plazo establecido.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 4,
+          "inicio_s": 25.4,
+          "fin_s": 34.1,
+          "texto": "El benchmark sobre el modelo mmBERT demuestra mayor precisión en clasificación de textos breves.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 5,
+          "inicio_s": 35.1,
+          "fin_s": 43.5,
+          "texto": "La reproducibilidad computacional requiere publicar el dataset completo junto al código fuente en esta etapa.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 6,
+          "inicio_s": 43.9,
+          "fin_s": 52.8,
+          "texto": "La reproducibilidad computacional requiere publicar el dataset completo junto al código fuente.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 7,
+          "inicio_s": 53.7,
+          "fin_s": 60.0,
+          "texto": "Quedamos en priorizar el envío del paper al journal del primer cuartil de Scopus.",
+          "etiqueta": "acuerdo",
+          "orador": "Participante"
+        },
+        {
+          "id": 8,
+          "inicio_s": 60.3,
+          "fin_s": 65.9,
+          "texto": "El peer review riguroso suele exigir contrastar la propuesta frente a dos líneas base adicionales según lo planificado.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 9,
+          "inicio_s": 66.9,
+          "fin_s": 73.9,
+          "texto": "El análisis de regresión muestra coeficientes significativos luego del control por sesgo de selección.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 10,
+          "inicio_s": 74.1,
+          "fin_s": 80.6,
+          "texto": "La reproducibilidad computacional requiere publicar el dataset completo junto al código fuente según lo planificado.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 11,
+          "inicio_s": 81.4,
+          "fin_s": 88.7,
+          "texto": "Bien, pasando al siguiente punto de nuestra agenda metodológica.. en el marco del proyecto.",
+          "etiqueta": "relleno",
+          "orador": "Participante"
+        },
+        {
+          "id": 12,
+          "inicio_s": 89.1,
+          "fin_s": 98.0,
+          "texto": "La reproducibilidad computacional requiere publicar el dataset completo junto al código fuente.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 13,
+          "inicio_s": 98.2,
+          "fin_s": 106.1,
+          "texto": "Los evaluadores metodológicos del grant solicitaron una auditoría detallada de la limpieza de datos respecto al plazo establecido.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 14,
+          "inicio_s": 106.9,
+          "fin_s": 115.2,
+          "texto": "¿Es obligatorio compartir el código de entrenamiento si se emplean bibliotecas propietarias?",
+          "etiqueta": "pregunta",
+          "orador": "Expositor"
+        },
+        {
+          "id": 15,
+          "inicio_s": 115.5,
+          "fin_s": 120.8,
+          "texto": "¿Disponemos de presupuesto remanente en el grant para financiar el APC en modalidad open access?",
+          "etiqueta": "pregunta",
+          "orador": "Expositor"
+        },
+        {
+          "id": 16,
+          "inicio_s": 121.5,
+          "fin_s": 128.3,
+          "texto": "Quedamos en priorizar el envío del paper al journal del primer cuartil de Scopus en esta etapa.",
+          "etiqueta": "acuerdo",
+          "orador": "Participante"
+        },
+        {
+          "id": 17,
+          "inicio_s": 128.9,
+          "fin_s": 136.4,
+          "texto": "Un error habitual al redactar el paper es omitir la justificación del tamaño de la muestra observada en el marco del proyecto.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 18,
+          "inicio_s": 137.4,
+          "fin_s": 145.3,
+          "texto": "Acordamos fijar la semilla aleatoria en cuarenta y dos para todas las corridas experimentales.",
+          "etiqueta": "acuerdo",
+          "orador": "Participante"
+        },
+        {
+          "id": 19,
+          "inicio_s": 146.3,
+          "fin_s": 151.4,
+          "texto": "La arquitectura propuesta reduce el tiempo de cómputo en inferencia sin perder sensibilidad con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 20,
+          "inicio_s": 152.2,
+          "fin_s": 158.2,
+          "texto": "El equipo de coautores debe formatear la bibliografía siguiendo estrictamente la guía del journal respecto al plazo establecido.",
+          "etiqueta": "tarea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 21,
+          "inicio_s": 159.0,
+          "fin_s": 165.7,
+          "texto": "Un error habitual al redactar el paper es omitir la justificación del tamaño de la muestra observada.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 22,
+          "inicio_s": 166.0,
+          "fin_s": 172.0,
+          "texto": "El depósito previo en un servidor de preprint acelera la visibilidad de los resultados preliminares.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 23,
+          "inicio_s": 172.7,
+          "fin_s": 181.0,
+          "texto": "Carlos tiene asignado subir el script de limpieza con la semilla fija al repositorio institucional.",
+          "etiqueta": "tarea",
+          "orador": "Participante"
+        },
+        {
+          "id": 24,
+          "inicio_s": 182.0,
+          "fin_s": 187.4,
+          "texto": "La reproducibilidad computacional requiere publicar el dataset completo junto al código fuente.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 25,
+          "inicio_s": 188.1,
+          "fin_s": 194.2,
+          "texto": "El peer review riguroso suele exigir contrastar la propuesta frente a dos líneas base adicionales en esta etapa.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 26,
+          "inicio_s": 194.9,
+          "fin_s": 202.9,
+          "texto": "¿Cuál es el plazo perentorio para enviar las correcciones solicitadas por el editor jefe?",
+          "etiqueta": "pregunta",
+          "orador": "Participante"
+        },
+        {
+          "id": 27,
+          "inicio_s": 203.6,
+          "fin_s": 209.9,
+          "texto": "Muchas gracias a la comisión organizadora por la cordial invitación a este seminario en esta etapa.",
+          "etiqueta": "relleno",
+          "orador": "Participante"
+        },
+        {
+          "id": 28,
+          "inicio_s": 210.7,
+          "fin_s": 218.3,
+          "texto": "¿Disponemos de presupuesto remanente en el grant para financiar el APC en modalidad open access?",
+          "etiqueta": "pregunta",
+          "orador": "Participante"
+        },
+        {
+          "id": 29,
+          "inicio_s": 218.7,
+          "fin_s": 226.2,
+          "texto": "Debemos redactar la carta de refutación para los revisores del peer review antes del deadline fijado en el marco del proyecto.",
+          "etiqueta": "tarea",
+          "orador": "Participante"
+        },
+        {
+          "id": 30,
+          "inicio_s": 227.4,
+          "fin_s": 232.3,
+          "texto": "El depósito previo en un servidor de preprint acelera la visibilidad de los resultados preliminares en esta etapa.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 31,
+          "inicio_s": 233.0,
+          "fin_s": 241.7,
+          "texto": "Un error habitual al redactar el paper es omitir la justificación del tamaño de la muestra observada en el marco del proyecto.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 32,
+          "inicio_s": 242.7,
+          "fin_s": 247.5,
+          "texto": "El benchmark sobre el modelo mmBERT demuestra mayor precisión en clasificación de textos breves respecto al plazo establecido.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 33,
+          "inicio_s": 248.1,
+          "fin_s": 253.2,
+          "texto": "¿Cuál es el plazo perentorio para enviar las correcciones solicitadas por el editor jefe?",
+          "etiqueta": "pregunta",
+          "orador": "Participante"
+        },
+        {
+          "id": 34,
+          "inicio_s": 254.0,
+          "fin_s": 260.0,
+          "texto": "Para someter a un journal indexado en Scopus debemos justificar el valor metodológico del modelo en esta etapa.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 35,
+          "inicio_s": 261.0,
+          "fin_s": 265.5,
+          "texto": "La arquitectura propuesta reduce el tiempo de cómputo en inferencia sin perder sensibilidad.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 36,
+          "inicio_s": 266.6,
+          "fin_s": 274.8,
+          "texto": "Muchas gracias a la comisión organizadora por la cordial invitación a este seminario.",
+          "etiqueta": "relleno",
+          "orador": "Expositor"
+        },
+        {
+          "id": 37,
+          "inicio_s": 275.3,
+          "fin_s": 281.8,
+          "texto": "Las políticas de acceso abierto de este publisher contemplan la exención parcial del pago de APC.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 38,
+          "inicio_s": 282.4,
+          "fin_s": 289.9,
+          "texto": "Los evaluadores metodológicos del grant solicitaron una auditoría detallada de la limpieza de datos con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 39,
+          "inicio_s": 290.5,
+          "fin_s": 295.6,
+          "texto": "Para someter a un journal indexado en Scopus debemos justificar el valor metodológico del modelo con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 40,
+          "inicio_s": 296.4,
+          "fin_s": 300.4,
+          "texto": "¿Es obligatorio compartir el código de entrenamiento si se emplean bibliotecas propietarias?",
+          "etiqueta": "pregunta",
+          "orador": "Expositor"
+        },
+        {
+          "id": 41,
+          "inicio_s": 301.4,
+          "fin_s": 306.3,
+          "texto": "Un error habitual al redactar el paper es omitir la justificación del tamaño de la muestra observada.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 42,
+          "inicio_s": 306.5,
+          "fin_s": 312.2,
+          "texto": "¿Disponemos de presupuesto remanente en el grant para financiar el APC en modalidad open access?",
+          "etiqueta": "pregunta",
+          "orador": "Expositor"
+        },
+        {
+          "id": 43,
+          "inicio_s": 312.5,
+          "fin_s": 318.4,
+          "texto": "El depósito previo en un servidor de preprint acelera la visibilidad de los resultados preliminares.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 44,
+          "inicio_s": 319.6,
+          "fin_s": 324.4,
+          "texto": "La arquitectura propuesta reduce el tiempo de cómputo en inferencia sin perder sensibilidad.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 45,
+          "inicio_s": 325.5,
+          "fin_s": 330.7,
+          "texto": "Las políticas de acceso abierto de este publisher contemplan la exención parcial del pago de APC.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 46,
+          "inicio_s": 331.3,
+          "fin_s": 336.3,
+          "texto": "Para someter a un journal indexado en Scopus debemos justificar el valor metodológico del modelo según lo planificado.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 47,
+          "inicio_s": 336.6,
+          "fin_s": 344.1,
+          "texto": "La arquitectura propuesta reduce el tiempo de cómputo en inferencia sin perder sensibilidad.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 48,
+          "inicio_s": 345.2,
+          "fin_s": 353.5,
+          "texto": "Para someter a un journal indexado en Scopus debemos justificar el valor metodológico del modelo según lo planificado.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 49,
+          "inicio_s": 354.0,
+          "fin_s": 361.3,
+          "texto": "La reproducibilidad computacional requiere publicar el dataset completo junto al código fuente con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 50,
+          "inicio_s": 361.6,
+          "fin_s": 366.2,
+          "texto": "El benchmark sobre el modelo mmBERT demuestra mayor precisión en clasificación de textos breves.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 51,
+          "inicio_s": 366.8,
+          "fin_s": 370.9,
+          "texto": "¿Disponemos de presupuesto remanente en el grant para financiar el APC en modalidad open access?",
+          "etiqueta": "pregunta",
+          "orador": "Participante"
+        },
+        {
+          "id": 52,
+          "inicio_s": 372.1,
+          "fin_s": 378.0,
+          "texto": "¿Qué métrica de validación cruzada solicitó el segundo revisor durante el peer review?",
+          "etiqueta": "pregunta",
+          "orador": "Participante"
+        },
+        {
+          "id": 53,
+          "inicio_s": 378.2,
+          "fin_s": 382.8,
+          "texto": "¿Disponemos de presupuesto remanente en el grant para financiar el APC en modalidad open access?",
+          "etiqueta": "pregunta",
+          "orador": "Expositor"
+        },
+        {
+          "id": 54,
+          "inicio_s": 383.6,
+          "fin_s": 390.8,
+          "texto": "Carlos tiene asignado subir el script de limpieza con la semilla fija al repositorio institucional.",
+          "etiqueta": "tarea",
+          "orador": "Participante"
+        },
+        {
+          "id": 55,
+          "inicio_s": 391.7,
+          "fin_s": 397.9,
+          "texto": "¿Es obligatorio compartir el código de entrenamiento si se emplean bibliotecas propietarias?",
+          "etiqueta": "pregunta",
+          "orador": "Expositor"
+        },
+        {
+          "id": 56,
+          "inicio_s": 398.7,
+          "fin_s": 406.1,
+          "texto": "Buenos días con todos los docentes e investigadores que nos acompañan en esta sesión.",
+          "etiqueta": "relleno",
+          "orador": "Participante"
+        },
+        {
+          "id": 57,
+          "inicio_s": 407.3,
+          "fin_s": 413.6,
+          "texto": "Bien, pasando al siguiente punto de nuestra agenda metodológica.. respecto al plazo establecido.",
+          "etiqueta": "relleno",
+          "orador": "Participante"
+        },
+        {
+          "id": 58,
+          "inicio_s": 414.2,
+          "fin_s": 422.5,
+          "texto": "Las políticas de acceso abierto de este publisher contemplan la exención parcial del pago de APC.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 59,
+          "inicio_s": 423.5,
+          "fin_s": 431.6,
+          "texto": "Las políticas de acceso abierto de este publisher contemplan la exención parcial del pago de APC en el marco del proyecto.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 60,
+          "inicio_s": 432.1,
+          "fin_s": 438.9,
+          "texto": "Carlos tiene asignado subir el script de limpieza con la semilla fija al repositorio institucional.",
+          "etiqueta": "tarea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 61,
+          "inicio_s": 439.7,
+          "fin_s": 445.4,
+          "texto": "El análisis de regresión muestra coeficientes significativos luego del control por sesgo de selección en el marco del proyecto.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 62,
+          "inicio_s": 446.4,
+          "fin_s": 455.4,
+          "texto": "Un error habitual al redactar el paper es omitir la justificación del tamaño de la muestra observada en el marco del proyecto.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 63,
+          "inicio_s": 455.9,
+          "fin_s": 460.9,
+          "texto": "Se acordó reservar el veinte por ciento de los recursos del grant para actividades de difusión en esta etapa.",
+          "etiqueta": "acuerdo",
+          "orador": "Participante"
+        },
+        {
+          "id": 64,
+          "inicio_s": 461.9,
+          "fin_s": 467.4,
+          "texto": "Un error habitual al redactar el paper es omitir la justificación del tamaño de la muestra observada.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 65,
+          "inicio_s": 467.7,
+          "fin_s": 474.0,
+          "texto": "El peer review riguroso suele exigir contrastar la propuesta frente a dos líneas base adicionales en esta etapa.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 66,
+          "inicio_s": 474.4,
+          "fin_s": 480.7,
+          "texto": "Un error habitual al redactar el paper es omitir la justificación del tamaño de la muestra observada con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 67,
+          "inicio_s": 481.3,
+          "fin_s": 487.2,
+          "texto": "¿Es obligatorio compartir el código de entrenamiento si se emplean bibliotecas propietarias?",
+          "etiqueta": "pregunta",
+          "orador": "Participante"
+        },
+        {
+          "id": 68,
+          "inicio_s": 487.9,
+          "fin_s": 492.1,
+          "texto": "¿Qué métrica de validación cruzada solicitó el segundo revisor durante el peer review?",
+          "etiqueta": "pregunta",
+          "orador": "Participante"
+        },
+        {
+          "id": 69,
+          "inicio_s": 492.9,
+          "fin_s": 498.6,
+          "texto": "¿Cuál es el plazo perentorio para enviar las correcciones solicitadas por el editor jefe?",
+          "etiqueta": "pregunta",
+          "orador": "Expositor"
+        },
+        {
+          "id": 70,
+          "inicio_s": 499.4,
+          "fin_s": 508.3,
+          "texto": "Un error habitual al redactar el paper es omitir la justificación del tamaño de la muestra observada.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 71,
+          "inicio_s": 509.4,
+          "fin_s": 514.6,
+          "texto": "Las políticas de acceso abierto de este publisher contemplan la exención parcial del pago de APC con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 72,
+          "inicio_s": 515.5,
+          "fin_s": 520.4,
+          "texto": "Para someter a un journal indexado en Scopus debemos justificar el valor metodológico del modelo con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 73,
+          "inicio_s": 520.8,
+          "fin_s": 525.8,
+          "texto": "Las políticas de acceso abierto de este publisher contemplan la exención parcial del pago de APC en esta etapa.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 74,
+          "inicio_s": 526.3,
+          "fin_s": 530.7,
+          "texto": "El peer review riguroso suele exigir contrastar la propuesta frente a dos líneas base adicionales con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 75,
+          "inicio_s": 531.0,
+          "fin_s": 539.3,
+          "texto": "Bien, pasando al siguiente punto de nuestra agenda metodológica...",
+          "etiqueta": "relleno",
+          "orador": "Expositor"
+        },
+        {
+          "id": 76,
+          "inicio_s": 540.4,
+          "fin_s": 546.7,
+          "texto": "El benchmark sobre el modelo mmBERT demuestra mayor precisión en clasificación de textos breves.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 77,
+          "inicio_s": 547.5,
+          "fin_s": 555.0,
+          "texto": "Para someter a un journal indexado en Scopus debemos justificar el valor metodológico del modelo.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 78,
+          "inicio_s": 556.0,
+          "fin_s": 563.3,
+          "texto": "Los evaluadores metodológicos del grant solicitaron una auditoría detallada de la limpieza de datos respecto al plazo establecido.",
+          "etiqueta": "idea",
+          "orador": "Expositor"
+        },
+        {
+          "id": 79,
+          "inicio_s": 563.6,
+          "fin_s": 569.0,
+          "texto": "Las políticas de acceso abierto de este publisher contemplan la exención parcial del pago de APC.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        },
+        {
+          "id": 80,
+          "inicio_s": 570.1,
+          "fin_s": 576.2,
+          "texto": "Para someter a un journal indexado en Scopus debemos justificar el valor metodológico del modelo.",
+          "etiqueta": "idea",
+          "orador": "Participante"
+        }
+      ]
+    },
+    {
+      "id": "reunion_sintetica_001",
+      "tipo": "reunion",
+      "titulo": "Reunión de coordinación de proyecto Minuta #01",
+      "duracion_s": 563.8,
+      "fuente": "plantilla",
+      "segmentos": [
+        {
+          "id": 1,
+          "inicio_s": 0.0,
+          "fin_s": 7.8,
+          "texto": "Coordinemos una llamada rápida mañana a las nueve para validar el video de demostración.",
+          "etiqueta": "tarea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 2,
+          "inicio_s": 9.0,
+          "fin_s": 16.2,
+          "texto": "Mariana, encárgate de grabar el clip de audio de prueba con el teléfono celular en la sala silenciosa con el equipo de trabajo.",
+          "etiqueta": "tarea",
+          "orador": "Moderador"
+        },
+        {
+          "id": 3,
+          "inicio_s": 16.8,
+          "fin_s": 25.4,
+          "texto": "Si la conexión es inestable, la aplicación debe operar fluidamente en modo demostración local.",
+          "etiqueta": "idea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 4,
+          "inicio_s": 25.6,
+          "fin_s": 32.1,
+          "texto": "Acordamos congelar el contrato Pydantic v2 para no generar conflictos entre los módulos del sistema según lo planificado.",
+          "etiqueta": "acuerdo",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 5,
+          "inicio_s": 33.1,
+          "fin_s": 37.6,
+          "texto": "Permítanme un segundo para tomar nota de este comentario respecto al plazo establecido.",
+          "etiqueta": "relleno",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 6,
+          "inicio_s": 38.8,
+          "fin_s": 45.0,
+          "texto": "Acordamos congelar el contrato Pydantic v2 para no generar conflictos entre los módulos del sistema en el marco del proyecto.",
+          "etiqueta": "acuerdo",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 7,
+          "inicio_s": 46.0,
+          "fin_s": 51.4,
+          "texto": "Decidimos no versionar ningún archivo de audio en el repositorio para preservar la privacidad de los datos.",
+          "etiqueta": "acuerdo",
+          "orador": "Andrea"
+        },
+        {
+          "id": 8,
+          "inicio_s": 51.9,
+          "fin_s": 56.0,
+          "texto": "Andrea, por favor verifica que el dataset sintético cumpla con la distribución de clases requerida.",
+          "etiqueta": "tarea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 9,
+          "inicio_s": 56.3,
+          "fin_s": 63.0,
+          "texto": "Los resultados preliminares respaldan la hipótesis de ahorro computacional gracias al detector temprano en esta etapa.",
+          "etiqueta": "idea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 10,
+          "inicio_s": 63.2,
+          "fin_s": 71.1,
+          "texto": "¿Quién se encarga de corroborar que no haya secretos expuestos en el historial de commits?",
+          "etiqueta": "pregunta",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 11,
+          "inicio_s": 72.3,
+          "fin_s": 76.5,
+          "texto": "Perfecto, continuemos entonces con el siguiente punto de la agenda.",
+          "etiqueta": "relleno",
+          "orador": "Moderador"
+        },
+        {
+          "id": 12,
+          "inicio_s": 77.6,
+          "fin_s": 84.3,
+          "texto": "Hola a todos, ¿se me escucha bien?",
+          "etiqueta": "relleno",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 13,
+          "inicio_s": 85.4,
+          "fin_s": 90.1,
+          "texto": "Rodrigo, debes preparar el entorno de Streamlit y configurar los secrets antes de la prueba en la nube en el marco del proyecto.",
+          "etiqueta": "tarea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 14,
+          "inicio_s": 90.5,
+          "fin_s": 97.0,
+          "texto": "Exactamente, coincido con lo mencionado.",
+          "etiqueta": "relleno",
+          "orador": "Carlos"
+        },
+        {
+          "id": 15,
+          "inicio_s": 97.6,
+          "fin_s": 105.5,
+          "texto": "Andrea, por favor verifica que el dataset sintético cumpla con la distribución de clases requerida.",
+          "etiqueta": "tarea",
+          "orador": "Carlos"
+        },
+        {
+          "id": 16,
+          "inicio_s": 106.4,
+          "fin_s": 114.3,
+          "texto": "Hola a todos, ¿se me escucha bien?",
+          "etiqueta": "relleno",
+          "orador": "Andrea"
+        },
+        {
+          "id": 17,
+          "inicio_s": 115.2,
+          "fin_s": 120.8,
+          "texto": "Considero que debemos separar los segmentos de relleno antes de enviar el texto al módulo de estructuración en el marco del proyecto.",
+          "etiqueta": "idea",
+          "orador": "Moderador"
+        },
+        {
+          "id": 18,
+          "inicio_s": 121.5,
+          "fin_s": 126.6,
+          "texto": "Es necesario correr la suite completa de pruebas unitarias y verificar que scripts/verificar.py pase.",
+          "etiqueta": "tarea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 19,
+          "inicio_s": 127.2,
+          "fin_s": 131.6,
+          "texto": "Un mapa mental con citas literales aporta mayor confianza al usuario que un resumen genérico.",
+          "etiqueta": "idea",
+          "orador": "Andrea"
+        },
+        {
+          "id": 20,
+          "inicio_s": 132.7,
+          "fin_s": 139.3,
+          "texto": "¿Falta alguna credencial en el archivo .env.example para ejecutar la aplicación en local?",
+          "etiqueta": "pregunta",
+          "orador": "Andrea"
+        },
+        {
+          "id": 21,
+          "inicio_s": 139.7,
+          "fin_s": 146.6,
+          "texto": "Quedamos en utilizar mmBERT-small como detector principal por su bajo consumo de memoria RAM.",
+          "etiqueta": "acuerdo",
+          "orador": "Moderador"
+        },
+        {
+          "id": 22,
+          "inicio_s": 147.7,
+          "fin_s": 153.8,
+          "texto": "Buenos días equipo, iniciemos puntualmente la reunión de coordinación de hoy en el marco del proyecto.",
+          "etiqueta": "relleno",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 23,
+          "inicio_s": 155.0,
+          "fin_s": 161.8,
+          "texto": "El glosario personalizado en el prompt inicial redujo notablemente las alucinaciones de términos técnicos según lo planificado.",
+          "etiqueta": "idea",
+          "orador": "Moderador"
+        },
+        {
+          "id": 24,
+          "inicio_s": 162.8,
+          "fin_s": 168.8,
+          "texto": "Quedamos en utilizar mmBERT-small como detector principal por su bajo consumo de memoria RAM en el marco del proyecto.",
+          "etiqueta": "acuerdo",
+          "orador": "Carlos"
+        },
+        {
+          "id": 25,
+          "inicio_s": 169.4,
+          "fin_s": 177.3,
+          "texto": "El rendimiento de mmBERT-small supera a la alternativa tradicional en secuencias con ruido léxico.",
+          "etiqueta": "idea",
+          "orador": "Andrea"
+        },
+        {
+          "id": 26,
+          "inicio_s": 177.6,
+          "fin_s": 182.8,
+          "texto": "Muchas gracias a todos por conectarse a la sesión en el marco del proyecto.",
+          "etiqueta": "relleno",
+          "orador": "Moderador"
+        },
+        {
+          "id": 27,
+          "inicio_s": 183.3,
+          "fin_s": 188.2,
+          "texto": "¿Falta alguna credencial en el archivo .env.example para ejecutar la aplicación en local?",
+          "etiqueta": "pregunta",
+          "orador": "Andrea"
+        },
+        {
+          "id": 28,
+          "inicio_s": 188.5,
+          "fin_s": 193.4,
+          "texto": "Andrea, por favor verifica que el dataset sintético cumpla con la distribución de clases requerida con el equipo de trabajo.",
+          "etiqueta": "tarea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 29,
+          "inicio_s": 194.3,
+          "fin_s": 199.0,
+          "texto": "Un mapa mental con citas literales aporta mayor confianza al usuario que un resumen genérico en el marco del proyecto.",
+          "etiqueta": "idea",
+          "orador": "Moderador"
+        },
+        {
+          "id": 30,
+          "inicio_s": 200.0,
+          "fin_s": 207.5,
+          "texto": "Considero que debemos separar los segmentos de relleno antes de enviar el texto al módulo de estructuración.",
+          "etiqueta": "idea",
+          "orador": "Carlos"
+        },
+        {
+          "id": 31,
+          "inicio_s": 208.3,
+          "fin_s": 212.9,
+          "texto": "¿Qué recall obtuvimos en la detección de tareas explícitas sobre la reunión actuada?",
+          "etiqueta": "pregunta",
+          "orador": "Andrea"
+        },
+        {
+          "id": 32,
+          "inicio_s": 213.4,
+          "fin_s": 221.8,
+          "texto": "Sí, claro, te escuchamos perfectamente.",
+          "etiqueta": "relleno",
+          "orador": "Andrea"
+        },
+        {
+          "id": 33,
+          "inicio_s": 222.6,
+          "fin_s": 230.5,
+          "texto": "Sí, claro, te escuchamos perfectamente.",
+          "etiqueta": "relleno",
+          "orador": "Moderador"
+        },
+        {
+          "id": 34,
+          "inicio_s": 231.4,
+          "fin_s": 235.9,
+          "texto": "Buenos días equipo, iniciemos puntualmente la reunión de coordinación de hoy según lo planificado.",
+          "etiqueta": "relleno",
+          "orador": "Andrea"
+        },
+        {
+          "id": 35,
+          "inicio_s": 236.2,
+          "fin_s": 240.8,
+          "texto": "Los resultados preliminares respaldan la hipótesis de ahorro computacional gracias al detector temprano.",
+          "etiqueta": "idea",
+          "orador": "Andrea"
+        },
+        {
+          "id": 36,
+          "inicio_s": 241.3,
+          "fin_s": 248.9,
+          "texto": "¿Falta alguna credencial en el archivo .env.example para ejecutar la aplicación en local?",
+          "etiqueta": "pregunta",
+          "orador": "Moderador"
+        },
+        {
+          "id": 37,
+          "inicio_s": 249.9,
+          "fin_s": 255.6,
+          "texto": "¿Quién se encarga de corroborar que no haya secretos expuestos en el historial de commits?",
+          "etiqueta": "pregunta",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 38,
+          "inicio_s": 256.1,
+          "fin_s": 264.2,
+          "texto": "Hola a todos, ¿se me escucha bien?",
+          "etiqueta": "relleno",
+          "orador": "Andrea"
+        },
+        {
+          "id": 39,
+          "inicio_s": 265.2,
+          "fin_s": 272.3,
+          "texto": "¿Logramos mantener el consumo de memoria por debajo de los dos punto siete gigabytes en Streamlit Cloud?",
+          "etiqueta": "pregunta",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 40,
+          "inicio_s": 272.7,
+          "fin_s": 279.7,
+          "texto": "¿A qué hora cerramos el registro del issue de GitHub para cumplir con el deadline de entrega?",
+          "etiqueta": "pregunta",
+          "orador": "Andrea"
+        },
+        {
+          "id": 41,
+          "inicio_s": 279.9,
+          "fin_s": 286.9,
+          "texto": "Si la conexión es inestable, la aplicación debe operar fluidamente en modo demostración local con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Andrea"
+        },
+        {
+          "id": 42,
+          "inicio_s": 287.6,
+          "fin_s": 296.5,
+          "texto": "¿A qué hora cerramos el registro del issue de GitHub para cumplir con el deadline de entrega?",
+          "etiqueta": "pregunta",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 43,
+          "inicio_s": 297.3,
+          "fin_s": 303.5,
+          "texto": "El rendimiento de mmBERT-small supera a la alternativa tradicional en secuencias con ruido léxico.",
+          "etiqueta": "idea",
+          "orador": "Carlos"
+        },
+        {
+          "id": 44,
+          "inicio_s": 303.7,
+          "fin_s": 308.5,
+          "texto": "Si la conexión es inestable, la aplicación debe operar fluidamente en modo demostración local.",
+          "etiqueta": "idea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 45,
+          "inicio_s": 309.1,
+          "fin_s": 316.2,
+          "texto": "El costo por hora de audio procesado será el elemento determinante para definir los planes de suscripción en el marco del proyecto.",
+          "etiqueta": "idea",
+          "orador": "Andrea"
+        },
+        {
+          "id": 46,
+          "inicio_s": 316.7,
+          "fin_s": 324.8,
+          "texto": "La latencia de transcripción con faster-whisper en int8 es suficientemente baja para teléfonos móviles.",
+          "etiqueta": "idea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 47,
+          "inicio_s": 325.4,
+          "fin_s": 332.5,
+          "texto": "El costo por hora de audio procesado será el elemento determinante para definir los planes de suscripción.",
+          "etiqueta": "idea",
+          "orador": "Moderador"
+        },
+        {
+          "id": 48,
+          "inicio_s": 333.3,
+          "fin_s": 339.6,
+          "texto": "Mariana, encárgate de grabar el clip de audio de prueba con el teléfono celular en la sala silenciosa en esta etapa.",
+          "etiqueta": "tarea",
+          "orador": "Andrea"
+        },
+        {
+          "id": 49,
+          "inicio_s": 340.8,
+          "fin_s": 348.1,
+          "texto": "Buenos días equipo, iniciemos puntualmente la reunión de coordinación de hoy.",
+          "etiqueta": "relleno",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 50,
+          "inicio_s": 348.5,
+          "fin_s": 355.2,
+          "texto": "¿A qué hora cerramos el registro del issue de GitHub para cumplir con el deadline de entrega?",
+          "etiqueta": "pregunta",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 51,
+          "inicio_s": 356.0,
+          "fin_s": 362.2,
+          "texto": "Buenos días equipo, iniciemos puntualmente la reunión de coordinación de hoy según lo planificado.",
+          "etiqueta": "relleno",
+          "orador": "Moderador"
+        },
+        {
+          "id": 52,
+          "inicio_s": 363.2,
+          "fin_s": 371.4,
+          "texto": "¿Quién se encarga de corroborar que no haya secretos expuestos en el historial de commits?",
+          "etiqueta": "pregunta",
+          "orador": "Andrea"
+        },
+        {
+          "id": 53,
+          "inicio_s": 372.0,
+          "fin_s": 378.1,
+          "texto": "Coordinemos una llamada rápida mañana a las nueve para validar el video de demostración con el equipo de trabajo.",
+          "etiqueta": "tarea",
+          "orador": "Andrea"
+        },
+        {
+          "id": 54,
+          "inicio_s": 378.7,
+          "fin_s": 384.0,
+          "texto": "Buenos días equipo, iniciemos puntualmente la reunión de coordinación de hoy en esta etapa.",
+          "etiqueta": "relleno",
+          "orador": "Moderador"
+        },
+        {
+          "id": 55,
+          "inicio_s": 384.6,
+          "fin_s": 390.4,
+          "texto": "Perfecto, continuemos entonces con el siguiente punto de la agenda respecto al plazo establecido.",
+          "etiqueta": "relleno",
+          "orador": "Moderador"
+        },
+        {
+          "id": 56,
+          "inicio_s": 390.8,
+          "fin_s": 399.1,
+          "texto": "Permítanme un segundo para tomar nota de este comentario.",
+          "etiqueta": "relleno",
+          "orador": "Andrea"
+        },
+        {
+          "id": 57,
+          "inicio_s": 399.8,
+          "fin_s": 405.1,
+          "texto": "¿Falta alguna credencial en el archivo .env.example para ejecutar la aplicación en local?",
+          "etiqueta": "pregunta",
+          "orador": "Andrea"
+        },
+        {
+          "id": 58,
+          "inicio_s": 405.7,
+          "fin_s": 411.6,
+          "texto": "Hola a todos, ¿se me escucha bien?",
+          "etiqueta": "relleno",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 59,
+          "inicio_s": 412.6,
+          "fin_s": 419.6,
+          "texto": "Si la conexión es inestable, la aplicación debe operar fluidamente en modo demostración local.",
+          "etiqueta": "idea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 60,
+          "inicio_s": 420.1,
+          "fin_s": 425.3,
+          "texto": "Sí, claro, te escuchamos perfectamente respecto al plazo establecido.",
+          "etiqueta": "relleno",
+          "orador": "Carlos"
+        },
+        {
+          "id": 61,
+          "inicio_s": 426.2,
+          "fin_s": 432.5,
+          "texto": "Convenimos en presentar la demo interactiva basada en el mapa mental con markmap durante el pitch.",
+          "etiqueta": "acuerdo",
+          "orador": "Moderador"
+        },
+        {
+          "id": 62,
+          "inicio_s": 433.4,
+          "fin_s": 441.1,
+          "texto": "La latencia de transcripción con faster-whisper en int8 es suficientemente baja para teléfonos móviles.",
+          "etiqueta": "idea",
+          "orador": "Andrea"
+        },
+        {
+          "id": 63,
+          "inicio_s": 441.5,
+          "fin_s": 447.9,
+          "texto": "Exactamente, coincido con lo mencionado.",
+          "etiqueta": "relleno",
+          "orador": "Andrea"
+        },
+        {
+          "id": 64,
+          "inicio_s": 448.9,
+          "fin_s": 453.6,
+          "texto": "El rendimiento de mmBERT-small supera a la alternativa tradicional en secuencias con ruido léxico.",
+          "etiqueta": "idea",
+          "orador": "Moderador"
+        },
+        {
+          "id": 65,
+          "inicio_s": 454.5,
+          "fin_s": 463.2,
+          "texto": "Debemos actualizar la hoja de evaluación con las métricas obtenidas antes de las seis de la tarde con el equipo de trabajo.",
+          "etiqueta": "tarea",
+          "orador": "Moderador"
+        },
+        {
+          "id": 66,
+          "inicio_s": 464.0,
+          "fin_s": 468.4,
+          "texto": "El costo por hora de audio procesado será el elemento determinante para definir los planes de suscripción.",
+          "etiqueta": "idea",
+          "orador": "Carlos"
+        },
+        {
+          "id": 67,
+          "inicio_s": 469.2,
+          "fin_s": 476.2,
+          "texto": "Los resultados preliminares respaldan la hipótesis de ahorro computacional gracias al detector temprano.",
+          "etiqueta": "idea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 68,
+          "inicio_s": 477.3,
+          "fin_s": 484.0,
+          "texto": "Revisemos todos el borrador del README para asegurar que las nueve secciones estén completas.",
+          "etiqueta": "tarea",
+          "orador": "Andrea"
+        },
+        {
+          "id": 69,
+          "inicio_s": 485.1,
+          "fin_s": 489.3,
+          "texto": "¿Falta alguna credencial en el archivo .env.example para ejecutar la aplicación en local?",
+          "etiqueta": "pregunta",
+          "orador": "Andrea"
+        },
+        {
+          "id": 70,
+          "inicio_s": 490.4,
+          "fin_s": 497.8,
+          "texto": "Perfecto, continuemos entonces con el siguiente punto de la agenda en el marco del proyecto.",
+          "etiqueta": "relleno",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 71,
+          "inicio_s": 498.1,
+          "fin_s": 503.3,
+          "texto": "¿Logramos mantener el consumo de memoria por debajo de los dos punto siete gigabytes en Streamlit Cloud?",
+          "etiqueta": "pregunta",
+          "orador": "Moderador"
+        },
+        {
+          "id": 72,
+          "inicio_s": 503.7,
+          "fin_s": 511.0,
+          "texto": "El rendimiento de mmBERT-small supera a la alternativa tradicional en secuencias con ruido léxico.",
+          "etiqueta": "idea",
+          "orador": "Moderador"
+        },
+        {
+          "id": 73,
+          "inicio_s": 511.3,
+          "fin_s": 518.9,
+          "texto": "La latencia de transcripción con faster-whisper en int8 es suficientemente baja para teléfonos móviles en el marco del proyecto.",
+          "etiqueta": "idea",
+          "orador": "Carlos"
+        },
+        {
+          "id": 74,
+          "inicio_s": 519.8,
+          "fin_s": 526.5,
+          "texto": "Revisemos todos el borrador del README para asegurar que las nueve secciones estén completas con el equipo de trabajo.",
+          "etiqueta": "tarea",
+          "orador": "Moderador"
+        },
+        {
+          "id": 75,
+          "inicio_s": 527.7,
+          "fin_s": 532.0,
+          "texto": "Perfecto, continuemos entonces con el siguiente punto de la agenda en el marco del proyecto.",
+          "etiqueta": "relleno",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 76,
+          "inicio_s": 532.2,
+          "fin_s": 539.3,
+          "texto": "Convenimos en presentar la demo interactiva basada en el mapa mental con markmap durante el pitch según lo planificado.",
+          "etiqueta": "acuerdo",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 77,
+          "inicio_s": 539.6,
+          "fin_s": 545.2,
+          "texto": "El rendimiento de mmBERT-small supera a la alternativa tradicional en secuencias con ruido léxico.",
+          "etiqueta": "idea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 78,
+          "inicio_s": 546.2,
+          "fin_s": 551.4,
+          "texto": "El costo por hora de audio procesado será el elemento determinante para definir los planes de suscripción.",
+          "etiqueta": "idea",
+          "orador": "Rodrigo"
+        },
+        {
+          "id": 79,
+          "inicio_s": 552.1,
+          "fin_s": 558.0,
+          "texto": "Perfecto, continuemos entonces con el siguiente punto de la agenda.",
+          "etiqueta": "relleno",
+          "orador": "Carlos"
+        },
+        {
+          "id": 80,
+          "inicio_s": 558.6,
+          "fin_s": 563.2,
+          "texto": "Perfecto, continuemos entonces con el siguiente punto de la agenda según lo planificado.",
+          "etiqueta": "relleno",
+          "orador": "Andrea"
+        }
+      ]
+    },
+    {
+      "id": "entrevista_sintetica_001",
+      "tipo": "entrevista",
+      "titulo": "Entrevista de investigación con usuario potencial #01",
+      "duracion_s": 589.1,
+      "fuente": "plantilla",
+      "segmentos": [
+        {
+          "id": 1,
+          "inicio_s": 0.0,
+          "fin_s": 7.1,
+          "texto": "¿Considera que la privacidad de los datos procesados es un requisito imprescindible para su institución?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 2,
+          "inicio_s": 8.0,
+          "fin_s": 16.2,
+          "texto": "¿Qué aplicación utiliza actualmente para tomar notas y organizar los compromisos discutidos?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 3,
+          "inicio_s": 17.3,
+          "fin_s": 24.9,
+          "texto": "Debo consultar con el comité de ética institucional el protocolo de consentimiento para entrevistas grabadas con el equipo de trabajo.",
+          "etiqueta": "tarea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 4,
+          "inicio_s": 25.5,
+          "fin_s": 32.9,
+          "texto": "Cuando dirijo una tesis, dedico varias horas a revisar borradores que no citan adecuadamente la literatura.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 5,
+          "inicio_s": 33.7,
+          "fin_s": 41.6,
+          "texto": "¿Considera que la privacidad de los datos procesados es un requisito imprescindible para su institución?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 6,
+          "inicio_s": 42.0,
+          "fin_s": 49.1,
+          "texto": "No hay de qué, es un placer colaborar con ustedes.",
+          "etiqueta": "relleno",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 7,
+          "inicio_s": 49.7,
+          "fin_s": 55.6,
+          "texto": "Cuando dirijo una tesis, dedico varias horas a revisar borradores que no citan adecuadamente la literatura con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 8,
+          "inicio_s": 56.0,
+          "fin_s": 65.0,
+          "texto": "Comprendo perfectamente la situación que me describe en el marco del proyecto.",
+          "etiqueta": "relleno",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 9,
+          "inicio_s": 65.4,
+          "fin_s": 72.2,
+          "texto": "Los profesionales del sector público necesitan procesar información sensible de manera estrictamente local con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 10,
+          "inicio_s": 73.3,
+          "fin_s": 77.7,
+          "texto": "¿Con qué frecuencia graba reuniones de trabajo o ponencias académicas durante el mes?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 11,
+          "inicio_s": 78.2,
+          "fin_s": 82.2,
+          "texto": "Muy interesante lo que señala, tomamos nota de ello.",
+          "etiqueta": "relleno",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 12,
+          "inicio_s": 82.8,
+          "fin_s": 87.5,
+          "texto": "Claro, por supuesto respecto al plazo establecido.",
+          "etiqueta": "relleno",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 13,
+          "inicio_s": 87.9,
+          "fin_s": 93.0,
+          "texto": "El mayor obstáculo en consultoría es transcribir entrevistas extensas sin perder el contexto técnico.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 14,
+          "inicio_s": 93.3,
+          "fin_s": 97.4,
+          "texto": "No hay de qué, es un placer colaborar con ustedes en esta etapa.",
+          "etiqueta": "relleno",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 15,
+          "inicio_s": 98.5,
+          "fin_s": 104.3,
+          "texto": "La mezcla espontánea de español e inglés es muy frecuente en reuniones de tecnología y finanzas en esta etapa.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 16,
+          "inicio_s": 105.3,
+          "fin_s": 111.5,
+          "texto": "Cuando dirijo una tesis, dedico varias horas a revisar borradores que no citan adecuadamente la literatura en esta etapa.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 17,
+          "inicio_s": 112.0,
+          "fin_s": 117.6,
+          "texto": "Muy interesante lo que señala, tomamos nota de ello en esta etapa.",
+          "etiqueta": "relleno",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 18,
+          "inicio_s": 118.8,
+          "fin_s": 125.0,
+          "texto": "Agendemos una segunda sesión de retroalimentación una vez que hayan probado el prototipo en celular.",
+          "etiqueta": "tarea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 19,
+          "inicio_s": 125.5,
+          "fin_s": 130.2,
+          "texto": "Agendemos una segunda sesión de retroalimentación una vez que hayan probado el prototipo en celular en esta etapa.",
+          "etiqueta": "tarea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 20,
+          "inicio_s": 130.6,
+          "fin_s": 138.3,
+          "texto": "Cuando dirijo una tesis, dedico varias horas a revisar borradores que no citan adecuadamente la literatura.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 21,
+          "inicio_s": 139.1,
+          "fin_s": 144.9,
+          "texto": "Debo consultar con el comité de ética institucional el protocolo de consentimiento para entrevistas grabadas.",
+          "etiqueta": "tarea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 22,
+          "inicio_s": 145.1,
+          "fin_s": 151.1,
+          "texto": "Quedamos en que me compartirán el resumen estructurado generado a partir de este audio de prueba.",
+          "etiqueta": "acuerdo",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 23,
+          "inicio_s": 151.5,
+          "fin_s": 159.3,
+          "texto": "Herramientas con hardware dedicado son costosas para investigadores en economías emergentes.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 24,
+          "inicio_s": 160.2,
+          "fin_s": 167.3,
+          "texto": "Poder hacer clic en una rama del mapa mental y escuchar el minuto exacto ahorra horas de revisión manual.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 25,
+          "inicio_s": 167.9,
+          "fin_s": 176.3,
+          "texto": "Herramientas con hardware dedicado son costosas para investigadores en economías emergentes.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 26,
+          "inicio_s": 176.7,
+          "fin_s": 184.1,
+          "texto": "El mayor obstáculo en consultoría es transcribir entrevistas extensas sin perder el contexto técnico.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 27,
+          "inicio_s": 185.0,
+          "fin_s": 192.3,
+          "texto": "¿Qué aplicación utiliza actualmente para tomar notas y organizar los compromisos discutidos?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 28,
+          "inicio_s": 193.4,
+          "fin_s": 198.8,
+          "texto": "Poder hacer clic en una rama del mapa mental y escuchar el minuto exacto ahorra horas de revisión manual.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 29,
+          "inicio_s": 199.3,
+          "fin_s": 206.1,
+          "texto": "Acepto participar en el estudio de usuarios siempre que las notas se publiquen de forma anonimizada con el equipo de trabajo.",
+          "etiqueta": "acuerdo",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 30,
+          "inicio_s": 207.1,
+          "fin_s": 215.1,
+          "texto": "La mezcla espontánea de español e inglés es muy frecuente en reuniones de tecnología y finanzas.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 31,
+          "inicio_s": 215.8,
+          "fin_s": 222.4,
+          "texto": "Debo consultar con el comité de ética institucional el protocolo de consentimiento para entrevistas grabadas según lo planificado.",
+          "etiqueta": "tarea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 32,
+          "inicio_s": 222.9,
+          "fin_s": 227.4,
+          "texto": "¿Considera que la privacidad de los datos procesados es un requisito imprescindible para su institución?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 33,
+          "inicio_s": 227.9,
+          "fin_s": 235.5,
+          "texto": "Comprendo perfectamente la situación que me describe respecto al plazo establecido.",
+          "etiqueta": "relleno",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 34,
+          "inicio_s": 236.7,
+          "fin_s": 243.4,
+          "texto": "Debo consultar con el comité de ética institucional el protocolo de consentimiento para entrevistas grabadas en esta etapa.",
+          "etiqueta": "tarea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 35,
+          "inicio_s": 244.4,
+          "fin_s": 250.4,
+          "texto": "Los profesionales del sector público necesitan procesar información sensible de manera estrictamente local.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 36,
+          "inicio_s": 251.4,
+          "fin_s": 258.7,
+          "texto": "Herramientas con hardware dedicado son costosas para investigadores en economías emergentes con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 37,
+          "inicio_s": 259.5,
+          "fin_s": 265.0,
+          "texto": "¿Estaría dispuesto a pagar una suscripción accesible si la herramienta funciona desde su propio teléfono?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 38,
+          "inicio_s": 266.2,
+          "fin_s": 273.7,
+          "texto": "¿Considera que la privacidad de los datos procesados es un requisito imprescindible para su institución?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 39,
+          "inicio_s": 274.5,
+          "fin_s": 280.2,
+          "texto": "¿Con qué frecuencia graba reuniones de trabajo o ponencias académicas durante el mes?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 40,
+          "inicio_s": 281.3,
+          "fin_s": 289.9,
+          "texto": "Debo consultar con el comité de ética institucional el protocolo de consentimiento para entrevistas grabadas en esta etapa.",
+          "etiqueta": "tarea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 41,
+          "inicio_s": 291.1,
+          "fin_s": 297.3,
+          "texto": "Debo consultar con el comité de ética institucional el protocolo de consentimiento para entrevistas grabadas respecto al plazo establecido.",
+          "etiqueta": "tarea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 42,
+          "inicio_s": 298.1,
+          "fin_s": 304.2,
+          "texto": "¿Con qué frecuencia graba reuniones de trabajo o ponencias académicas durante el mes?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 43,
+          "inicio_s": 304.5,
+          "fin_s": 311.4,
+          "texto": "Herramientas con hardware dedicado son costosas para investigadores en economías emergentes en el marco del proyecto.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 44,
+          "inicio_s": 312.2,
+          "fin_s": 319.4,
+          "texto": "Los profesionales del sector público necesitan procesar información sensible de manera estrictamente local.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 45,
+          "inicio_s": 320.5,
+          "fin_s": 328.0,
+          "texto": "¿Considera que la privacidad de los datos procesados es un requisito imprescindible para su institución?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 46,
+          "inicio_s": 328.5,
+          "fin_s": 335.7,
+          "texto": "¿Considera que la privacidad de los datos procesados es un requisito imprescindible para su institución?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 47,
+          "inicio_s": 336.6,
+          "fin_s": 342.0,
+          "texto": "La mezcla espontánea de español e inglés es muy frecuente en reuniones de tecnología y finanzas.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 48,
+          "inicio_s": 343.0,
+          "fin_s": 348.6,
+          "texto": "La mezcla espontánea de español e inglés es muy frecuente en reuniones de tecnología y finanzas.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 49,
+          "inicio_s": 349.6,
+          "fin_s": 357.4,
+          "texto": "¿Con qué frecuencia graba reuniones de trabajo o ponencias académicas durante el mes?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 50,
+          "inicio_s": 358.0,
+          "fin_s": 365.5,
+          "texto": "Con esto concluimos la entrevista, agradecemos profundamente su tiempo y aportes con el equipo de trabajo.",
+          "etiqueta": "relleno",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 51,
+          "inicio_s": 366.5,
+          "fin_s": 374.2,
+          "texto": "No hay de qué, es un placer colaborar con ustedes.",
+          "etiqueta": "relleno",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 52,
+          "inicio_s": 374.9,
+          "fin_s": 380.6,
+          "texto": "Los profesionales del sector público necesitan procesar información sensible de manera estrictamente local.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 53,
+          "inicio_s": 381.3,
+          "fin_s": 386.6,
+          "texto": "¿Qué aplicación utiliza actualmente para tomar notas y organizar los compromisos discutidos?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 54,
+          "inicio_s": 386.9,
+          "fin_s": 395.6,
+          "texto": "Acepto participar en el estudio de usuarios siempre que las notas se publiquen de forma anonimizada según lo planificado.",
+          "etiqueta": "acuerdo",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 55,
+          "inicio_s": 396.4,
+          "fin_s": 403.9,
+          "texto": "¿Estaría dispuesto a pagar una suscripción accesible si la herramienta funciona desde su propio teléfono?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 56,
+          "inicio_s": 405.0,
+          "fin_s": 412.1,
+          "texto": "La mezcla espontánea de español e inglés es muy frecuente en reuniones de tecnología y finanzas.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 57,
+          "inicio_s": 412.5,
+          "fin_s": 420.0,
+          "texto": "Acepto participar en el estudio de usuarios siempre que las notas se publiquen de forma anonimizada con el equipo de trabajo.",
+          "etiqueta": "acuerdo",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 58,
+          "inicio_s": 420.3,
+          "fin_s": 426.1,
+          "texto": "Acepto participar en el estudio de usuarios siempre que las notas se publiquen de forma anonimizada.",
+          "etiqueta": "acuerdo",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 59,
+          "inicio_s": 426.5,
+          "fin_s": 431.4,
+          "texto": "Quedamos en que me compartirán el resumen estructurado generado a partir de este audio de prueba respecto al plazo establecido.",
+          "etiqueta": "acuerdo",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 60,
+          "inicio_s": 431.7,
+          "fin_s": 439.6,
+          "texto": "Con esto concluimos la entrevista, agradecemos profundamente su tiempo y aportes respecto al plazo establecido.",
+          "etiqueta": "relleno",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 61,
+          "inicio_s": 440.3,
+          "fin_s": 449.2,
+          "texto": "Claro, por supuesto.",
+          "etiqueta": "relleno",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 62,
+          "inicio_s": 449.7,
+          "fin_s": 456.4,
+          "texto": "¿Qué aplicación utiliza actualmente para tomar notas y organizar los compromisos discutidos?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 63,
+          "inicio_s": 457.6,
+          "fin_s": 465.2,
+          "texto": "Los profesionales del sector público necesitan procesar información sensible de manera estrictamente local.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 64,
+          "inicio_s": 465.9,
+          "fin_s": 472.5,
+          "texto": "Agendemos una segunda sesión de retroalimentación una vez que hayan probado el prototipo en celular.",
+          "etiqueta": "tarea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 65,
+          "inicio_s": 472.9,
+          "fin_s": 481.4,
+          "texto": "Herramientas con hardware dedicado son costosas para investigadores en economías emergentes.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 66,
+          "inicio_s": 482.2,
+          "fin_s": 490.9,
+          "texto": "La mezcla espontánea de español e inglés es muy frecuente en reuniones de tecnología y finanzas con el equipo de trabajo.",
+          "etiqueta": "idea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 67,
+          "inicio_s": 492.0,
+          "fin_s": 498.0,
+          "texto": "¿Qué aplicación utiliza actualmente para tomar notas y organizar los compromisos discutidos?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 68,
+          "inicio_s": 498.3,
+          "fin_s": 505.2,
+          "texto": "La mezcla espontánea de español e inglés es muy frecuente en reuniones de tecnología y finanzas.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 69,
+          "inicio_s": 505.7,
+          "fin_s": 512.0,
+          "texto": "¿Considera que la privacidad de los datos procesados es un requisito imprescindible para su institución?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 70,
+          "inicio_s": 512.9,
+          "fin_s": 517.5,
+          "texto": "¿Estaría dispuesto a pagar una suscripción accesible si la herramienta funciona desde su propio teléfono?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 71,
+          "inicio_s": 518.3,
+          "fin_s": 526.9,
+          "texto": "Acepto participar en el estudio de usuarios siempre que las notas se publiquen de forma anonimizada.",
+          "etiqueta": "acuerdo",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 72,
+          "inicio_s": 527.6,
+          "fin_s": 532.3,
+          "texto": "¿Considera que la privacidad de los datos procesados es un requisito imprescindible para su institución?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 73,
+          "inicio_s": 532.7,
+          "fin_s": 537.4,
+          "texto": "¿Con qué frecuencia graba reuniones de trabajo o ponencias académicas durante el mes?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 74,
+          "inicio_s": 538.4,
+          "fin_s": 545.2,
+          "texto": "Poder hacer clic en una rama del mapa mental y escuchar el minuto exacto ahorra horas de revisión manual.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 75,
+          "inicio_s": 546.4,
+          "fin_s": 551.2,
+          "texto": "¿Con qué frecuencia graba reuniones de trabajo o ponencias académicas durante el mes?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 76,
+          "inicio_s": 552.1,
+          "fin_s": 556.4,
+          "texto": "Quedamos en que me compartirán el resumen estructurado generado a partir de este audio de prueba según lo planificado.",
+          "etiqueta": "acuerdo",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 77,
+          "inicio_s": 556.8,
+          "fin_s": 564.7,
+          "texto": "Por favor envíeme el enlace a la versión beta de la herramienta para probarla con mis grabaciones.",
+          "etiqueta": "tarea",
+          "orador": "Entrevistador"
+        },
+        {
+          "id": 78,
+          "inicio_s": 565.1,
+          "fin_s": 571.2,
+          "texto": "¿Considera que la privacidad de los datos procesados es un requisito imprescindible para su institución?",
+          "etiqueta": "pregunta",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 79,
+          "inicio_s": 572.2,
+          "fin_s": 579.7,
+          "texto": "Debo consultar con el comité de ética institucional el protocolo de consentimiento para entrevistas grabadas.",
+          "etiqueta": "tarea",
+          "orador": "Entrevistado"
+        },
+        {
+          "id": 80,
+          "inicio_s": 580.1,
+          "fin_s": 588.9,
+          "texto": "Cuando dirijo una tesis, dedico varias horas a revisar borradores que no citan adecuadamente la literatura.",
+          "etiqueta": "idea",
+          "orador": "Entrevistado"
+        }
+      ]
+    }
+  ]
+}
