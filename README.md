@@ -133,11 +133,14 @@ Más detalle en [docs/arquitectura.md](docs/arquitectura.md).
 
 ### Capturas
 
-Pendientes, en `docs/capturas/`:
+![Subida de audio](docs/capturas/01-subida.png)
+*Vista móvil (390 px): subida de audio y selección de formato.*
 
-1. `docs/capturas/01-subida.png` (pendiente): subida del audio desde el celular.
-2. `docs/capturas/02-notas.png` (pendiente): notas con cita y ▶ [mm:ss].
-3. `docs/capturas/03-mapa.png` (pendiente): mapa mental y exportación.
+![Notas con cita y reproducción](docs/capturas/02-notas.png)
+*Vista móvil (390 px): notas con cita literal, distintivo [mm:ss] y términos técnicos.*
+
+![Mapa mental y exportación](docs/capturas/03-mapa.png)
+*Escritorio (1280 px): mapa mental interactivo con markmap.js y opciones de exportación.*
 
 ---
 
