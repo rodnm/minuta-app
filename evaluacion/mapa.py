@@ -86,14 +86,11 @@ def analizar_estructura_mapa(
             if nodo.evidencia is not None and nodo.evidencia.cita and nodo.evidencia.cita.strip():
                 tiene_cita = True
                 nodos_con_cita += 1
+                # Sin segmentos no hay contra qué cotejar: la cita no cuenta como literal
                 if segs_obj:
                     es_literal = validar_evidencia_literal(nodo.evidencia.cita, segs_obj)
                     if es_literal:
                         citas_literales_validadas += 1
-                else:
-                    # Sin segmentos externos para contraste, la presencia de evidencia se toma como válida
-                    citas_literales_validadas += 1
-                    es_literal = True
 
             detalles_nodos.append({
                 "id": nodo.id,
@@ -136,37 +133,41 @@ def analizar_estructura_mapa(
 
 
 def evaluar_hipotesis_h9(
-    pct_nodos_con_cita: float,
+    pct_citas_literales: float,
     profundidad: int,
     ramas_principales: int,
 ) -> dict[str, Any]:
-    """Aplica la regla de decisión formal HDD para la hipótesis H9."""
-    if pct_nodos_con_cita < UMBRAL_CITAS_MAPA_FALSADA:
+    """Aplica la regla de decisión formal HDD para la hipótesis H9.
+
+    Decide con el porcentaje de nodos (sin la raíz) cuya cita es literal según la
+    transcripción, no con el porcentaje de nodos que simplemente traen una cita.
+    """
+    if pct_citas_literales < UMBRAL_CITAS_MAPA_FALSADA:
         veredicto = VeredictoH9.FALSADA
         motivo = (
-            f"Falsada: Porcentaje de nodos con cita ({pct_nodos_con_cita:.1f}%) < "
+            f"Falsada: Porcentaje de nodos con cita literal ({pct_citas_literales:.1f}%) < "
             f"{UMBRAL_CITAS_MAPA_FALSADA:.0f}%."
         )
     elif (
-        pct_nodos_con_cita >= UMBRAL_CITAS_MAPA_CONFIRMADA
+        pct_citas_literales >= UMBRAL_CITAS_MAPA_CONFIRMADA
         and PROFUNDIDAD_MIN_CONFIRMADA <= profundidad <= PROFUNDIDAD_MAX_CONFIRMADA
         and RAMAS_MIN_CONFIRMADA <= ramas_principales <= RAMAS_MAX_CONFIRMADA
     ):
         veredicto = VeredictoH9.CONFIRMADA
         motivo = (
-            f"Confirmada: Citas ({pct_nodos_con_cita:.1f}%) >= {UMBRAL_CITAS_MAPA_CONFIRMADA:.0f}%, "
+            f"Confirmada: Citas literales ({pct_citas_literales:.1f}%) >= {UMBRAL_CITAS_MAPA_CONFIRMADA:.0f}%, "
             f"profundidad ({profundidad}) en [{PROFUNDIDAD_MIN_CONFIRMADA}, {PROFUNDIDAD_MAX_CONFIRMADA}] "
             f"y ramas principales ({ramas_principales}) en [{RAMAS_MIN_CONFIRMADA}, {RAMAS_MAX_CONFIRMADA}]."
         )
     else:
         veredicto = VeredictoH9.NO_CONCLUYENTE
         motivo = (
-            f"No concluyente: Citas ({pct_nodos_con_cita:.1f}%), profundidad ({profundidad}) o ramas ({ramas_principales}) "
-            "se ubican en zona intermedia o fuera del rango ideal de 1 hora."
+            f"No concluyente: Citas literales ({pct_citas_literales:.1f}%), profundidad ({profundidad}) "
+            f"o ramas ({ramas_principales}) se ubican en zona intermedia o fuera del rango ideal de 1 hora."
         )
 
     return {
-        "pct_nodos_con_cita": pct_nodos_con_cita,
+        "pct_citas_literales": pct_citas_literales,
         "profundidad": profundidad,
         "ramas_principales": ramas_principales,
         "veredicto": veredicto,
@@ -178,41 +179,42 @@ def evaluar_mapa_archivo(
     ruta_pred: str | Path,
     ruta_transcripcion: str | Path | None = None,
 ) -> dict[str, Any]:
-    """Evalúa el mapa mental cargándolo de un archivo JSON estructurado."""
+    """Evalúa el mapa mental cargándolo de un archivo JSON estructurado.
+
+    La transcripción es obligatoria: sin ella no se puede comprobar que las citas
+    sean literales, y H9 decide justamente con ese porcentaje.
+    """
     p_pred = Path(ruta_pred)
     if not p_pred.exists():
         raise FileNotFoundError(f"Archivo de mapa no encontrado: {p_pred}")
 
+    if not ruta_transcripcion:
+        raise ValueError(
+            "H9 requiere la transcripción (--transcripcion) para cotejar que las citas sean literales."
+        )
+    p_trans = Path(ruta_transcripcion)
+    if not p_trans.exists():
+        raise FileNotFoundError(f"Archivo de transcripción no encontrado: {p_trans}")
+
     with open(p_pred, "r", encoding="utf-8") as f:
         data = json.load(f)
 
-    # Localizar transcripción si se especifica o buscar hermana
-    segmentos: list[dict[str, Any]] = []
-    if ruta_transcripcion:
-        p_trans = Path(ruta_transcripcion)
-        if p_trans.exists():
-            with open(p_trans, "r", encoding="utf-8") as f:
-                d_trans = json.load(f)
-                segmentos = d_trans.get("segmentos", [])
-    elif "segmentos" in data:
-        segmentos = data["segmentos"]
-    else:
-        nombre_hermano = p_pred.name.replace("resultado_", "transcripcion_")
-        p_hermano = p_pred.parent / nombre_hermano
-        if p_hermano.exists():
-            with open(p_hermano, "r", encoding="utf-8") as f:
-                d_hermano = json.load(f)
-                segmentos = d_hermano.get("segmentos", [])
+    with open(p_trans, "r", encoding="utf-8") as f:
+        d_trans = json.load(f)
+    segmentos = d_trans.get("segmentos", []) if isinstance(d_trans, dict) else []
+    if not segmentos:
+        raise ValueError(f"La transcripción no tiene segmentos con los que cotejar las citas: {p_trans}")
 
     stats = analizar_estructura_mapa(data, segmentos=segmentos)
     eval_h9 = evaluar_hipotesis_h9(
-        pct_nodos_con_cita=stats["pct_nodos_con_cita"],
+        pct_citas_literales=stats["pct_citas_literales"],
         profundidad=stats["profundidad_maxima"],
         ramas_principales=stats["ramas_principales"],
     )
 
     return {
         "ruta_pred": str(p_pred),
+        "ruta_transcripcion": str(p_trans),
         "stats": stats,
         "evaluacion_h9": eval_h9,
     }
@@ -227,15 +229,16 @@ def imprimir_reporte_mapa(resultado: dict[str, Any]) -> None:
     print("EVALUACIÓN DE MAPA MENTAL JERÁRQUICO - HIPÓTESIS H9")
     print("=" * 72)
     print(f"Archivo analizado   : {resultado.get('ruta_pred', 'N/A')}")
+    print(f"Transcripción       : {resultado.get('ruta_transcripcion', 'N/A')}")
     print(f"Título del mapa     : {stats['titulo']}")
     print("-" * 72)
     print("Métricas Estructurales:")
     print(f"  Total nodos (sin raíz)      : {stats['total_nodos_sin_raiz']}")
     print(f"  Ramas principales (nivel 2) : {stats['ramas_principales']} (rango ideal: {RAMAS_MIN_CONFIRMADA}–{RAMAS_MAX_CONFIRMADA})")
     print(f"  Profundidad máxima          : {stats['profundidad_maxima']} niveles (rango ideal: {PROFUNDIDAD_MIN_CONFIRMADA}–{PROFUNDIDAD_MAX_CONFIRMADA})")
-    print(f"  Nodos con cita de evidencia : {stats['nodos_con_cita']} / {stats['total_nodos_sin_raiz']}")
-    print(f"  Porcentaje de citas válidas : {stats['pct_nodos_con_cita']:.2f} % (umbral >= {UMBRAL_CITAS_MAPA_CONFIRMADA:.0f}%)")
+    print(f"  Nodos con cita de evidencia : {stats['nodos_con_cita']} / {stats['total_nodos_sin_raiz']} ({stats['pct_nodos_con_cita']:.2f} %)")
     print(f"  Citas literales validadas   : {stats['citas_literales_validadas']} / {stats['total_nodos_sin_raiz']}")
+    print(f"  Porcentaje de citas literales: {stats['pct_citas_literales']:.2f} % (umbral >= {UMBRAL_CITAS_MAPA_CONFIRMADA:.0f}%)")
     print("-" * 72)
     print("Distribución por Nivel:")
     for niv, cnt in sorted(stats["nodos_por_nivel"].items()):
@@ -251,7 +254,12 @@ def main() -> None:
     """Punto de entrada de línea de comandos."""
     parser = argparse.ArgumentParser(description="Evaluación de calidad y verificabilidad de mapa mental (H9)")
     parser.add_argument("--pred", type=str, required=True, help="Ruta al JSON estructurado con árbol de mapa mental")
-    parser.add_argument("--transcripcion", type=str, default=None, help="Ruta opcional al JSON de transcripción para cotejo literal")
+    parser.add_argument(
+        "--transcripcion",
+        type=str,
+        required=True,
+        help="Ruta al JSON de transcripción (obligatoria: H9 decide con el %% de citas literales cotejadas)",
+    )
 
     args = parser.parse_args()
 

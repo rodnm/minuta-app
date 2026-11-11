@@ -6,8 +6,10 @@ referencias y las reglas de decisión de la hipótesis pre-registrada H8.
 
 from __future__ import annotations
 
+import csv
 import json
 from pathlib import Path
+import sys
 import pytest
 
 from evaluacion.todos import (
@@ -16,7 +18,11 @@ from evaluacion.todos import (
     emparejar_todos,
     evaluar_hipotesis_h8,
     evaluar_archivo_todos,
+    main as todos_main,
 )
+
+FIXTURE_PRED = Path("data/fixtures/resultado_reunion.json")
+FIXTURE_TRANS = Path("data/fixtures/transcripcion_reunion.json")
 
 
 def test_evaluar_citas_literales_todas_validas():
@@ -109,3 +115,64 @@ def test_evaluar_archivo_todos_con_fixture_reunion():
     assert res["citas"]["pct_citas_literales"] == pytest.approx(100.0)
     assert res["citas"]["total_tareas"] == 5
     assert res["simulado"] is True
+
+
+def test_cli_ref_inexistente_sale_con_error(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    """C1 (L51): una --ref que no existe es un error, nunca una autocomparación CONFIRMADA."""
+    ref_inexistente = tmp_path / "no_existe.csv"
+
+    with pytest.raises(FileNotFoundError, match="no_existe.csv"):
+        evaluar_archivo_todos(
+            ruta_pred=FIXTURE_PRED,
+            ruta_ref=ref_inexistente,
+            ruta_transcripcion=FIXTURE_TRANS,
+        )
+
+    argv = [
+        "todos.py",
+        "--pred", str(FIXTURE_PRED),
+        "--transcripcion", str(FIXTURE_TRANS),
+        "--ref", str(ref_inexistente),
+    ]
+    monkeypatch.setattr(sys, "argv", argv)
+    with pytest.raises(SystemExit) as salida:
+        todos_main()
+
+    assert salida.value.code == 1
+    out = capsys.readouterr().out
+    assert "ERROR" in out
+    assert "no_existe.csv" in out
+    assert "CONFIRMADA" not in out
+
+
+def test_cli_ref_valida_mantiene_veredicto(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    """Comportamiento previo: con una --ref válida se compara contra ella y no se marca simulado."""
+    datos = json.loads(FIXTURE_PRED.read_text(encoding="utf-8"))
+    ref = tmp_path / "todos_manual.csv"
+    with open(ref, "w", encoding="utf-8", newline="") as f:
+        escritor = csv.writer(f)
+        escritor.writerow(["descripcion", "responsable", "fecha_limite"])
+        for t in datos["tareas"]:
+            escritor.writerow([t["descripcion"], "", ""])
+
+    res = evaluar_archivo_todos(ruta_pred=FIXTURE_PRED, ruta_ref=ref, ruta_transcripcion=FIXTURE_TRANS)
+    assert res["simulado"] is False
+    assert res["ruta_ref"] == str(ref)
+    assert res["emparejamiento"]["tp"] == 5
+    assert res["evaluacion_h8"]["veredicto"] == VeredictoH8.CONFIRMADA
+
+    argv = [
+        "todos.py",
+        "--pred", str(FIXTURE_PRED),
+        "--transcripcion", str(FIXTURE_TRANS),
+        "--ref", str(ref),
+    ]
+    monkeypatch.setattr(sys, "argv", argv)
+    todos_main()
+    out = capsys.readouterr().out
+    assert "VEREDICTO : CONFIRMADA" in out
+    assert "SIMULADO" not in out

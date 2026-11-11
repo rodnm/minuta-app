@@ -159,6 +159,57 @@ def evaluar_hipotesis_h1(recall_con_glosario: float, recall_sin_glosario: float)
     }
 
 
+def _clave_glosario(termino: str) -> str:
+    """Clave de comparación con el glosario: minúsculas y sin distinguir guion de espacio."""
+    return normalizar_texto(termino).replace("-", " ")
+
+
+def desglosar_por_glosario(
+    resultado: dict[str, Any],
+    glosario: Sequence[str] | None = None,
+) -> dict[str, Any]:
+    """Desglosa el recall de H1 entre términos dentro y fuera del glosario a priori.
+
+    Es solo un reporte: no interviene en el veredicto de H1. Un término está "dentro"
+    si coincide exactamente (sin distinguir mayúsculas ni guion/espacio) con una entrada
+    del glosario; las coincidencias parciales (p. ej. "working paper" frente a "paper")
+    cuentan como "fuera". Por defecto usa el glosario del producto (minuta/glosario.py).
+    """
+    if glosario is None:
+        from minuta.glosario import obtener_glosario_defecto
+
+        glosario = obtener_glosario_defecto()
+    claves = {_clave_glosario(t) for t in glosario if t.strip()}
+
+    dentro: set[str] = set()
+    fuera: set[str] = set()
+    desglose: dict[str, Any] = {}
+
+    for condicion in ("sin_glosario", "con_glosario"):
+        conteo = {
+            "dentro": {"esperados": 0, "detectados": 0},
+            "fuera": {"esperados": 0, "detectados": 0},
+        }
+        for frase in resultado[condicion].get("detalles_frases", []):
+            pares = [(t, True) for t in frase.get("detectados", [])]
+            pares += [(t, False) for t in frase.get("faltantes", [])]
+            for termino, detectado in pares:
+                grupo = "dentro" if _clave_glosario(termino) in claves else "fuera"
+                (dentro if grupo == "dentro" else fuera).add(termino)
+                conteo[grupo]["esperados"] += 1
+                if detectado:
+                    conteo[grupo]["detectados"] += 1
+        for grupo in conteo.values():
+            grupo["recall"] = grupo["detectados"] / grupo["esperados"] if grupo["esperados"] else 0.0
+        desglose[condicion] = conteo
+
+    return {
+        "terminos_dentro": sorted(dentro, key=str.lower),
+        "terminos_fuera": sorted(fuera, key=str.lower),
+        **desglose,
+    }
+
+
 def cargar_guion(ruta: str | Path) -> list[dict[str, Any]]:
     """Carga y valida el archivo de guion de frases en formato JSON."""
     p = Path(ruta)
@@ -311,10 +362,13 @@ def ejecutar_evaluacion(
         recall_sin_glosario=metricas_sin["recall_global"],
     )
 
+    resultado_metricas = {"sin_glosario": metricas_sin, "con_glosario": metricas_con}
+
     return {
         "sin_glosario": metricas_sin,
         "con_glosario": metricas_con,
         "hipotesis_h1": hipotesis_h1,
+        "desglose_glosario": desglosar_por_glosario(resultado_metricas),
         "modo": "simulado" if (modo_simulado or not directorio_audios) else "audio_real",
         "tipo_glosario": tipo_glosario,
         "metodo_inyeccion": metodo_inyeccion,
@@ -450,6 +504,18 @@ def imprimir_reporte(resultado: dict[str, Any]) -> None:
     print("  Umbral falsación   : recall < 70.0 % o mejora < 10.0 pts")
     print(f"  VEREDICTO          : {h1['veredicto'].value}")
     print(f"  Detalle            : {h1['motivo']}")
+
+    desglose = resultado.get("desglose_glosario")
+    if desglose:
+        print("-" * 70)
+        print("Desglose por glosario a priori (minuta/glosario.py), solo informativo:")
+        for grupo, etiqueta in (("dentro", "Dentro del glosario"), ("fuera", "Fuera del glosario")):
+            n_terminos = len(desglose[f"terminos_{grupo}"])
+            sin_g = desglose["sin_glosario"][grupo]
+            con_g = desglose["con_glosario"][grupo]
+            print(f"  {etiqueta} ({n_terminos} términos):")
+            print(f"    Sin glosario: {sin_g['detectados']}/{sin_g['esperados']} ({sin_g['recall'] * 100:.2f} %)")
+            print(f"    Con glosario: {con_g['detectados']}/{con_g['esperados']} ({con_g['recall'] * 100:.2f} %)")
     print("=" * 70)
 
 
@@ -571,6 +637,7 @@ def main() -> int:
                 **resultado["hipotesis_h1"],
                 "veredicto": resultado["hipotesis_h1"]["veredicto"].value,
             },
+            "desglose_glosario": resultado.get("desglose_glosario"),
             "modo": resultado["modo"],
             "tipo_glosario": resultado.get("tipo_glosario"),
             "metodo_inyeccion": resultado.get("metodo_inyeccion"),

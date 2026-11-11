@@ -16,6 +16,7 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from evaluacion import terminos as modulo_terminos
 from evaluacion.terminos import (
     buscar_termino,
     calcular_metricas,
@@ -292,4 +293,62 @@ def test_cli_clip_5min_requiere_audios(
     assert "ERROR: --clip-5min requiere especificar el directorio de audios con --audios" in captured.err
 
 
+def test_desglose_recall_dentro_y_fuera_del_glosario() -> None:
+    """C4 (L51): el recall de H1 se desglosa por términos dentro y fuera del glosario a priori."""
+    sin = calcular_metricas([
+        evaluar_frase(["paper", "deadline", "trade off"], "el paper sin fecha y un trade-off"),
+        evaluar_frase(["Journal", "Scopus"], "el jornal de escopus"),
+    ])
+    con = calcular_metricas([
+        evaluar_frase(["paper", "deadline", "trade off"], "el paper con deadline y un trade-off"),
+        evaluar_frase(["Journal", "Scopus"], "el journal de escopus"),
+    ])
+    glosario = ["paper", "journal", "Trade-Off"]
 
+    desglose = modulo_terminos.desglosar_por_glosario(
+        {"sin_glosario": sin, "con_glosario": con}, glosario=glosario
+    )
+
+    assert desglose["terminos_dentro"] == ["Journal", "paper", "trade off"]
+    assert desglose["terminos_fuera"] == ["deadline", "Scopus"]
+    assert desglose["sin_glosario"]["dentro"] == {"esperados": 3, "detectados": 2, "recall": pytest.approx(2 / 3)}
+    assert desglose["sin_glosario"]["fuera"] == {"esperados": 2, "detectados": 0, "recall": 0.0}
+    assert desglose["con_glosario"]["dentro"] == {"esperados": 3, "detectados": 3, "recall": 1.0}
+    assert desglose["con_glosario"]["fuera"] == {"esperados": 2, "detectados": 1, "recall": 0.5}
+
+
+def test_desglose_glosario_en_evaluacion_y_cli_sin_tocar_veredicto(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """C4 (L51): 29 de los 50 términos del guion están en el glosario del producto; el veredicto H1 no cambia."""
+    frases = cargar_guion(RUTA_GUION)
+    resultado = ejecutar_evaluacion(frases, modo_simulado=True, semilla=42)
+    desglose = resultado["desglose_glosario"]
+
+    for condicion in ("sin_glosario", "con_glosario"):
+        dentro = desglose[condicion]["dentro"]
+        fuera = desglose[condicion]["fuera"]
+        assert dentro["esperados"] == 29
+        assert fuera["esperados"] == 21
+        assert dentro["detectados"] + fuera["detectados"] == resultado[condicion]["total_detectados"]
+
+    # El veredicto sigue saliendo solo de los recalls globales
+    esperado = evaluar_hipotesis_h1(
+        recall_con_glosario=resultado["con_glosario"]["recall_global"],
+        recall_sin_glosario=resultado["sin_glosario"]["recall_global"],
+    )
+    assert resultado["hipotesis_h1"]["veredicto"] == esperado["veredicto"]
+    assert resultado["hipotesis_h1"]["mejora_pts"] == esperado["mejora_pts"]
+
+    salida_json = tmp_path / "reporte_h1.json"
+    monkeypatch.setattr(
+        sys, "argv", ["terminos.py", "--guion", str(RUTA_GUION), "--simulado", "--salida", str(salida_json)]
+    )
+    assert terminos_main() == 0
+    out = capsys.readouterr().out
+    assert "Dentro del glosario (29 términos)" in out
+    assert "Fuera del glosario (21 términos)" in out
+
+    datos = json.loads(salida_json.read_text(encoding="utf-8"))
+    assert datos["desglose_glosario"]["sin_glosario"]["dentro"]["esperados"] == 29
+    assert datos["desglose_glosario"]["con_glosario"]["fuera"]["esperados"] == 21

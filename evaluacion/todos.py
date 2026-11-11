@@ -281,8 +281,9 @@ def evaluar_archivo_todos(
 
     res_citas = evaluar_citas_literales(tareas_pred, segmentos)
 
-    # Tareas de referencia
-    if ruta_ref and Path(ruta_ref).exists():
+    # Tareas de referencia. Una referencia indicada pero inexistente es un error:
+    # si se cayera a la autocomparación, H8 saldría CONFIRMADA sin haber medido nada.
+    if ruta_ref:
         tareas_ref = cargar_tareas_referencia(ruta_ref)
     elif simulado:
         # En modo simulado sin referencia explícita, se usa una perturbación controlada de las predichas
@@ -345,7 +346,12 @@ def main() -> None:
     """Punto de entrada de línea de comandos."""
     parser = argparse.ArgumentParser(description="Evaluación de confiabilidad de tareas / to-dos (H8)")
     parser.add_argument("--pred", type=str, required=True, help="Ruta al JSON estructurado de salida (ej. resultado_reunion.json)")
-    parser.add_argument("--ref", type=str, default=None, help="Ruta al CSV o JSON manual de referencia")
+    parser.add_argument(
+        "--ref",
+        type=str,
+        default=None,
+        help="Ruta al CSV o JSON manual de referencia (si no existe, el oráculo termina con error)",
+    )
     parser.add_argument("--transcripcion", type=str, default=None, help="Ruta opcional al JSON de la transcripción")
     parser.add_argument("--simulado", action="store_true", help="Ejecutar en modo simulado para pruebas de integración")
 

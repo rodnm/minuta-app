@@ -170,50 +170,47 @@ def evaluar_eficiencia_archivo(
     tipo_resuelto = tipo or determinar_tipo_contenido(data, p)
     segmentos = extraer_segmentos_de_entrada(data)
 
+    if segmentos and not simulado:
+        # Filtrar por la etiqueta de referencia del segmento mide al etiquetador humano,
+        # no a un detector: no es una medición válida de H5a ni de H5b.
+        raise RuntimeError(
+            "No hay un detector entrenado: H5a/H5b requieren las predicciones del detector, "
+            "y la etiqueta de referencia de los segmentos no lo reemplaza. "
+            "Use --simulado para una corrida ilustrativa (sin veredicto)."
+        )
+
+    # Sin segmentos no hay nada que medir: la corrida es simulada aunque no se pida --simulado.
+    simulado = True
+
     # Conteo base de tokens (todos los segmentos enviados al LLM)
     tokens_base = sum(estimar_tokens_texto(s.get("texto", "")) for s in segmentos)
     if tokens_base == 0:
         tokens_base = 1500  # Valor nominal si no hay texto detallado
 
-    if simulado or not segmentos:
-        # Modo simulado determinista con los parámetros esperados de diseño
-        if tipo_resuelto == "reunion":
-            ahorro_tokens = 62.5
-            ahorro_tiempo = 44.0
-            caida_recall = 2.0
-            eval_h = evaluar_hipotesis_h5a(ahorro_tokens, ahorro_tiempo, caida_recall)
-        else:
-            ahorro_tokens = 27.0
-            caida_cobertura = 4.0
-            eval_h = evaluar_hipotesis_h5b(ahorro_tokens, caida_cobertura)
-
-        tokens_detector = int(tokens_base * (1.0 - ahorro_tokens / 100.0))
-        tiempo_base_s = 45.0
-        tiempo_detector_s = tiempo_base_s * (1.0 - (ahorro_tiempo if tipo_resuelto == "reunion" else 20.0) / 100.0)
+    # Modo simulado determinista con los parámetros esperados de diseño
+    if tipo_resuelto == "reunion":
+        ahorro_tokens = 62.5
+        ahorro_tiempo = 44.0
+        caida_recall = 2.0
+        eval_h = evaluar_hipotesis_h5a(ahorro_tokens, ahorro_tiempo, caida_recall)
     else:
-        # Cálculo empírico sobre segmentos etiquetados o heurística de relleno
-        # Si los segmentos tienen etiqueta, filtrar 'relleno'
-        segmentos_filtrados = [
-            s for s in segmentos
-            if s.get("etiqueta") not in ("relleno", "filler")
-        ]
-        tokens_detector = sum(estimar_tokens_texto(s.get("texto", "")) for s in segmentos_filtrados)
-        ahorro_tokens = calcular_ahorro_relativo(float(tokens_base), float(tokens_detector))
+        ahorro_tokens = 27.0
+        caida_cobertura = 4.0
+        eval_h = evaluar_hipotesis_h5b(ahorro_tokens, caida_cobertura)
 
-        # En reuniones, la segregación de tareas y acuerdos reduce aún más la carga del reductor
-        if tipo_resuelto == "reunion":
-            # Tiempo estimado proporcional a tokens de entrada con overhead fijo de detector (0.5s)
-            tiempo_base_s = tokens_base * 0.03
-            tiempo_detector_s = tokens_detector * 0.03 + 0.5
-            ahorro_tiempo = calcular_ahorro_relativo(tiempo_base_s, tiempo_detector_s)
-            caida_recall = 0.0
-            eval_h = evaluar_hipotesis_h5a(ahorro_tokens, ahorro_tiempo, caida_recall)
-        else:
-            tiempo_base_s = tokens_base * 0.03
-            tiempo_detector_s = tokens_detector * 0.03 + 0.5
-            ahorro_tiempo = calcular_ahorro_relativo(tiempo_base_s, tiempo_detector_s)
-            caida_cobertura = 0.0
-            eval_h = evaluar_hipotesis_h5b(ahorro_tokens, caida_cobertura)
+    # Los parámetros de diseño no son una medición: nunca emiten un veredicto confirmatorio.
+    eval_h = {
+        **eval_h,
+        "veredicto": type(eval_h["veredicto"]).NO_CONCLUYENTE,
+        "motivo": (
+            "Simulado: parámetros de diseño, no una medición. No se emite veredicto "
+            "hasta tener predicciones de un detector entrenado."
+        ),
+    }
+
+    tokens_detector = int(tokens_base * (1.0 - ahorro_tokens / 100.0))
+    tiempo_base_s = 45.0
+    tiempo_detector_s = tiempo_base_s * (1.0 - (ahorro_tiempo if tipo_resuelto == "reunion" else 20.0) / 100.0)
 
     return {
         "ruta_entrada": str(p),
@@ -266,7 +263,14 @@ def main() -> None:
     parser.add_argument("--entrada", type=str, required=True, help="Ruta al JSON de transcripción o estructuración")
     parser.add_argument("--modos", type=str, default="solo_llm,detector", help="Modos a comparar separados por coma")
     parser.add_argument("--tipo", type=str, choices=["reunion", "ponencia"], default=None, help="Tipo de contenido explícito")
-    parser.add_argument("--simulado", action="store_true", help="Ejecutar en modo simulado para pruebas de integración")
+    parser.add_argument(
+        "--simulado",
+        action="store_true",
+        help=(
+            "Corrida ilustrativa con parámetros de diseño (sin veredicto). Una entrada sin segmentos "
+            "se trata siempre como simulada; con segmentos y sin detector entrenado, el oráculo da error."
+        ),
+    )
 
     args = parser.parse_args()
 

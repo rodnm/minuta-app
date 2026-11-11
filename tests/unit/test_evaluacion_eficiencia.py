@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+import sys
 import pytest
 
 from evaluacion.eficiencia import (
@@ -17,6 +18,7 @@ from evaluacion.eficiencia import (
     evaluar_hipotesis_h5a,
     evaluar_hipotesis_h5b,
     evaluar_eficiencia_archivo,
+    main as eficiencia_main,
 )
 
 
@@ -107,3 +109,60 @@ def test_evaluar_eficiencia_archivo_simulado(tmp_path: Path):
     assert "ahorro_tokens_pct" in res
     assert "ahorro_tiempo_pct" in res
     assert res["evaluacion"]["veredicto"] in [VeredictoH5a.CONFIRMADA, VeredictoH5a.FALSADA, VeredictoH5a.NO_CONCLUYENTE]
+    # Comportamiento previo: el modo --simulado conserva sus parámetros de diseño
+    assert res["ahorro_tokens_pct"] == pytest.approx(62.5)
+    assert res["ahorro_tiempo_pct"] == pytest.approx(44.0)
+
+
+@pytest.mark.parametrize(
+    ("tipo", "contenido"),
+    [
+        ("reunion", {"tareas": [{"descripcion": "Enviar el informe"}], "acuerdos": []}),
+        ("ponencia", {"ideas_clave": ["Idea uno"], "preguntas": []}),
+    ],
+)
+def test_entrada_sin_segmentos_es_simulada_y_no_confirma(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    capsys: pytest.CaptureFixture[str],
+    tipo: str,
+    contenido: dict,
+):
+    """C3a (L51): sin segmentos no hay medición; se rotula SIMULADO y nunca da CONFIRMADA."""
+    entrada = tmp_path / f"resultado_{tipo}.json"
+    entrada.write_text(json.dumps(contenido, ensure_ascii=False), encoding="utf-8")
+
+    res = evaluar_eficiencia_archivo(ruta_entrada=entrada, tipo=tipo)
+    assert res["simulado"] is True
+    assert res["evaluacion"]["veredicto"].value != "CONFIRMADA"
+
+    monkeypatch.setattr(sys, "argv", ["eficiencia.py", "--entrada", str(entrada), "--tipo", tipo])
+    eficiencia_main()
+    out = capsys.readouterr().out
+    assert ">>> SIMULADO" in out
+    assert "CONFIRMADA" not in out
+
+
+def test_rama_con_etiqueta_de_referencia_no_es_valida(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+):
+    """C3b (L51): filtrar por la etiqueta de referencia no mide un detector; sin detector entrenado es un error."""
+    segmentos = [
+        {"id": i, "inicio_s": i * 10.0, "fin_s": (i + 1) * 10.0,
+         "texto": f"bueno este eh como les decía el tema numero {i} de hoy",
+         "etiqueta": "relleno" if i % 4 else "tarea"}
+        for i in range(20)
+    ]
+    entrada = tmp_path / "transcripcion_reunion.json"
+    entrada.write_text(json.dumps({"audio_id": "x", "segmentos": segmentos}, ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(RuntimeError, match="detector"):
+        evaluar_eficiencia_archivo(ruta_entrada=entrada, tipo="reunion")
+
+    monkeypatch.setattr(sys, "argv", ["eficiencia.py", "--entrada", str(entrada), "--tipo", "reunion"])
+    with pytest.raises(SystemExit) as salida:
+        eficiencia_main()
+    assert salida.value.code == 1
+    out = capsys.readouterr().out
+    assert "ERROR" in out
+    assert "VEREDICTO" not in out
