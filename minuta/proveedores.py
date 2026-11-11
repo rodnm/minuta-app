@@ -127,6 +127,7 @@ class ProveedorGemini(ProveedorLLM):
         timeout: float = 180.0,
         max_reintentos: int = 2,
         espera_reintento_s: float = 2.0,
+        nivel_razonamiento: str = "low",
     ) -> None:
         self.api_key = api_key or _obtener_gemini_api_key()
         if not self.api_key:
@@ -138,6 +139,9 @@ class ProveedorGemini(ProveedorLLM):
         self.timeout = timeout
         self.max_reintentos = max(1, max_reintentos)
         self.espera_reintento_s = espera_reintento_s
+        # "low" es el nivel más bajo que aceptan gemini-3.8-flash y gemini-3.6-flash
+        # (https://aistudio.google.com/docs/thinking). El razonamiento se cobra como salida.
+        self.nivel_razonamiento = nivel_razonamiento
         self.ultimo_modelo: str | None = None
         self.ultimo_uso: dict[str, Any] | None = None
 
@@ -156,6 +160,7 @@ class ProveedorGemini(ProveedorLLM):
                 "temperature": 0.0,
                 "responseMimeType": "application/json",
                 "responseJsonSchema": _esquema_para_modelo(esquema),
+                "thinkingConfig": {"thinkingLevel": self.nivel_razonamiento},
             },
         }
         cabeceras = {"x-goog-api-key": self.api_key, "Content-Type": "application/json"}

@@ -13,7 +13,7 @@
 
 Minuta responde a un problema que las 2 personas entrevistadas describieron: reescuchan grabaciones completas de 1 a 2 horas para encontrar una explicación. Hoy existen grabadoras con IA como Plaud (NotePin S a US$179 y Note Pro a US$189, marcadas "Agotado" en [latam.plaud.ai](https://latam.plaud.ai/pages/shop-plaud) el 10/11/2026) y herramientas de software como NotebookLM y Zoom AI Notes, que las personas entrevistadas ya usan.
 
-Este documento reúne lo que se midió, lo que falta medir y el costo estimado por hora de audio.
+Este documento reúne lo que se midió, lo que falta medir y el costo por hora de audio, medido con una llamada real y extrapolado a 1 hora.
 
 | Estado | Hipótesis |
 |---|---|
@@ -132,28 +132,35 @@ Hay notas de 2 de las 3 conversaciones requeridas (`docs/research/conversacion-0
 
 ### 4.1 Supuestos y precios
 
-Los tokens son **estimados**, no medidos. Cuando se midan con `usageMetadata` de Gemini, se reemplazan en esta tabla y se recalculan 4.2 y la sección 5.
+Los tokens se **midieron** con el `usageMetadata` de una llamada real del 10/11/2026. Se usó el fixture de la reunión actuada (`data/fixtures/transcripcion_reunion.json`, 346 s) con la plantilla Reunión y el razonamiento en nivel `low`. Respondió `gemini-3.6-flash`, el modelo de respaldo, que tiene el mismo precio que 3.8 Flash. La llamada tardó 27 s.
+
+Medido: **1,844 tokens de entrada, 1,489 de salida y 0 de razonamiento.** La hora se extrapola linealmente: × 3600 / 346 = × 10.40.
 
 | Dato | Valor | Tipo | Fuente o base |
 |---|---|---|---|
-| Tokens de entrada por hora de audio | 14,000 | estimado | Unos 12,000 de transcripción (supuesto: 130–150 palabras por minuto y 1.33 tokens por palabra) más unos 2,000 de instrucciones |
-| Tokens de salida por hora de audio, con razonamiento | 3,000 | estimado | Sin medición |
+| Tokens de entrada por hora de audio | 19,186 | extrapolado de una medición | 1,844 tokens en 346 s × 10.40 |
+| Tokens de salida por hora de audio, con razonamiento | 15,492 | extrapolado de una medición | 1,489 tokens en 346 s × 10.40, con 0 de razonamiento |
 | Whisper en un servidor | US$0.00533 por hora de audio | supuesto sin fuente | 2 vCPU a US$0.040 por hora durante 8 min (los 8 min vienen de H2) |
 | Gemini 3.8 Flash, entrada, por 1M de tokens | US$0.75 hasta el 31/12/2026; US$1.50 desde el 01/01/2027 | oficial | [aistudio.google.com/docs/pricing](https://aistudio.google.com/docs/pricing), leído el 10/11/2026 |
 | Gemini 3.8 Flash, salida (incluye razonamiento), por 1M de tokens | US$3.75 hasta el 31/12/2026; US$7.50 desde el 01/01/2027 | oficial | Ídem |
 | Tipo de cambio | 3.418 S/ por US$ | oficial | SBS, venta del sistema bancario, 09/11/2026 (el 10/11 aún no estaba publicado): [BCRP, serie PD04640PD](https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04640PD/json/2026-11-01/2026-11-10) |
 
-**Riesgo del supuesto:** la estructuración divide una hora en bloques de hasta 600 s y repite las instrucciones en cada uno, así que los tokens reales de entrada pueden ser más de 14,000.
+**Por qué el razonamiento va en `low`.** Con el nivel por defecto (`medium`), la misma reunión gastó 4,030 tokens de razonamiento además de 1,853 de respuesta, y tardó 233 s. El razonamiento se cobra como salida, así que con `medium` el costo por hora casi se triplicaba. El nivel `low` es el mínimo que acepta `gemini-3.8-flash` ([aistudio.google.com/docs/thinking](https://aistudio.google.com/docs/thinking)).
+
+**Límites de la medición:**
+- Es una sola corrida, sobre una reunión actuada.
+- La extrapolación a 1 hora supone que el costo crece en proporción a la duración.
+- Whisper en un servidor sigue siendo un supuesto.
 
 ### 4.2 Cálculo
 
 | Concepto | Precios 2026 | Precios 2027 |
 |---|---|---|
-| Entrada del LLM (14,000 tokens) | US$0.01050 | US$0.02100 |
-| Salida del LLM (3,000 tokens) | US$0.01125 | US$0.02250 |
+| Entrada del LLM (19,186 tokens) | US$0.01439 | US$0.02878 |
+| Salida del LLM (15,492 tokens) | US$0.05810 | US$0.11619 |
 | Whisper en un servidor (supuesto) | US$0.00533 | US$0.00533 |
-| **Total por hora de audio** | **US$0.0271** | **US$0.0488** |
-| **Total en soles (× 3.418)** | **S/ 0.093** | **S/ 0.167** |
+| **Total por hora de audio** | **US$0.0778** | **US$0.1503** |
+| **Total en soles (× 3.418)** | **S/ 0.266** | **S/ 0.514** |
 
 En el modo local, Whisper y el LLM corren en la laptop del usuario, y la empresa no paga esa hora.
 
@@ -165,11 +172,13 @@ Los precios están por debajo de lo que las 2 personas dijeron estar dispuestas 
 
 | Plan | Precio | Horas al mes | Costo (2026 / 2027) | Margen de contribución (2026 / 2027) | Por qué |
 |---|---|---|---|---|---|
-| **Gratis** | S/ 0 | 2 | S/ 0.19 / S/ 0.33 | — (costo de adquisición) | La persona 1 valoró la prueba gratuita de 3 usos de Zoom. |
-| **Estudiante** | S/ 9.90 al mes | 15 | S/ 1.39 / S/ 2.50 | S/ 8.51 (86.0 %) / S/ 7.40 (74.7 %) | Para universitarios que graban 1 a 2 veces por semana. |
-| **Pro** | S/ 24.90 al mes | 40, con modo local y exportaciones | S/ 3.70 / S/ 6.68 | S/ 21.20 (85.1 %) / S/ 18.22 (73.2 %) | Dentro del rango de S/ 15–25 de la persona 2. |
+| **Gratis** | S/ 0 | 2 | S/ 0.53 / S/ 1.03 | — (costo de adquisición) | La persona 1 valoró la prueba gratuita de 3 usos de Zoom. |
+| **Estudiante** | S/ 9.90 al mes | 15 | S/ 3.99 / S/ 7.71 | S/ 5.91 (59.7 %) / S/ 2.19 (22.1 %) | Para universitarios que graban 1 a 2 veces por semana. |
+| **Pro** | S/ 24.90 al mes | 40, con modo local y exportaciones | S/ 10.64 / S/ 20.55 | S/ 14.26 (57.3 %) / S/ 4.35 (17.5 %) | Dentro del rango de S/ 15–25 de la persona 2. |
 
-Con los precios de 2027, el margen queda cerca de 75 %.
+Con todas las horas usadas, el margen es de casi 60 % con los precios de 2026 y baja a cerca de 20 % con los de 2027, cuando Google duplica el precio. Dos palancas para bajar el costo, todavía sin medir:
+- el detector mmBERT, que filtraría el relleno antes del LLM (H5a y H5b);
+- un modelo Flash-Lite.
 
 ---
 
@@ -197,16 +206,16 @@ flowchart LR
     subgraph Plan_Estudiante["Plan Estudiante (S/ 9.90 al mes)"]
         direction TB
         PE["Ingreso: S/ 9.90"]
-        CE["Costo de 15 h: S/ 2.50"]
-        ME["Margen: S/ 7.40 (74.7 %)"]
+        CE["Costo de 15 h: S/ 7.71"]
+        ME["Margen: S/ 2.19 (22.1 %)"]
         PE --> CE --> ME
     end
 
     subgraph Plan_Pro["Plan Pro (S/ 24.90 al mes)"]
         direction TB
         PP["Ingreso: S/ 24.90"]
-        CP["Costo de 40 h: S/ 6.68"]
-        MP["Margen: S/ 18.22 (73.2 %)"]
+        CP["Costo de 40 h: S/ 20.55"]
+        MP["Margen: S/ 4.35 (17.5 %)"]
         PP --> CP --> MP
     end
 ```
@@ -218,4 +227,4 @@ flowchart LR
 1. **El celular basta:** las 2 personas graban con su celular y no comprarían un aparato como Plaud (US$179–189).
 2. **El glosario no resolvió los términos en inglés (H1 falsada):** Whisper acertó 43 de 50 términos (86 %) con o sin glosario. Minuta no promete corregirlos; la cita literal deja el error a la vista.
 3. **Cada punto con su cita:** la persona 2 busca a mano el minuto de una explicación. En Minuta, cada punto lleva una cita comprobada como texto literal de la transcripción y el inicio del segmento que contiene la cita.
-4. **El costo por usuario es bajo:** una hora de audio cuesta un estimado de S/ 0.093 (2026) a S/ 0.167 (2027). Con los planes de S/ 9.90 y S/ 24.90, el margen queda cerca de 75 % con los precios de 2027.
+4. **El margen es positivo pero estrecho:** una hora de audio cuesta S/ 0.27 con los precios de 2026 y S/ 0.51 con los de 2027, medido y extrapolado. Con todas las horas usadas, el margen es de casi 60 % hoy y de cerca de 20 % en 2027. Bajar el costo por hora es la prioridad de negocio.

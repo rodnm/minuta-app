@@ -72,7 +72,7 @@ Minuta convierte las clases que los universitarios graban con su celular en nota
 ## 5. Why now
 
 1. **Whisper ya corre en CPU:** faster-whisper `small` int8 con VAD transcribe una hora de audio en unos 8 minutos (RTF 0.1336, 404 MB de RAM), medido en una computadora de escritorio con AMD Ryzen 5 5600G y 32 GB de RAM, sin GPU (H2, [docs/resultados.md](docs/resultados.md)).
-2. **Los LLM devuelven salida estructurada a bajo costo:** con Gemini 3.8 Flash, una hora de audio cuesta un estimado de S/ 0.093 con los precios de 2026 y S/ 0.167 con los de 2027 (sección 7).
+2. **Los LLM devuelven salida estructurada a bajo costo:** con Gemini 3.8 Flash y el razonamiento en nivel bajo, una hora de audio cuesta S/ 0.27 con los precios de 2026 y S/ 0.51 con los de 2027. La cifra se midió en una llamada real y se extrapoló a 1 hora (sección 7).
 
 ---
 
@@ -118,7 +118,7 @@ Más detalle en [docs/arquitectura.md](docs/arquitectura.md).
 ### Modelos y por qué
 
 - **faster-whisper `small` int8:** transcribe una hora en unos 8 minutos en CPU, sin GPU (H2).
-- **Gemini 3.8 Flash (nube):** devuelve JSON que se valida con Pydantic, a un costo estimado de S/ 0.09 a S/ 0.17 por hora de audio.
+- **Gemini 3.8 Flash (nube):** devuelve JSON que se valida con Pydantic, a un costo medido de S/ 0.27 a S/ 0.51 por hora de audio. El razonamiento va en nivel bajo: con el nivel por defecto, el costo casi se triplicaba.
 - **Ollama `qwen3:4b` (local, experimental):** para que el audio y el texto no salgan de la laptop. Devolvió JSON válido en 2 de 2 bloques, con 64 s por bloque (H6, no concluyente).
 - **mmBERT-small:** en desarrollo, no activo en el producto (H4 pendiente).
 
@@ -142,19 +142,21 @@ Los precios están por debajo de lo que las 2 personas dijeron estar dispuestas 
 
 | Plan | Precio | Incluye | Costo con uso completo (2026 / 2027) | Margen de contribución (2026 / 2027) |
 |---|---|---|---|---|
-| Gratis | S/ 0 | 2 h al mes | S/ 0.19 / S/ 0.33 | — (costo de adquisición) |
-| Estudiante | S/ 9.90 al mes | 15 h al mes | S/ 1.39 / S/ 2.50 | S/ 8.51 (86.0 %) / S/ 7.40 (74.7 %) |
-| Pro | S/ 24.90 al mes | 40 h al mes, modo local y exportaciones | S/ 3.70 / S/ 6.68 | S/ 21.20 (85.1 %) / S/ 18.22 (73.2 %) |
+| Gratis | S/ 0 | 2 h al mes | S/ 0.53 / S/ 1.03 | — (costo de adquisición) |
+| Estudiante | S/ 9.90 al mes | 15 h al mes | S/ 3.99 / S/ 7.71 | S/ 5.91 (59.7 %) / S/ 2.19 (22.1 %) |
+| Pro | S/ 24.90 al mes | 40 h al mes, modo local y exportaciones | S/ 10.64 / S/ 20.55 | S/ 14.26 (57.3 %) / S/ 4.35 (17.5 %) |
+
+Con todas las horas usadas, el margen es de casi 60 % hoy y de cerca de 20 % en 2027, cuando Google duplica el precio. Bajar el costo por hora es la prioridad: con el detector mmBERT, que filtra el relleno (H5), o con un modelo Flash-Lite.
 
 ### Costo por hora de audio
 
 | Precios de Gemini 3.8 Flash | US$ por hora | S/ por hora |
 |---|---|---|
-| Hasta el 31/12/2026 | 0.0271 | 0.093 |
-| Desde el 01/01/2027 | 0.0488 | 0.167 |
+| Hasta el 31/12/2026 | 0.0778 | 0.266 |
+| Desde el 01/01/2027 | 0.1503 | 0.514 |
 
 - **Precio de Gemini 3.8 Flash** ([aistudio.google.com/docs/pricing](https://aistudio.google.com/docs/pricing), leído el 10/11/2026), por millón de tokens, con la salida que incluye el razonamiento: US$0.75 de entrada y US$3.75 de salida hasta el 31/12/2026, y US$1.50 y US$7.50 desde el 01/01/2027.
-- **Tokens por hora (estimados, no medidos):** 14,000 de entrada y 3,000 de salida.
+- **Tokens por hora (medidos y extrapolados):** 19,186 de entrada y 15,492 de salida, sin razonamiento. Salen de una llamada real sobre la reunión actuada de 346 s, multiplicada por 10.40.
 - **Whisper en un servidor (supuesto sin fuente):** US$0.00533 por hora de audio, con 2 vCPU a US$0.040 por hora durante 8 minutos.
 - **Tipo de cambio:** 3.418 S/ por US$, venta del sistema bancario SBS al 09/11/2026 ([BCRP, serie PD04640PD](https://estadisticas.bcrp.gob.pe/estadisticas/series/api/PD04640PD/json/2026-11-01/2026-11-10)).
 - El cálculo completo está en [docs/resultados.md](docs/resultados.md), sección 4.
@@ -172,7 +174,7 @@ Los precios están por debajo de lo que las 2 personas dijeron estar dispuestas 
 
 1. La tercera conversación con usuarios.
 2. Publicar la URL y probarla desde el celular (H3).
-3. Reemplazar los tokens estimados por los medidos.
+3. Bajar el costo por hora (detector mmBERT o modelo Flash-Lite) y medirlo con audios de 1 hora.
 4. Evaluar las tareas (H8) y el mapa mental (H9) con grabaciones reales.
 
 ---

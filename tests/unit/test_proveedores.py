@@ -77,6 +77,20 @@ def _modelo_de(url: str) -> str:
 # A1. responseJsonSchema y sin campos internos
 # ---------------------------------------------------------------------------
 
+def test_gemini_pide_razonamiento_bajo_por_defecto_y_es_configurable(llamadas):
+    # El razonamiento se cobra como salida: con el nivel por defecto (medium) una reunión
+    # de 346 s gastó 4030 tokens de razonamiento frente a 1853 de respuesta.
+    llamadas["respuestas"] = [
+        _respuesta_ok(_json_reunion_sin_campos_internos()),
+        _respuesta_ok(_json_reunion_sin_campos_internos()),
+    ]
+    ProveedorGemini(api_key=CLAVE_FALSA).generar_estructurado("p", ResultadoReunion)
+    ProveedorGemini(api_key=CLAVE_FALSA, nivel_razonamiento="medium").generar_estructurado("p", ResultadoReunion)
+
+    niveles = [p["json"]["generationConfig"]["thinkingConfig"]["thinkingLevel"] for p in llamadas["posts"]]
+    assert niveles == ["low", "medium"]
+
+
 def test_gemini_usa_response_json_schema_sin_campos_internos(llamadas):
     llamadas["respuestas"] = [_respuesta_ok(_json_reunion_sin_campos_internos())]
     proveedor = ProveedorGemini(api_key=CLAVE_FALSA)

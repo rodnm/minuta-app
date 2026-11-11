@@ -3,7 +3,7 @@
 - **Presentador:** Rodrigo Norabuena, founder.
 - **Formato de la consigna:** 0:00–0:30 problema, 0:30–2:30 demo en vivo, 2:30–3:00 negocio. A los 3:00 se corta y no hay ronda de preguntas.
 - **Diapositiva (opcional, una sola):** el one-liner.
-- **Texto hablado:** 326 palabras (70 + 183 + 73). Lo que va entre corchetes es una acción en pantalla y no se lee.
+- **Texto hablado:** 332 palabras (70 + 183 + 79). Lo que va entre corchetes es una acción en pantalla y no se lee.
 
 ---
 
@@ -36,9 +36,9 @@
 
 ---
 
-## 2:30–3:00 | Negocio (texto hablado: 73 palabras)
+## 2:30–3:00 | Negocio (texto hablado: 79 palabras)
 
-> ¿Quién paga? El universitario. El plan Estudiante cuesta 9.90 soles al mes por quince horas, y el Pro, 24.90 por cuarenta horas, con modo local. Una escribió que pagaría de 15 a 25 soles; la otra, de 30 a 40 con uso ilimitado. Estimamos que una hora de audio nos cuesta unos 17 céntimos con los precios de 2027: margen cerca de 75 %. Lo que sigue: la tercera conversación y la URL pública.
+> ¿Quién paga? El universitario. El plan Estudiante cuesta 9.90 soles al mes por quince horas, y el Pro, 24.90 por cuarenta horas, con modo local. Una escribió que pagaría de 15 a 25 soles; la otra, de 30 a 40 con uso ilimitado. Medimos que una hora de audio nos cuesta unos 27 céntimos: margen de casi 60 %. En 2027 Google duplica el precio y baja a 20 %. Lo que sigue: bajar ese costo con el detector.
 
 ---
 
