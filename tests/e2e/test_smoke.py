@@ -38,8 +38,7 @@ def test_smoke_inicio_app_modo_demo() -> None:
     at.run()
 
     assert not at.exception, f"Excepción al iniciar aplicación: {at.exception}"
-    assert len(at.title) > 0
-    assert "Minuta" in at.title[0].value
+    assert any("MINUTA" in m.value for m in at.markdown)  # encabezado de marca
     assert len(at.info) > 0
     assert "Guía de grabación" in at.info[0].value
 

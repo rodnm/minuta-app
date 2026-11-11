@@ -145,8 +145,7 @@ def test_app_test_render_modo_demo() -> None:
     app = AppTest.from_file(str(ROOT_DIR / "app" / "streamlit_app.py"))
     app.run()
     assert not app.exception, f"Excepción en AppTest: {app.exception}"
-    assert len(app.title) > 0
-    assert "Minuta" in app.title[0].value
+    assert any("MINUTA" in m.value for m in app.markdown)  # encabezado de marca
 
     # El modo demo arranca apagado (L51 B5); al activarlo se muestra el ejemplo sin excepciones.
     app.toggle[0].set_value(True).run()

@@ -154,6 +154,11 @@ def generar_html_markmap(markdown_arbol: str, altura_px: int = 480) -> str:
       pointer-events: none;
     }}
   </style>
+  <script>
+    // El mapa vive en una pestaña que Streamlit monta oculta (ancho 0): si markmap lo
+    // dibuja al cargar, solo queda la raíz. Se renderiza a mano cuando ya es visible.
+    window.markmap = {{ autoLoader: {{ manual: true }} }};
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@{VERSION_MARKMAP_CDN}"></script>
 </head>
 <body>
@@ -166,16 +171,27 @@ def generar_html_markmap(markdown_arbol: str, altura_px: int = 480) -> str:
     <div class="markmap-help">Pellizca para zoom · Arrastra para mover</div>
   </div>
   <script>
+    var mapaRenderizado = false;
+    var esperaMapa = null;
     function renderizarMapa() {{
-      if (window.markmap && window.markmap.autoLoader) {{
-        window.markmap.autoLoader.renderAll();
-      }}
+      var contenedor = document.querySelector(".markmap-container");
+      if (mapaRenderizado || !contenedor || contenedor.clientWidth === 0) return;
+      // Espera a que la pestaña termine de desplegarse para que el ajuste use el ancho final.
+      clearTimeout(esperaMapa);
+      esperaMapa = setTimeout(function () {{
+        if (mapaRenderizado || contenedor.clientWidth === 0) return;
+        if (window.markmap && window.markmap.autoLoader) {{
+          mapaRenderizado = true;
+          window.markmap.autoLoader.renderAll();
+        }}
+      }}, 400);
     }}
-    window.addEventListener("DOMContentLoaded", renderizarMapa);
+    var contenedorMapa = document.querySelector(".markmap-container");
+    if (window.ResizeObserver && contenedorMapa) {{
+      new ResizeObserver(renderizarMapa).observe(contenedorMapa);
+    }}
     window.addEventListener("load", renderizarMapa);
-    if (document.readyState === "complete" || document.readyState === "interactive") {{
-      setTimeout(renderizarMapa, 50);
-    }}
+    window.addEventListener("resize", renderizarMapa);
   </script>
 </body>
 </html>"""
@@ -965,10 +981,8 @@ def renderizar_resultado(resultado: Any, transcripcion: Transcripcion | None, fu
 
         with pestana_mapa:
             st.markdown(f"**Árbol temático interactivo:** *{resultado.mapa.titulo}*")
-            st.markdown('<div class="minuta-map-frame">', unsafe_allow_html=True)
             html_mapa = generar_html_markmap(resultado.mapa.to_markdown(), altura_px=460)
             components.html(html_mapa, height=480, scrolling=False)
-            st.markdown('</div>', unsafe_allow_html=True)
 
             st.markdown("#### Nodos del mapa con marca temporal y cita literal")
             nodos_tiempo = extraer_nodos_con_tiempo(resultado.mapa.raiz)
@@ -1300,8 +1314,6 @@ def main() -> None:
         st.session_state["glosario_usuario"] = ", ".join(GLOSARIO_DEFECTO)
 
     # Encabezado principal
-    st.title("🎙️ Minuta")
-    st.caption("Tu alternativa económica a las grabadoras con IA (como Plaud) usando tu celular.")
     _renderizar_encabezado_marca()
 
     # B5: el modo demo arranca apagado y queda visible arriba, fuera del expander.
