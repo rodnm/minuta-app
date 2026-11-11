@@ -378,19 +378,39 @@ def _cadena_de_causas(exc: BaseException) -> list[BaseException]:
     return cadena
 
 
+def en_streamlit_cloud() -> bool:
+    """T69: detecta si la app corre en Streamlit Community Cloud."""
+    return bool(
+        os.getenv("STREAMLIT_SHARING_MODE")
+        or os.getenv("IS_STREAMLIT_CLOUD")
+        or os.getenv("STREAMLIT_COMMUNITY_CLOUD")
+        or os.path.exists("/app")
+        or (os.getenv("HOME") == "/home/appuser")
+    )
+
+
+def _formatear_proveedor(proveedor: str) -> str:
+    """T69: en Streamlit Cloud la opción Ollama indica 'solo en tu laptop'."""
+    if proveedor == PROVEEDOR_OLLAMA and en_streamlit_cloud():
+        return f"{proveedor} (solo en tu laptop)"
+    return proveedor
+
+
 def mensaje_error_amigable(
     exc: BaseException,
     etapa: str,
     usar_ollama: bool,
     secretos: list[str | None] | None = None,
 ) -> str:
-    """B4: traduce una excepción a un mensaje en español, con la causa y sin URL ni claves."""
+    """B4 / T69: traduce una excepción a un mensaje en español, con la causa y sin URL ni claves."""
     causas = _cadena_de_causas(exc)
     sin_conexion = any(isinstance(c, requests.ConnectionError) for c in causas)
     if isinstance(exc, OllamaNoDisponible) or (usar_ollama and sin_conexion):
         return (
-            "No se pudo conectar con Ollama. Ollama solo está disponible cuando ejecutas la app en local, "
-            "en tu computadora y con Ollama abierto. En la versión publicada, elige Gemini o activa el modo demo."
+            "No se pudo conectar con Ollama. Para encenderlo, ejecuta 'ollama serve' en tu terminal y asegúrate "
+            "de tener el modelo descargado con 'ollama run qwen3:4b'. "
+            "Ollama solo está disponible cuando ejecutas la app en local (en tu laptop). "
+            "En la versión publicada (Streamlit Cloud), elige Gemini o activa el modo demo."
         )
 
     if any(isinstance(c, requests.Timeout) for c in causas):
@@ -1024,6 +1044,7 @@ def main() -> None:
             "Proveedor de IA para estructuración:",
             options=[PROVEEDOR_GEMINI, PROVEEDOR_OLLAMA],
             index=0,
+            format_func=_formatear_proveedor,
             help="Gemini funciona en la versión publicada. Ollama solo funciona si ejecutas la app en local.",
         )
         modelo_whisper = st.selectbox(

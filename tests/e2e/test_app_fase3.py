@@ -58,3 +58,27 @@ def test_t68_tres_plantillas_en_modo_demo_sin_excepciones():
         at.selectbox[0].select(plantilla).run()
         assert not at.exception, f"Excepción en modo demo con {plantilla}: {at.exception}"
         assert len(at.tabs) > 0, f"Debe mostrar pestañas de resultados en {plantilla}"
+
+
+def test_t69_ollama_error_indica_como_encenderlo():
+    """T69: Si Ollama no responde, el mensaje de error indica cómo encenderlo ('ollama serve')."""
+    from app.streamlit_app import OllamaNoDisponible, mensaje_error_amigable
+
+    msg = mensaje_error_amigable(OllamaNoDisponible(), etapa="estructuracion", usar_ollama=True)
+    assert "ollama serve" in msg.lower(), f"El mensaje debe indicar cómo encender Ollama: {msg}"
+    assert "solo" in msg.lower() and "laptop" in msg.lower()
+
+
+def test_t69_opcion_ollama_en_streamlit_cloud(monkeypatch: pytest.MonkeyPatch):
+    """T69: En Streamlit Cloud, la opción Ollama dice 'solo en tu laptop'."""
+    monkeypatch.setenv("STREAMLIT_SHARING_MODE", "true")
+    at = AppTest.from_file(str(ROOT_DIR / "app" / "streamlit_app.py"), default_timeout=30)
+    at.run()
+
+    expander_avanzado = [e for e in at.expander if "opciones avanzadas" in (e.label or "").lower()][0]
+    prov_sb = [s for s in expander_avanzado.selectbox if "proveedor" in s.label.lower()][0]
+    
+    # La representación de opciones para Ollama debe indicar 'solo en tu laptop'
+    from app.streamlit_app import _formatear_proveedor, PROVEEDOR_OLLAMA
+    etiqueta = _formatear_proveedor(PROVEEDOR_OLLAMA)
+    assert "solo en tu laptop" in etiqueta.lower(), f"La opción debe indicar 'solo en tu laptop': {etiqueta}"
