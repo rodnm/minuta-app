@@ -56,7 +56,7 @@
 
 ### Hoy vs. con Minuta
 
-| Paso del flujo | Hoy (lo que contaron las usuarias) | Con Minuta |
+| Paso del flujo | Hoy (lo que contaron las 2 personas) | Con Minuta |
 |---|---|---|
 | **1. Grabar** | Graban con el celular: *"grababa todas mis clases de la universidad en el celular"* (conversación 01) y *"Sí, suelo grabar clases de la universidad y algunas charlas con mi celular"* (conversación 02). Rechazan comprar un aparato dedicado: *"No pagaría porque es una inversión fuerte para algo que puedo hacer con mi celular y que me funciona bien aun si no es perfecto siempre."* (conversación 02). | Sigues usando tu celular como grabadora, sin comprar hardware adicional. |
 | **2. Repasar** | Reescuchan audios completos de 1 a 2 horas para no transcribir a mano: *"Si dura 1-2 horas lo voy a escuchar nuevamente."* y *"Podría tardar más de 5 horas solo para una reunión"* (conversación 01); *"usualmente hago grabaciones de 2 horas de mis clases y las escucho completas"* (conversación 02). | Subes el audio y obtienes notas estructuradas (resumen, ideas clave, tareas y preguntas) en minutos. |

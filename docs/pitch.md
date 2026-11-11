@@ -9,7 +9,7 @@
 
 ## 0:00–0:30 | Problema (texto hablado: 77 palabras)
 
-> ¿Cuántos volvieron a la grabación de una sesión solo para encontrar una explicación? Soy Rodrigo Norabuena, founder de Minuta. Dos personas que graban sus clases con el celular me respondieron por escrito: graban de una a tres veces por semana y reescuchan grabaciones completas de una a dos horas. Una usuaria me escribió: "Si dura 1-2 horas lo voy a escuchar nuevamente." Una grabadora con IA cuesta hasta 189 dólares, y ninguna de las dos la compraría.
+> ¿Cuántos volvieron a la grabación de una sesión solo para encontrar una explicación? Soy Rodrigo Norabuena, founder de Minuta. Dos personas que graban sus clases con el celular me respondieron por escrito: graban de una a tres veces por semana y reescuchan grabaciones completas de una a dos horas. Una de ellas me escribió: "Si dura 1-2 horas lo voy a escuchar nuevamente." Una grabadora con IA cuesta hasta 189 dólares, y ninguna de las dos la compraría.
 
 ---
 
@@ -22,7 +22,7 @@
 > Elijo la plantilla de clase y subo un clip de audio que grabé con mi celular. Mientras procesa: la app transcribe el audio y estructura las notas automáticamente.
 >
 > [Mostrar las notas de clase y el mapa mental.]
-> Aquí están las notas: resumen, ideas clave y el mapa mental interactivo. Cada idea trae su marca de tiempo y su cita textual. La app comprueba que cada cita esté, palabra por palabra, en la transcripción; si no aparece, la descarta. Como me escribió una usuaria: "si estoy apurada voy momento exacto donde quiero escuchar nuevamente la explicación".
+> Aquí están las notas: resumen, ideas clave y el mapa mental interactivo. Cada idea trae su marca de tiempo y su cita textual. La app comprueba que cada cita esté, palabra por palabra, en la transcripción; si no aparece, la descarta. Como me escribió una de ellas: "si estoy apurada voy momento exacto donde quiero escuchar nuevamente la explicación".
 >
 > [Pulsar ▶ en una idea.]
 > Pulso ▶ y el reproductor salta al inicio del segmento que contiene la cita, para escuchar la explicación del profesor.
@@ -38,7 +38,7 @@
 
 ## 2:30–3:00 | Negocio (texto hablado: 76 palabras)
 
-> ¿Quién paga? El estudiante universitario. El plan Estudiante cuesta 9.90 soles al mes por quince horas, y el Pro, 24.90 por cuarenta horas. Las usuarias señalaron que pagarían entre 15 y 40 soles mensuales. Una hora de audio nos cuesta unos 27 céntimos: margen cercano al 60 % hoy y del 20 % en 2027. Hay muchas herramientas que transcriben. Minuta no te da otra transcripción: te devuelve al minuto exacto de la explicación que buscas.
+> ¿Quién paga? El estudiante universitario. El plan Estudiante cuesta 9.90 soles al mes por quince horas, y el Pro, 24.90 por cuarenta horas. Una dijo que pagaría de 15 a 25 soles al mes; la otra, de 30 a 40 con uso ilimitado. Una hora de audio nos cuesta unos 27 céntimos: margen cercano al 60 % hoy y del 20 % en 2027. Hay muchas herramientas que transcriben. Minuta no te da otra transcripción: te devuelve al minuto exacto de la explicación que buscas.
 
 ---
 
