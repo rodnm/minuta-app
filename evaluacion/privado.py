@@ -162,6 +162,45 @@ def verificar_fugas(
     return coincidencias
 
 
+class _ProveedorCronometrado:
+    """Envuelve un proveedor LLM y registra la latencia y el resultado de cada bloque (H6)."""
+
+    def __init__(self, interno: Any) -> None:
+        self.interno = interno
+        self.latencias: list[float] = []
+        self.fallos = 0
+
+    def generar_estructurado(self, prompt: str, esquema: Any) -> Any:
+        t0 = time.perf_counter()
+        try:
+            return self.interno.generar_estructurado(prompt, esquema)
+        except Exception:
+            self.fallos += 1
+            raise
+        finally:
+            self.latencias.append(time.perf_counter() - t0)
+
+
+def _metricas_de_bloques(crono: _ProveedorCronometrado) -> dict[str, Any]:
+    """Métricas H6 por bloque: solo conteos y latencias."""
+    llamados = len(crono.latencias)
+    validos = llamados - crono.fallos
+    ordenadas = sorted(crono.latencias)
+    metricas: dict[str, Any] = {
+        "bloques_llamados": llamados,
+        "bloques_validos": validos,
+        "pct_json_valido": round(100.0 * validos / llamados, 1) if llamados else 0.0,
+    }
+    if ordenadas:
+        mitad = len(ordenadas) // 2
+        mediana = ordenadas[mitad] if len(ordenadas) % 2 else (ordenadas[mitad - 1] + ordenadas[mitad]) / 2
+        p90 = ordenadas[min(len(ordenadas) - 1, int(round(0.9 * (len(ordenadas) - 1))))]
+        metricas["latencia_bloque_mediana_s"] = round(mediana, 2)
+        metricas["latencia_bloque_p90_s"] = round(p90, 2)
+        metricas["latencia_bloque_max_s"] = round(ordenadas[-1], 2)
+    return metricas
+
+
 def procesar_privado(
     audio_path: Path | str | None = None,
     transcripcion: Transcripcion | None = None,
@@ -171,6 +210,7 @@ def procesar_privado(
     modelo_llm: str = "qwen3:4b",
     solo_transcribir: bool = False,
     proveedor_simulado: bool = False,
+    proveedor: Any | None = None,
 ) -> dict[str, Any]:
     """Caja negra principal: corre el pipeline en local y retorna solo métricas agregadas."""
     if salidas_dir is None:
@@ -226,7 +266,9 @@ def procesar_privado(
     )
     metricas["bloques"] = len(bloques)
 
-    if proveedor_simulado:
+    if proveedor is not None:
+        pass
+    elif proveedor_simulado:
         from minuta.proveedores import ProveedorMock
 
         proveedor = ProveedorMock()
@@ -240,41 +282,44 @@ def procesar_privado(
             num_ctx=8192,
         )
 
+    crono = _ProveedorCronometrado(proveedor)
     t0_llm = time.perf_counter()
-    latencias_bloques: list[float] = []
 
     try:
         resultado = estructurar_transcripcion(
             transcripcion,
             tipo_plantilla=tipo_plantilla,  # type: ignore[arg-type]
-            proveedor=proveedor,
+            proveedor=crono,  # type: ignore[arg-type]
             modo="solo_llm",
         )
-        t_llm = time.perf_counter() - t0_llm
-        metricas["pct_json_valido"] = 100.0
-        metricas["tiempo_estructuracion_s"] = round(t_llm, 2)
     except Exception as err:
-        metricas["pct_json_valido"] = 0.0
+        metricas.update(_metricas_de_bloques(crono))
         metricas["error"] = reportar_error_anonimo("estructuracion", err)
         return metricas
 
-    # Guardar resultado en salidas privadas
-    ruta_res = salidas_dir / f"resultado_{tipo_plantilla}.json"
-    ruta_res.write_text(resultado.model_dump_json(indent=2), encoding="utf-8")
+    metricas["tiempo_estructuracion_s"] = round(time.perf_counter() - t0_llm, 2)
+    metricas.update(_metricas_de_bloques(crono))
 
-    metricas["citas_descartadas"] = resultado.descartados
-    metricas["num_ramas"] = len(resultado.mapa.ramas) if resultado.mapa else 0
+    try:
+        # Guardar resultado en salidas privadas
+        ruta_res = salidas_dir / f"resultado_{tipo_plantilla}.json"
+        ruta_res.write_text(resultado.model_dump_json(indent=2), encoding="utf-8")
 
-    if isinstance(resultado, ResultadoReunion):
-        metricas["num_temas"] = len(resultado.temas)
-        metricas["num_acuerdos"] = len(resultado.acuerdos)
-        metricas["num_tareas"] = len(resultado.tareas)
-    elif isinstance(resultado, ResultadoPonencia):
-        metricas["num_ideas"] = len(resultado.ideas_clave)
-        metricas["num_preguntas"] = len(resultado.preguntas_abiertas)
-    elif isinstance(resultado, ResultadoEntrevista):
-        metricas["num_codigos"] = len(resultado.libro)
-        metricas["num_fragmentos"] = len(resultado.fragmentos)
+        metricas["citas_descartadas"] = resultado.descartados
+        metricas["num_ramas"] = len(resultado.mapa.raiz.hijos)
+
+        if isinstance(resultado, ResultadoReunion):
+            metricas["num_temas"] = len(resultado.temas)
+            metricas["num_acuerdos"] = len(resultado.acuerdos)
+            metricas["num_tareas"] = len(resultado.tareas)
+        elif isinstance(resultado, ResultadoPonencia):
+            metricas["num_ideas"] = len(resultado.ideas_clave)
+            metricas["num_preguntas"] = len(resultado.preguntas)
+        elif isinstance(resultado, ResultadoEntrevista):
+            metricas["num_codigos"] = len(resultado.libro)
+            metricas["num_fragmentos"] = len(resultado.fragmentos)
+    except Exception as err:
+        metricas["error"] = reportar_error_anonimo("metricas", err)
 
     return metricas
 

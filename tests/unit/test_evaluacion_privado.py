@@ -84,3 +84,67 @@ def test_caja_negra_cli_sin_audio(monkeypatch, capsys):
     assert rc == 2
     captured = capsys.readouterr()
     assert "argumentos" in captured.err
+
+
+# ---------------------------------------------------------------------------
+# Métricas reales por bloque (H6) con un proveedor que sí responde
+# ---------------------------------------------------------------------------
+
+def _tx_secreta() -> Transcripcion:
+    return Transcripcion(
+        audio_id="falso_audio", duracion_s=60.0, modelo="small",
+        segmentos=[Segmento(id=1, inicio_s=0.0, fin_s=60.0,
+                            texto="acordamos revisar el presupuesto_secreto_delta antes del viernes")],
+    )
+
+
+def _reunion_valida():
+    from minuta.esquemas import Evidencia, MapaMental, NodoMapa, ResultadoReunion, Tema
+    ev = Evidencia(segmento_ids=[1], inicio_s=0.0, cita="acordamos revisar el presupuesto_secreto_delta")
+    return ResultadoReunion(
+        resumen_general="x", temas=[Tema(titulo="Presupuesto", resumen="x", evidencias=[ev])],
+        acuerdos=[], tareas=[], pendientes=[],
+        mapa=MapaMental(titulo="r", raiz=NodoMapa(id="raiz", titulo="r")),
+    )
+
+
+def test_caja_negra_mide_cada_bloque_y_cuenta_ramas_y_temas(tmp_path, capsys):
+    from evaluacion.privado import procesar_privado
+    from minuta.proveedores import ProveedorMock
+
+    metricas = procesar_privado(
+        transcripcion=_tx_secreta(), salidas_dir=tmp_path, tipo_plantilla="reunion",
+        proveedor=ProveedorMock(respuestas=[_reunion_valida()]),
+    )
+
+    assert metricas["bloques"] == 1
+    assert metricas["bloques_llamados"] == 1
+    assert metricas["bloques_validos"] == 1
+    assert metricas["pct_json_valido"] == 100.0
+    assert metricas["latencia_bloque_max_s"] >= 0.0
+    assert "latencia_bloque_mediana_s" in metricas and "latencia_bloque_p90_s" in metricas
+    assert metricas["num_temas"] == 1
+    assert metricas["num_ramas"] == 1  # el mapa vacío se arma desde el tema validado
+    salida = capsys.readouterr()
+    assert "presupuesto_secreto_delta" not in (salida.out + salida.err)
+
+
+def test_caja_negra_bloque_fallido_cuenta_como_json_invalido_sin_filtrar_texto(tmp_path, capsys):
+    from evaluacion.privado import procesar_privado
+    from minuta.proveedores import ErrorProveedorLLM, ProveedorLLM
+
+    class ProveedorQueFalla(ProveedorLLM):
+        def generar_estructurado(self, prompt, esquema):
+            raise ErrorProveedorLLM("JSON inválido con presupuesto_secreto_delta")
+
+    metricas = procesar_privado(
+        transcripcion=_tx_secreta(), salidas_dir=tmp_path, tipo_plantilla="reunion",
+        proveedor=ProveedorQueFalla(),
+    )
+
+    assert metricas["bloques_llamados"] == 1
+    assert metricas["bloques_validos"] == 0
+    assert metricas["pct_json_valido"] == 0.0
+    assert "presupuesto_secreto_delta" not in str(metricas)
+    salida = capsys.readouterr()
+    assert "presupuesto_secreto_delta" not in (salida.out + salida.err)
