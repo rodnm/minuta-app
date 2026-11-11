@@ -348,6 +348,11 @@ def exportar_mapa_html(mapa: MapaMental, titulo: str = "Mapa Mental - Minuta") -
       user-select: none;
     }}
   </style>
+  <script>
+    // Modo manual: el autoloader renderiza solo al cargar y un segundo renderAll() deja
+    // el mapa con la raíz sola, porque la plantilla ya se consumió.
+    window.markmap = {{ autoLoader: {{ manual: true }} }};
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/markmap-autoloader@{VERSION_MARKMAP_CDN}"></script>
 </head>
 <body>
@@ -364,16 +369,15 @@ def exportar_mapa_html(mapa: MapaMental, titulo: str = "Mapa Mental - Minuta") -
     <div class="floating-help">📱 Pellizca para zoom · Arrastra para navegar</div>
   </div>
   <script>
+    var mapaRenderizado = false;
     function renderizar() {{
+      if (mapaRenderizado) return;
       if (window.markmap && window.markmap.autoLoader) {{
+        mapaRenderizado = true;
         window.markmap.autoLoader.renderAll();
       }}
     }}
-    window.addEventListener("DOMContentLoaded", renderizar);
     window.addEventListener("load", renderizar);
-    if (document.readyState === "complete" || document.readyState === "interactive") {{
-      setTimeout(renderizar, 60);
-    }}
   </script>
 </body>
 </html>"""

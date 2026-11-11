@@ -387,3 +387,18 @@ def test_exportar_entrevista_codigos_tematicos(entrevista_fixture: ResultadoEntr
     assert "Códigos temáticos" in wb.sheetnames
     assert "Libro de Códigos" not in wb.sheetnames
 
+
+
+def test_mapa_html_exportado_se_renderiza_una_sola_vez():
+    """markmap-autoloader ya renderiza solo al cargar; si el script vuelve a llamar a
+    renderAll(), el segundo render no encuentra la plantilla y deja el mapa con la raíz sola.
+    El HTML exportado debe activar el modo manual y renderizar una única vez."""
+    from minuta.esquemas import MapaMental, NodoMapa
+    from minuta.exportar import exportar_mapa_html
+
+    mapa = MapaMental(titulo="Clase", raiz=NodoMapa(id="r", titulo="Clase", hijos=[NodoMapa(id="a", titulo="Idea A")]))
+    html = exportar_mapa_html(mapa)
+
+    assert "autoLoader: { manual: true }" in html or "autoLoader: {manual: true}" in html
+    assert html.index("manual: true") < html.index("markmap-autoloader@")
+    assert "mapaRenderizado" in html  # guarda que impide un segundo render
