@@ -6,7 +6,7 @@
 
 ## 1. One-liner
 
-Minuta convierte las clases que los universitarios graban con su celular en notas y un mapa mental donde cada idea lleva su minuto y su cita literal, desde S/ 9.90 al mes.
+**Graba. Sube. Vuelve al minuto exacto.** Minuta convierte la clase que grabaste con tu celular en notas donde cada idea te lleva a su momento en el audio, sin reescuchar dos horas.
 
 ---
 
