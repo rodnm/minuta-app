@@ -508,80 +508,334 @@ def procesar_audio(
 # ---------------------------------------------------------------------------
 
 
-def aplicar_estilos_movil() -> None:
-    """Inyecta reglas CSS optimizadas para dispositivos móviles con botones táctiles grandes."""
+def _inyectar_estilos() -> None:
+    """Inyecta la identidad visual de marca de Minuta (T80).
+
+    Inspirada en el promo phonk (scene-app.html, scene-drop.html):
+    - Fondo oscuro #0B0B0F, acento lima #C6FF3D, superficies #181824 / #1E293B.
+    - Tipografías: Archivo Black (titulares), JetBrains Mono (badges, marcas), Inter (cuerpo).
+    - Botones de píldora (9999px) y tarjetas con radio 18px-24px.
+    """
     st.markdown(
         """
         <style>
-        /* Optimización Mobile-First para Minuta */
+        @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:ital,wght@0,400;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;600;700&display=swap');
+
+        /* Contenedor principal Mobile-First */
         .block-container {
-            padding-top: 1.2rem;
-            padding-bottom: 2rem;
-            padding-left: 0.8rem;
-            padding-right: 0.8rem;
-            max-width: 680px;
+            padding-top: 1.5rem;
+            padding-bottom: 3rem;
+            padding-left: 1rem;
+            padding-right: 1rem;
+            max-width: 720px;
         }
-        /* Botones táctiles accesibles (mínimo 48px para dedos) */
-        .stButton > button {
-            width: 100%;
-            min-height: 48px;
-            font-size: 16px;
-            font-weight: 600;
-            border-radius: 10px;
-            margin-top: 4px;
+
+        /* Tipografías base */
+        html, body, [class*="css"], .stMarkdown, p, div {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #F8FAFC;
+        }
+
+        h1, h2, h3, [data-testid="stHeadingWithActionElements"] {
+            font-family: 'Archivo Black', -apple-system, BlinkMacSystemFont, sans-serif !important;
+            letter-spacing: -0.02em !important;
+            color: #FFFFFF !important;
+        }
+
+        /* Ocultar título genérico de Streamlit para lucir el encabezado de marca */
+        .stTitle, [data-testid="stTitle"] {
+            display: none !important;
+        }
+        [data-testid="stTitle"] + [data-testid="stCaptionContainer"] {
+            display: none !important;
+        }
+
+        /* Encabezado de marca Minuta */
+        .minuta-header-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            margin-bottom: 1.8rem;
+            padding: 10px 0;
+        }
+
+        .minuta-logo-lockup {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
             margin-bottom: 4px;
         }
-        /* Pestañas legibles en móvil */
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 4px;
+
+        .minuta-mic-svg {
+            width: 38px;
+            height: 38px;
+            flex-shrink: 0;
+        }
+
+        .minuta-logo-text {
+            font-family: 'Archivo Black', sans-serif;
+            font-size: 2.6rem;
+            line-height: 1;
+            color: #FFFFFF;
+            letter-spacing: -0.04em;
+        }
+
+        .minuta-logo-dot {
+            color: #C6FF3D;
+        }
+
+        .minuta-slogan {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.95rem;
+            color: #94A3B8;
+            margin-top: 6px;
+            margin-bottom: 16px;
+            letter-spacing: -0.01em;
+        }
+
+        /* Píldoras de pasos */
+        .minuta-steps-row {
             display: flex;
             flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            margin-top: 4px;
         }
-        .stTabs [data-baseweb="tab"] {
-            padding: 8px 12px;
-            font-size: 14px;
-            font-weight: 500;
+
+        .minuta-step-pill {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.78rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border-radius: 9999px;
+            background: #1E293B;
+            color: #F8FAFC;
+            border: 1px solid #334155;
+            white-space: nowrap;
         }
-        /* Tarjetas de contenido con citas */
+
+        .minuta-step-pill.highlight {
+            background: #C6FF3D;
+            color: #0B0B0F;
+            border: 1px solid #C6FF3D;
+            font-weight: 700;
+        }
+
+        /* Botones estilo píldora (mínimo 44px de alto táctil) */
+        .stButton > button {
+            width: 100%;
+            min-height: 46px;
+            border-radius: 9999px !important;
+            font-family: 'Inter', sans-serif;
+            font-size: 15px;
+            font-weight: 700;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+
+        /* Botón primario de acción (Procesar) */
+        .stButton > button[kind="primary"],
+        .stButton > button[data-testid="baseButton-primary"] {
+            background-color: #C6FF3D !important;
+            color: #0B0B0F !important;
+            border: none !important;
+            font-family: 'Inter', sans-serif !important;
+            font-weight: 700 !important;
+            font-size: 16px !important;
+        }
+        .stButton > button[kind="primary"]:hover,
+        .stButton > button[data-testid="baseButton-primary"]:hover {
+            background-color: #D4FF66 !important;
+            color: #0B0B0F !important;
+            transform: scale(1.01);
+            box-shadow: 0 0 20px rgba(198, 255, 61, 0.4);
+        }
+
+        /* Botones secundarios (como ▶ [mm:ss]) */
+        .stButton > button[kind="secondary"],
+        .stButton > button[data-testid="baseButton-secondary"] {
+            background-color: #181824 !important;
+            color: #C6FF3D !important;
+            border: 1.5px solid #C6FF3D !important;
+            font-family: 'JetBrains Mono', monospace !important;
+            font-weight: 700 !important;
+            font-size: 13.5px !important;
+        }
+        .stButton > button[kind="secondary"]:hover,
+        .stButton > button[data-testid="baseButton-secondary"]:hover {
+            background-color: #C6FF3D !important;
+            color: #0B0B0F !important;
+            border-color: #C6FF3D !important;
+            transform: scale(1.02);
+            box-shadow: 0 0 15px rgba(198, 255, 61, 0.35);
+        }
+
+        /* Zona de subida de archivos (borde punteado lima) */
+        [data-testid="stFileUploader"] {
+            background-color: #181824 !important;
+            border: 2px dashed #C6FF3D !important;
+            border-radius: 20px !important;
+            padding: 16px !important;
+            margin-bottom: 12px !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.4) !important;
+        }
+        [data-testid="stFileUploader"] section {
+            background-color: transparent !important;
+            padding: 8px !important;
+        }
+        [data-testid="stFileUploader"] small {
+            color: #94A3B8 !important;
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* Tarjetas de contenido oscuro */
         .minuta-card {
-            background-color: #F8F9FA;
-            border: 1px solid #E9ECEF;
-            border-radius: 8px;
-            padding: 12px 14px;
-            margin-bottom: 10px;
+            background-color: #181824;
+            border: 1px solid #2D2D3D;
+            border-radius: 20px;
+            padding: 18px 20px;
+            margin-bottom: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.4);
         }
+
+        /* Badges de minuto y etiquetas */
         .minuta-badge {
             display: inline-block;
-            padding: 2px 7px;
-            font-size: 12px;
+            font-family: 'JetBrains Mono', monospace;
             font-weight: 700;
-            color: #0D6EFD;
-            background-color: #E7F1FF;
-            border-radius: 5px;
+            font-size: 12px;
+            color: #C6FF3D;
+            background-color: rgba(198, 255, 61, 0.12);
+            border: 1px solid rgba(198, 255, 61, 0.35);
+            border-radius: 6px;
+            padding: 2px 7px;
             margin-right: 6px;
+            letter-spacing: 0.02em;
         }
+
+        /* Badge EN para Términos en inglés */
+        .minuta-badge-en {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            font-size: 11px;
+            color: #0B0B0F;
+            background-color: #C6FF3D;
+            border-radius: 9999px;
+            padding: 2px 8px;
+            margin-right: 6px;
+            vertical-align: middle;
+            letter-spacing: 0.05em;
+        }
+
         .minuta-badge-sec {
             display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
             padding: 2px 7px;
-            font-size: 12px;
+            font-size: 11px;
             font-weight: 600;
-            color: #495057;
-            background-color: #E9ECEF;
-            border-radius: 5px;
+            color: #CBD5E1;
+            background-color: #1E293B;
+            border: 1px solid #334155;
+            border-radius: 6px;
             margin-right: 6px;
         }
+
+        /* Cita con borde izquierdo lima */
         .minuta-quote {
-            border-left: 3px solid #0D6EFD;
-            padding-left: 8px;
-            margin-top: 6px;
+            border-left: 3px solid #C6FF3D;
+            padding-left: 14px;
+            margin-top: 8px;
+            font-family: 'Inter', sans-serif;
             font-style: italic;
-            color: #495057;
-            font-size: 13.5px;
+            color: #CBD5E1;
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        /* Marco blanco redondeado para el mapa mental */
+        .minuta-map-frame {
+            background-color: #FFFFFF;
+            border-radius: 24px;
+            padding: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 30px rgba(198, 255, 61, 0.15);
+            margin-bottom: 18px;
+            overflow: hidden;
+        }
+
+        /* Pestañas estilizadas */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 6px;
+            display: flex;
+            flex-wrap: wrap;
+            border-bottom: 1px solid #2D2D3D;
+            padding-bottom: 4px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            padding: 10px 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 600;
+            color: #94A3B8;
+            border-radius: 8px 8px 0 0;
+            background: transparent;
+        }
+        .stTabs [aria-selected="true"] {
+            color: #C6FF3D !important;
+            font-weight: 700 !important;
+        }
+        .stTabs [data-baseweb="tab-highlight"] {
+            background-color: #C6FF3D !important;
+            height: 3px !important;
+        }
+
+        /* Expander discreto */
+        [data-testid="stExpander"] {
+            background-color: #14141E !important;
+            border: 1px solid #2D2D3D !important;
+            border-radius: 16px !important;
+            margin-top: 10px;
+            margin-bottom: 16px;
+        }
+
+        /* Estilo para los selectbox y text areas */
+        [data-baseweb="select"] > div,
+        .stTextArea textarea {
+            background-color: #181824 !important;
+            border-color: #334155 !important;
+            color: #F8FAFC !important;
+            border-radius: 12px !important;
+        }
+
+        /* Audio player styling */
+        audio {
+            border-radius: 9999px;
+            width: 100%;
+            margin-top: 8px;
+            margin-bottom: 6px;
+        }
+
+        /* Alertas estilizadas en modo oscuro */
+        div[data-testid="stAlert"] {
+            background-color: #181824 !important;
+            border: 1px solid #2D2D3D !important;
+            border-left: 4px solid #C6FF3D !important;
+            border-radius: 16px !important;
+        }
+        div[data-testid="stAlert"] p, div[data-testid="stAlert"] span {
+            color: #F8FAFC !important;
         }
         </style>
         """,
         unsafe_allow_html=True,
     )
+
+
+# Alias para retrocompatibilidad con tests existentes
+aplicar_estilos_movil = _inyectar_estilos
 
 
 def _slug_de_resultado(resultado: Any) -> str:
@@ -612,7 +866,7 @@ def _renderizar_terminos_ingles(terminos: list[Any], prefijo: str) -> None:
             st.markdown(
                 f"""
                 <div class="minuta-card">
-                  <strong>• {html.escape(t.termino)}</strong>{trans_extra}<br>
+                  <span class="minuta-badge-en">EN</span><strong>• {html.escape(t.termino)}</strong>{trans_extra}<br>
                   <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(t.evidencia.cita)}"</div>
                 </div>
                 """,
@@ -711,8 +965,10 @@ def renderizar_resultado(resultado: Any, transcripcion: Transcripcion | None, fu
 
         with pestana_mapa:
             st.markdown(f"**Árbol temático interactivo:** *{resultado.mapa.titulo}*")
+            st.markdown('<div class="minuta-map-frame">', unsafe_allow_html=True)
             html_mapa = generar_html_markmap(resultado.mapa.to_markdown(), altura_px=460)
             components.html(html_mapa, height=480, scrolling=False)
+            st.markdown('</div>', unsafe_allow_html=True)
 
             st.markdown("#### Nodos del mapa con marca temporal y cita literal")
             nodos_tiempo = extraer_nodos_con_tiempo(resultado.mapa.raiz)
@@ -1000,6 +1256,31 @@ def renderizar_resultado(resultado: Any, transcripcion: Transcripcion | None, fu
                 st.caption(f"Error HTML: {err}")
 
 
+def _renderizar_encabezado_marca() -> None:
+    """Renderiza el logotipo y encabezado de marca de Minuta (T80)."""
+    st.markdown(
+        """
+        <div class="minuta-header-box">
+          <div class="minuta-logo-lockup">
+            <svg class="minuta-mic-svg" viewBox="0 0 24 24" fill="none" stroke="#C6FF3D" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+              <line x1="12" y1="19" x2="12" y2="22"></line>
+            </svg>
+            <span class="minuta-logo-text">MINUTA<span class="minuta-logo-dot">.</span></span>
+          </div>
+          <div class="minuta-slogan">Graba. Sube. Vuelve al minuto exacto.</div>
+          <div class="minuta-steps-row">
+            <span class="minuta-step-pill">1. Graba con tu celular</span>
+            <span class="minuta-step-pill">2. Sube el archivo</span>
+            <span class="minuta-step-pill highlight">3. Al minuto exacto</span>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def main() -> None:
     """Punto de entrada de la aplicación Streamlit."""
     st.set_page_config(
@@ -1021,6 +1302,7 @@ def main() -> None:
     # Encabezado principal
     st.title("🎙️ Minuta")
     st.caption("Tu alternativa económica a las grabadoras con IA (como Plaud) usando tu celular.")
+    _renderizar_encabezado_marca()
 
     # B5: el modo demo arranca apagado y queda visible arriba, fuera del expander.
     modo_demo = st.toggle(
