@@ -32,7 +32,7 @@ Este documento reúne lo que se midió, lo que falta medir y el costo por hora d
 | **H1b** | Detección posterior de términos en inglés con LLM | Recall ≥ 85 % y ≥ +15 pts sobre la línea base (50 términos) | Mejora < 10 pts o recall < 70 % | Línea base: 86.0 % (43 de 50). Con Gemini Flash: **98.0 %** (49 de 50) o 100.0 % normalizando guiones. Mejora: **+12.0 pts**. Clip demo (`docs/demo/clip_demo.m4a`): detecta JSON transcrito como 'Jason' con 0 descartes. | **NO CONCLUYENTE** | `python -m evaluacion.terminos` + detección estructurada LLM |
 | **H2** | `small` int8 con VAD procesa 1 hora de audio en CPU | ≤ 20 min por hora (RTF ≤ 0.33) | > 30 min por hora | Clip 300 s: RTF **0.1336** (8.0 min/h), 404.1 MB RAM. Reunión real (64.42 min, 2,396 segmentos): **12.68 min**, RTF **0.1969**. | **CONFIRMADA** | Fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local (`evaluacion.privado`); y clip de 300 s (`evaluacion.velocidad`) |
 | **H3** | La app cabe en Streamlit Community Cloud | < 2.7 GB de RAM y clip de 60 s en ≤ 60 s | Falla por memoria o > 120 s | Sin desplegar. Whisper `base` usó 225.9 MB de RAM en local. | **PENDIENTE** | Despliegue de prueba y clip de 60 s desde el celular |
-| **H4** | mmBERT-small afinado con sintéticos clasifica segmentos y generaliza | F1 macro ≥ 0.70 y recall de `tarea` ≥ 0.80 | F1 macro < 0.55 o recall de `tarea` < 0.65 | Hay 1,351 segmentos sintéticos (98.45 % únicos). El modelo no está entrenado ni evaluado. | **PENDIENTE** | `python -m evaluacion.detector --modelo <modelo> --etiquetas data/eval/reunion_etiquetada.csv` |
+| **H4** | mmBERT-small afinado con sintéticos clasifica segmentos y generaliza | F1 macro ≥ 0.70 y recall de `tarea` ≥ 0.80 | F1 macro < 0.55 o recall de `tarea` < 0.65 | Validación interna sobre datos sintéticos retenidos (195 segmentos): **F1 macro 0.8217**, recall de `tarea` **0.6897**, exactitud **82.05 %**. H4 sigue **PENDIENTE** porque sus umbrales pre-registrados exigen una reunión real etiquetada a mano (`data/eval/reunion_etiquetada.csv`). | **PENDIENTE** | `python -m evaluacion.detector --modelo <modelo> --etiquetas data/eval/reunion_etiquetada.csv` |
 | **H5a** | El detector ahorra tokens y tiempo en reuniones | −60 % de tokens, −40 % de tiempo y caída del recall de tareas ≤ 5 pts | Ahorro < 40 % o caída > 10 pts | Sin medición: el detector no está entrenado. | **PENDIENTE** | `python -m evaluacion.eficiencia --entrada <reunion.json> --modos solo_llm,detector` |
 | **H5b** | El detector ahorra tokens en ponencias | −25 % de tokens y caída de cobertura del mapa ≤ 10 % | Ahorro < 10 % | Sin medición: el detector no está entrenado. | **PENDIENTE** | Ídem, con `<ponencia.json>` |
 | **H6** | Ollama `qwen3:4b` devuelve JSON válido, incluido el mapa | ≥ 95 % válido y < 60 s por bloque | < 85 % o > 120 s por bloque | En reunión real de 64 min (6 bloques), el bloque 1 no respondió en 600 s (timeout, 0 de 1 válidos, 0.0 % válido, latencia > 120 s). Limitación: transcribe en tu PC; la estructuración local necesita GPU. | **FALSADA** | Fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local (`evaluacion.privado`); fixtures en `evaluacion.validez_json` |
@@ -117,13 +117,80 @@ Fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local
 
 ---
 
-### 3.3 H5a y H5b: ahorro con el detector (PENDIENTE)
+### 3.3 H4: afinamiento de mmBERT-small y validación interna (PENDIENTE)
 
-No hay medición. El detector mmBERT no está entrenado y la app usa "Solo LLM". La corrida con `--simulado` del arnés devuelve valores fijos de diseño (62.5 % y 27.0 % de ahorro de tokens), no mediciones, así que no se usan como evidencia.
+Se implementó el fine-tuning en CPU de `jhu-clsp/mmBERT-small` para clasificar la intención en segmentos transcritos en 5 clases (`idea`, `tarea`, `acuerdo`, `pregunta`, `relleno`), mitigando el desbalance de clases mediante pesos de pérdida inversamente proporcionales (`WeightedTrainer`).
+
+#### Partición por conversación sin fuga de datos
+El dataset sintético (90 conversaciones, 1,351 segmentos con 98.45 % de textos únicos) se dividió agrupando estrictamente **por conversación**, estratificando por tipo (`ponencia`, `reunion`, `entrevista`) con semilla determinista (42):
+- **Entrenamiento:** 63 conversaciones (946 segmentos, 70.0 %).
+- **Validación:** 14 conversaciones (210 segmentos, 15.5 %).
+- **Prueba sintética retenida:** 13 conversaciones (195 segmentos, 14.5 %).
+- **Invariante de aislamiento:** cero solapamiento de identificadores de conversación entre las particiones (`train ∩ val = ∅`, `train ∩ test = ∅`, `val ∩ test = ∅`).
+
+#### Entrenamiento en CPU
+- Épocas: 3.
+- Tamaño de lote: 8.
+- Tasa de aprendizaje: 3e-5.
+- Longitud máxima (`max_length`): 128 tokens.
+- Tiempo de entrenamiento: 543.8 s (~9.06 min en CPU AMD Ryzen 5 5600G).
+- Checkpoint final guardado en: `modelos/minuta-detector-mmbert-small/`.
+
+#### Métricas en la prueba sintética retenida (195 segmentos)
+- **Exactitud global:** **82.05 %** (160 / 195 aciertos).
+- **F1 Macro:** **0.8217**.
+
+| Clase | Precisión | Recall | F1-score | Soporte |
+|---|---|---|---|---|
+| `idea` | 0.7538 | 0.8750 | 0.8099 | 56 |
+| `tarea` | 0.8333 | **0.6897** | 0.7547 | 29 |
+| `acuerdo` | 0.7547 | 0.8000 | 0.7767 | 50 |
+| `pregunta` | 0.9714 | 0.9444 | 0.9577 | 36 |
+| `relleno` | 0.9444 | 0.7083 | 0.8095 | 24 |
+
+**Matriz de confusión (Filas: Real, Columnas: Predicción):**
+```text
+         idea   tare   acue   preg   rell
+ idea       49      1      5      0      1
+ tarea       3     20      6      0      0
+ acuerd      8      2     40      0      0
+ pregun      1      1      0     34      0
+ rellen      4      0      2      1     17
+```
+
+#### Demostración de clasificación sobre audios y fixtures
+Se ejecutó la inferencia del modelo afinado sobre tres fuentes:
+1. **Clip demo (`docs/demo/clip_demo.m4a`, 57.2 s, 9 segmentos):**
+   - `idea`: 7 segmentos (77.8 %)
+   - `pregunta`: 1 segmento (11.1 %)
+   - `relleno`: 1 segmento (11.1 %)
+   - Segmentos filtrados como relleno: 1 (11.1 %).
+2. **Fixture Reunión (`data/fixtures/transcripcion_reunion.json`, 346 s, 40 segmentos):**
+   - `idea`: 16 segmentos (40.0 %)
+   - `tarea`: 12 segmentos (30.0 %)
+   - `acuerdo`: 6 segmentos (15.0 %)
+   - `pregunta`: 3 segmentos (7.5 %)
+   - `relleno`: 3 segmentos (7.5 %)
+   - Segmentos filtrados como relleno: 3 (7.5 %).
+3. **Fixture Ponencia (`data/fixtures/transcripcion_ponencia.json`, 432 s, 40 segmentos):**
+   - `idea`: 34 segmentos (85.0 %)
+   - `tarea`: 1 segmento (2.5 %)
+   - `acuerdo`: 0 segmentos (0.0 %)
+   - `pregunta`: 3 segmentos (7.5 %)
+   - `relleno`: 2 segmentos (5.0 %)
+   - Segmentos filtrados como relleno: 2 (5.0 %).
+
+**Estado formal de H4:** Aunque el F1 macro en datos sintéticos (**0.8217**) supera el umbral de 0.70 y el modelo demuestra capacidad de discriminación acorde al tipo de contenido (alta concentración de tareas en reunión y de ideas en ponencia), **H4 sigue formalmente PENDIENTE** porque su criterio pre-registrado exige contrastación sobre una reunión real de trabajo etiquetada a mano (`data/eval/reunion_etiquetada.csv`), sin sustituir datos sintéticos por datos reales.
 
 ---
 
-### 3.4 H6: salida estructurada local con Ollama (FALSADA)
+### 3.4 H5a y H5b: ahorro con el detector (PENDIENTE)
+
+No hay medición. El detector mmBERT entrenado no está activo en la app pública para evitar la sobrecarga de dependencias pesadas (PyTorch) en Streamlit Community Cloud. La app desplegada opera en modo "Solo LLM".
+
+---
+
+### 3.5 H6: salida estructurada local con Ollama (FALSADA)
 
 Se evaluó `qwen3:4b` en Ollama (`temperature=0.0`, `think=false`) en dos escenarios:
 1. **Fixtures cortos:** 2 de 2 bloques válidos (100 %) con 64.09 s por bloque en promedio.
@@ -138,7 +205,7 @@ Whisper int8 resuelve la transcripción en local en CPU (H2 confirmada), mientra
 
 ---
 
-### 3.5 H7: problema real (CONFIRMADA, n = 2)
+### 3.6 H7: problema real (CONFIRMADA, n = 2)
 
 Hay notas de 2 de las 3 conversaciones requeridas (`docs/research/conversacion-01.md` y `docs/research/conversacion-02.md`).
 
@@ -154,7 +221,7 @@ Hay notas de 2 de las 3 conversaciones requeridas (`docs/research/conversacion-0
 
 ---
 
-### 3.6 H8 y H9: tareas y mapa mental (PENDIENTES)
+### 3.7 H8 y H9: tareas y mapa mental (PENDIENTES)
 
 - **H8 (tareas):** falta una reunión transcrita y etiquetada a mano. Las pruebas unitarias comprueban que el contrato descarta las citas que no aparecen en la transcripción.
 - **H9 (mapa mental):** aplica solo a la plantilla **Ponencia / Clase / Charla**. En la llamada real con Gemini (T70) sobre la transcripción de clase se obtuvieron 4 ramas principales y 0 citas descartadas en 19 s. H9 sigue **PENDIENTE** hasta completar la evaluación de utilidad con usuarios (HU10).

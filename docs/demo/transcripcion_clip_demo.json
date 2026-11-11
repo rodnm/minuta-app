@@ -1,0 +1,107 @@
+{
+  "audio_id": "clip_demo",
+  "duracion_s": 57.19,
+  "modelo": "small",
+  "glosario": [
+    "ablation study",
+    "baseline",
+    "benchmark",
+    "call for papers",
+    "camera-ready",
+    "citation count",
+    "clustering",
+    "conference proceedings",
+    "cross-validation",
+    "data augmentation",
+    "dataset",
+    "deep learning",
+    "draft",
+    "embeddings",
+    "ETL",
+    "feedback",
+    "fine-tuning",
+    "framework",
+    "grant",
+    "ground truth",
+    "h-index",
+    "journal",
+    "literature review",
+    "LLM",
+    "machine learning",
+    "neural network",
+    "open access",
+    "overfitting",
+    "p-value",
+    "panel data",
+    "paper",
+    "peer review",
+    "pipeline",
+    "preprint",
+    "prompt engineering",
+    "state of the art",
+    "submission",
+    "survey",
+    "trade-off",
+    "transfer learning",
+    "transformer",
+    "web scraping",
+    "workshop",
+    "zero-shot"
+  ],
+  "segmentos": [
+    {
+      "id": 1,
+      "inicio_s": 0.88,
+      "fin_s": 7.28,
+      "texto": "bienvenidos a la sesión sobre salidas estructuras en modelos del lenguaje vamos a revisar cuatro"
+    },
+    {
+      "id": 2,
+      "inicio_s": 7.28,
+      "fin_s": 13.92,
+      "texto": "conceptos clave para construir aplicaciones confiables primero las salidas estructuras obligan al modelo"
+    },
+    {
+      "id": 3,
+      "inicio_s": 13.92,
+      "fin_s": 20.92,
+      "texto": "a responder siguiendo un formato estricto como Jason en lugar de generar texto libre impredecible"
+    },
+    {
+      "id": 4,
+      "inicio_s": 20.92,
+      "fin_s": 27.44,
+      "texto": "segundo usamos esquemas de datos para validar tipos y exigir campos obligatorios antes de"
+    },
+    {
+      "id": 5,
+      "inicio_s": 27.44,
+      "fin_s": 34.56,
+      "texto": "procesar cualquier respuesta en el sistema tercero este enfoque elimina los errores comunes de integración"
+    },
+    {
+      "id": 6,
+      "inicio_s": 34.56,
+      "fin_s": 40.52,
+      "texto": "evitando que las aplicaciones fallen por cambios inesperados en el texto cuarto la estructura"
+    },
+    {
+      "id": 7,
+      "inicio_s": 40.52,
+      "fin_s": 48.44,
+      "texto": "nos permite asociar cada idea como cita literal y su marca con el tiempo en la fuente original"
+    },
+    {
+      "id": 8,
+      "inicio_s": 48.44,
+      "fin_s": 55.36,
+      "texto": "con estos cuatro pilares garantizamos flujos de trabajo robusto y frivc y verificables en"
+    },
+    {
+      "id": 9,
+      "inicio_s": 55.36,
+      "fin_s": 55.96,
+      "texto": "producción"
+    }
+  ]
+}

@@ -198,7 +198,7 @@ Con todas las horas usadas, el margen es de casi 60 % hoy y de cerca de 20 % en 
 | Voz a texto con Whisper (sesión 13) | `minuta/transcribir.py` | faster-whisper `small` int8 transcribe una hora en unos 8 minutos en CPU (H2), sin GPU, y hace posible el modo local. |
 | LLMs con salidas estructuradas (sesión 08) | `minuta/esquemas.py`, `minuta/estructurar.py` y `minuta/proveedores.py` | El modelo devuelve JSON con un esquema Pydantic, así que cada punto trae su cita y su minuto, y la app descarta las citas que no están en la transcripción. |
 
-El afinamiento de mmBERT (sesión 09, en `entrenamiento/` y `minuta/detector.py`) está en desarrollo, no activo en el producto (H4 pendiente).
+mmBERT afinado (sesión 09, en `entrenamiento/` y `minuta/detector.py`): primer modelo entrenado; F1 macro 0.8217 en datos sintéticos; no activo en la app pública (H4 pendiente).
 
 ---
 
