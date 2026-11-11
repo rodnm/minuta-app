@@ -1,73 +1,51 @@
-# Guion del Pitch de 3 Minutos: Minuta (T41)
+# Pitch de 3 minutos: Minuta
 
-**Proyecto:** Minuta — Alternativa económica a Plaud que usa tu celular con mapas mentales interactivos verificables.  
-**Presentador:** Rodrigo Norabuena (Founder & Lead Developer).  
-**Tiempo Límite:** 3 minutos exactos (a los 3 minutos se corta la presentación según la consigna).  
-**Formato:** Presentación en vivo con app Streamlit funcionando desde el navegador y video de respaldo de 60–90 s como plan B.
-
----
-
-## Estructura Cronometrada (3 Minutos)
-
-### Minuto 0:00 – 1:00 | El Problema y la Oportunidad (60 segundos)
-
-> *"Buenas noches a todos y al jurado de Q-Lab PUCP. Mi nombre es Rodrigo Norabuena.
->
-> ¿Alguna vez han salido de una clase de una hora, una reunión de investigación o una entrevista de trabajo con el celular lleno de audios que nunca volvieron a escuchar?
->
-> Transcribir y resumir a mano una sola hora de audio toma aproximadamente **cuatro horas de trabajo**, según estimaciones de servicios de transcripción. 
->
-> En el mercado existe una solución de hardware llamada **PLAUD Note**, pero cuesta entre **US$ 159 y US$ 189 dólares**, exige cargar un dispositivo físico adicional y cobra suscripciones anuales sin precios en soles. 
->
-> Por otro lado, herramientas como Google NotebookLM o Zoom AI Notes no permiten verificar las citas textuales segundo a segundo con audio enlazado, no ofrecen to-dos con responsable ni disponen de un modo privado local.
->
-> Además, los transcriptores genéricos fallan sistemáticamente con la jerga técnica: en nuestras mediciones empíricas con audio real, Whisper confundió *arXiv* con *'RCIP'* y *editorial board* con *'digital board'*.
->
-> Las 2 personas con las que hablé graban cada semana clases de 1 a 2 horas y las vuelven a escuchar completas. Ninguna compraría un Plaud: ya usan Zoom AI Notes o NotebookLM. Lo que necesitan es una herramienta que use el teléfono que ya llevan en el bolsillo."*
+- **Presentador:** Rodrigo Norabuena, founder.
+- **Formato de la consigna:** 0:00–0:30 problema, 0:30–2:30 demo en vivo, 2:30–3:00 negocio. A los 3:00 se corta y no hay ronda de preguntas.
+- **Diapositiva (opcional, una sola):** el one-liner.
+- **Texto hablado:** 326 palabras (70 + 183 + 73). Lo que va entre corchetes es una acción en pantalla y no se lee.
 
 ---
 
-### Minuto 1:00 – 2:00 | La Solución y Demo en Vivo (60 segundos)
+## 0:00–0:30 | Problema (texto hablado: 70 palabras)
 
-> *"Para resolver esto creamos **Minuta**: una alternativa económica a las grabadoras de hardware con IA que convierte las grabaciones de tu celular en transcripciones, resúmenes ejecutivos, listas de tareas y **mapas mentales interactivos verificables**.
->
-> Veámoslo funcionando en vivo:
->
-> [ACCIÓN EN PANTALLA: Mostrar app Streamlit en pantalla completa o navegador móvil].
->
-> Aquí tenemos nuestra aplicación responsiva optimizada para celular. Subimos una grabación o activamos la demo precalculada de una ponencia académica.
->
-> En segundos, Minuta genera el formato adecuado para cada grabación:
-> 1. Para ponencias y clases: **Notas de clase con mapa mental interactivo** en markmap.js. Cada nodo hijo incluye su minuto exacto y su cita textual literal. Como me dijo una de las personas entrevistadas: *'si estoy apurada voy momento exacto donde quiero escuchar nuevamente la explicación'*. Si pulso este botón `▶ [01:15]`, el reproductor salta automáticamente al segundo exacto donde se pronunció esa frase.
-> 2. Para reuniones: **Notas de reunión** con resumen, temas, acuerdos y **to-dos con responsable y fecha límite**, respaldados por citas verificadas (sin mapas mentales innecesarios).
-> 3. Para entrevistas: **Esquema por temas** estructurado en lista jerárquica con minuto y cita en cada punto, más libro de códigos.
-> 4. Y en todas las plantillas: la transcripción completa y exportación en un clic a **Markdown, Microsoft Word, Excel y texto plano**.
->
-> Si la reunión es confidencial, Minuta cuenta con un modo local que corre con Whisper int8 y Ollama en la laptop sin que un solo byte salga de la máquina."*
+> Soy Rodrigo Norabuena, founder de Minuta. Dos personas que graban sus clases con el celular me respondieron por escrito. Cada semana graban de una a tres veces, y después reescuchan grabaciones completas de una a dos horas para encontrar una explicación. Una calcula más de cinco horas para transcribir una reunión. Una grabadora con IA como Plaud cuesta entre 179 y 189 dólares, y ninguna de las dos la compraría.
 
 ---
 
-### Minuto 2:00 – 3:00 | Modelo de Negocio, Costos y Cierre (60 segundos)
+## 0:30–2:30 | Demo en vivo (texto hablado: 183 palabras)
 
-> *"Hablemos de los números y el modelo de negocio.
+> [Mostrar la app en la laptop, con el modo demo apagado.]
+> Esta es Minuta, corriendo en mi laptop. El modo demo está apagado: lo que van a ver se procesa ahora.
 >
-> ¿Cuánto nos cuesta procesar una hora de audio?
-> Sumando la transcripción acústica con faster-whisper (8 minutos de CPU) y la estructuración contextual con la API de Gemini 2.5 Flash a precios vigentes, el procesamiento de una hora completa de audio nos cuesta apenas **0.017 dólares, es decir, unos 6 céntimos de sol (S/ 0.064)**.
+> [Elegir la plantilla Ponencia / Clase / Charla y el modo "Solo LLM". Subir el clip.]
+> Elijo la plantilla de clase y el modo Solo LLM, y subo un clip de veinticinco segundos que grabé con mi celular. Mientras procesa: Whisper transcribe el audio en esta laptop, y Gemini 3.8 Flash arma las notas con salida estructurada.
 >
-> Sobre esta estructura unitaria sostenible, definimos tres planes en soles alineados con lo que los usuarios indicaron pagar:
-> 1. **Plan Gratis:** 2 horas al mes para probar el producto sin costo (inversión de adquisición de apenas S/ 0.13).
-> 2. **Plan Estudiante:** S/ 9.90 soles al mes por 15 horas de audio, con un margen de contribución del **90%** (+S/ 8.94 al mes).
-> 3. **Plan Pro:** S/ 24.90 soles al mes por 40 horas con modo local y exportaciones, dentro del rango de 15 a 25 soles indicado por los usuarios, con un margen del **90%** (+S/ 22.34 al mes).
+> [Mostrar las notas de clase y el mapa mental.]
+> Aquí están las notas: resumen, ideas clave y el mapa mental. Cada idea trae su minuto y una cita, y la app comprueba que la cita esté, palabra por palabra, en la transcripción. Si no está, la descarta. Como me escribió una de ellas: "si estoy apurada voy momento exacto donde quiero escuchar nuevamente la explicación".
 >
-> Frente a los más de 600 soles que cuesta importar una grabadora Plaud, Minuta entrega una solución accesible en moneda local, respetuosa de la privacidad, verificable matemáticamente y al alcance de cualquier estudiante o investigador con un smartphone.
+> [Pulsar ▶ en una idea.]
+> Pulso aquí y el audio salta al inicio del segmento que contiene esa cita.
 >
-> Muchas gracias. Quedo atento a las preguntas del jurado."*
+> [Abrir la exportación.]
+> Exporto a Word, Excel o Markdown, el mapa en HTML y la transcripción completa. Para reuniones hay notas con tareas y responsables, y para entrevistas, un esquema por temas. Y si la grabación es privada, hay un modo local experimental con Ollama: el audio y el texto no salen de la laptop.
+
+**Plan B**, si falla la red, la API o el audio:
+1. Encender el modo demo, que muestra un ejemplo precalculado, y seguir el mismo guion.
+2. Si la app no responde, poner el video de respaldo (enlace en el README).
 
 ---
 
-## Lista de Verificación para el Ensayo (HU11)
-- [ ] Cronómetro en mano: cortar exactamente a los 2 minutos con 50 segundos para dejar 10 segundos de holgura.
-- [ ] Pestaña del navegador abierta con la URL de Minuta en modo demo.
-- [ ] Video de respaldo (60–90 s) listo en pestaña adyacente por si falla la conexión en vivo.
-- [ ] Citar los fallos reales medidos (*arXiv* → *"RCIP"* y *editorial board* → *"digital board"*).
-- [ ] Citar el costo exacto medido por hora: S/ 0.064 soles.
+## 2:30–3:00 | Negocio (texto hablado: 73 palabras)
+
+> ¿Quién paga? El universitario. El plan Estudiante cuesta 9.90 soles al mes por quince horas, y el Pro, 24.90 por cuarenta horas, con modo local. Una escribió que pagaría de 15 a 25 soles; la otra, de 30 a 40 con uso ilimitado. Estimamos que una hora de audio nos cuesta unos 17 céntimos con los precios de 2027: margen cerca de 75 %. Lo que sigue: la tercera conversación y la URL pública.
+
+---
+
+## Antes de presentar
+
+- [ ] Ensayar con cronómetro. Cortar en 2:50 para tener 10 segundos de holgura.
+- [ ] Abrir la app en la laptop con `GEMINI_API_KEY` en `.env` y procesar el clip una vez antes de empezar.
+- [ ] Tener el clip de 20 a 30 segundos en la laptop, grabado con el celular.
+- [ ] Comprobar que el modo demo arranca apagado y que el interruptor funciona, para el plan B.
+- [ ] Tener abierto el video de respaldo en otra pestaña.

@@ -1,109 +1,96 @@
-# Estrategia Integral de Aseguramiento de Calidad (QA) — Minuta
+# Estrategia de calidad (QA) de Minuta
 
-**Proyecto:** Minuta (Startup Diplomatura Q-Lab PUCP)  
-**Rol responsable:** Senior QA Engineer (`qa`)  
-**Referencias normativas:** `odd/tasks/minuta.md` (S1–S16, H1–H9), `docs/plan/plan-maestro.md`, `docs/plan/roles.md`
-
----
-
-## 1. Principios Rectores y Filosofía de QA
-
-El aseguramiento de calidad en **Minuta** opera bajo el principio de **verificación con evidencia estricta y no por confianza**. Cada afirmación sobre funcionalidad, seguridad o rendimiento debe estar respaldada por un comando ejecutable, una prueba automatizada o un registro observable.
-
-Las metas fundamentales son:
-1. **Garantizar la privacidad absoluta (Regla L21):** Ningún archivo de audio se almacena en el servidor ni se versiona en Git.
-2. **Cero fugas de credenciales:** Escaneo estricto y continuo de secretos en el árbol de trabajo y en el historial de Git (`git log -p`).
-3. **Validación científica mediante HDD:** Las hipótesis experimentales (H1 a H9) cuentan con oráculos deterministas pre-registrados con umbrales inmutables.
-4. **Construcción ágil y disciplinada mediante ODD:** Desarrollo guiado por el documento de feature (`odd/tasks/minuta.md`), ciclo Test-First (RED → GREEN → Refactor) y unidades de cambio revisables (≤ ~400 líneas).
+- **Proyecto:** Minuta, proyecto final de la Diplomatura de Especialización en Ciencia de Datos de Q-Lab PUCP.
+- **Rol responsable:** ingeniero de QA del enjambre de agentes.
+- **Referencias:** las hipótesis y sus umbrales están en [docs/resultados.md](../resultados.md); la arquitectura, en [docs/arquitectura.md](../arquitectura.md).
 
 ---
 
-## 2. La Pirámide de Pruebas de Minuta
+## 1. Principios
 
-La arquitectura de pruebas está estructurada en tres niveles para maximizar la cobertura, minimizar el tiempo de ejecución y asegurar retroalimentación inmediata:
+Cada afirmación sobre funcionalidad, seguridad o rendimiento debe tener detrás un comando, una prueba automatizada o un registro observable.
+
+1. **Privacidad:** ningún audio se versiona en Git ni se guarda en el servidor.
+2. **Sin credenciales en el repositorio:** se revisan los archivos y el historial (`git log -p`).
+3. **Hipótesis pre-registradas:** H1 a H9 tienen oráculos en `evaluacion/` y umbrales fijados antes de ver los datos.
+4. **Primero la prueba:** antes de un cambio de comportamiento se escribe la prueba que falla (RED), luego la implementación (GREEN) y después la limpieza, en unidades de cambio revisables.
+
+---
+
+## 2. Niveles de prueba
 
 ```text
                   ▲
                  / \
-                /   \     E2E / Humo (Streamlit AppTest)
-               /     \    tests/e2e/test_smoke.py
+                /   \     De extremo a extremo (Streamlit AppTest)
+               /     \    tests/e2e/
               /-------\
-             /         \   Integración y Oráculos HDD
-            /           \  evaluacion/*.py (H1-H9, CLI reproducible)
+             /         \   Oráculos de hipótesis
+            /           \  evaluacion/*.py (H1-H9, desde la consola)
            /-------------\
-          /               \ Pruebas Unitarias de Contrato y Componentes
-         /_________________\ tests/unit/test_*.py (Pydantic v2, mocks deterministas)
+          /               \ Pruebas unitarias de contrato y componentes
+         /_________________\ tests/unit/test_*.py (Pydantic v2, proveedores simulados)
 ```
 
-### 2.1 Nivel 1: Pruebas Unitarias (Base de la Pirámide)
-- **Ubicación:** `tests/unit/test_*.py`
-- **Enfoque:** Validación exhaustiva del contrato de datos Pydantic v2 (`minuta/esquemas.py`), funciones de apoyo, parseo y formato.
-- **Aislamiento:** No realizan llamadas a APIs externas en vivo ni descargan modelos pesados. Utilizan fixtures locales (`data/fixtures/*.json`) y proveedores simulados deterministas.
-- **Contratos congelados:** Todo cambio estructural en `NodoMapa`, `MapaMental`, citas de `Evidencia` o plantillas requiere validación cruzada antes de su integración.
+### 2.1 Pruebas unitarias
+- **Ubicación:** `tests/unit/test_*.py`.
+- **Enfoque:** el contrato de datos Pydantic v2 (`minuta/esquemas.py`), la validación de citas literales, la estructuración, los proveedores y las exportaciones.
+- **Aislamiento:** no llaman a APIs externas ni descargan modelos pesados. Usan los fixtures de `data/fixtures/` y proveedores simulados.
 
-### 2.2 Nivel 2: Arneses de Evaluación y Oráculos HDD (Nivel Medio)
-- **Ubicación:** `evaluacion/*.py` y `tests/unit/test_evaluacion_*.py`
-- **Enfoque:** Medición cuantitativa de las hipótesis pre-registradas (H1: glosario ES-EN, H2: velocidad Whisper, H4: detector mmBERT, H5: ahorro de tokens, H6: validez JSON en Ollama, H8: precisión to-do, H9: mapa mental con evidencia).
-- **Determinismo:** Semillas fijas (`seed=42`), temperatura 0.0 en LLMs y reporte de métricas estándar (recall, F1 macro, RTF, porcentaje de validez).
+### 2.2 Oráculos de hipótesis
+- **Ubicación:** `evaluacion/*.py` y `tests/unit/test_evaluacion_*.py`.
+- **Enfoque:** medir H1 (glosario), H2 (velocidad de Whisper), H4 (detector), H5 (ahorro de tokens), H6 (JSON válido con Ollama), H8 (tareas) y H9 (mapa mental).
+- **Determinismo:** la app llama a los LLM con temperatura 0. El generador de sintéticos sin API no es reproducible entre procesos, porque usa `hash(tipo)` en la semilla.
 
-### 2.3 Nivel 3: Pruebas de Humo de Extremo a Extremo (Cúspide de la Pirámide)
-- **Ubicación:** `tests/e2e/test_smoke.py`
-- **Enfoque:** Simulación e2e de la aplicación Streamlit mediante `streamlit.testing.v1.AppTest`.
-- **Alcance verificado:**
-  - Inicialización sin excepciones en modo demo.
-  - Conmutación dinámica entre plantillas (*Ponencia / Clase / Charla*, *Reunión*, *Entrevista*).
-  - Interactividad del reproductor: clic en botones de marcas de tiempo `▶ [mm:ss]` y actualización de posición temporal en sesión.
-  - Reactividad de controles táctiles (*mobile-first*), caja de glosario y conmutador de modo demo.
-
----
-
-## 3. Metodología ODD: Test-First y Superficies Acotadas
-
-1. **Ciclo RED → GREEN → Refactor:** Antes de implementar la lógica funcional de una tarea, se define la prueba unitaria o arnés que verifique el comportamiento esperado. Se comprueba el fallo inicial (RED), se escribe la implementación mínima (GREEN) y se procede a la optimización.
-2. **Superficies de Edición Estrictas (`Allowed edit surfaces`):** Cada perfil del enjambre edita únicamente los archivos bajo su dominio. QA edita exclusivamente `tests/e2e/**`, `scripts/verificar.py` y `docs/qa/**`, protegiendo la integridad del código fuente de producción.
-3. **Líneas de Riesgo (`Risk lines`):** Cada entrega se califica con su nivel de riesgo inherente:
-   - *Passive:* Documentación o activos estáticos (revisión estructural).
-   - *Medium:* Cambios ordinarios de comportamiento con pruebas focalizadas.
-   - *High:* Datos irreversibles, seguridad/claves, contratos externos o despliegue en la nube (requiere verificación independiente de QA).
+### 2.3 Pruebas de extremo a extremo
+- **Ubicación:** `tests/e2e/`.
+- **Herramienta:** `streamlit.testing.v1.AppTest`.
+- **Alcance:**
+  - la app arranca con el modo demo apagado, y el interruptor muestra el ejemplo precalculado;
+  - el cambio entre las plantillas *Ponencia / Clase / Charla*, *Reunión* y *Entrevista*;
+  - los botones ▶ [mm:ss] y la posición del reproductor;
+  - los botones de exportación;
+  - sin `GEMINI_API_KEY`, la app muestra un error claro y se detiene.
 
 ---
 
-## 4. Seguridad, Privacidad y Regla L21
+## 3. Seguridad y privacidad
 
-La privacidad es una propuesta de valor central de Minuta frente a competidores en la nube:
-- **Regla de Privacidad L21:** Está terminantemente prohibido versionar o subir archivos de audio (`*.m4a`, `*.mp3`, `*.wav`, `*.ogg`, `*.webm`, `*.aac`). Todo audio de prueba o evaluación reside en `data/privado/`, la cual está ignorada en `.gitignore`.
-- **Rastreo en Git:** El script `scripts/verificar.py` bloquea cualquier commit o validación si detecta archivos `.env` o extensiones de audio en el índice de Git (`git ls-files`).
-- **Escaneo de Credenciales:** Búsqueda automatizada de claves API reales (`AIza...`, `sk-...`, `ghp_...`, llaves privadas RSA/SSH, AWS tokens) tanto en los archivos rastreados del árbol como en el historial completo de commits (`git log -p`).
-
----
-
-## 5. Verificación Independiente de Despliegue (Puerta 3)
-
-Como parte de la mitigación de riesgos de alto impacto (Riesgo 5: Despliegue, Riesgo 2: Claves), QA actúa como verificador independiente:
-1. **Prueba de Humo en URL Pública:** Verificación de la aplicación desplegada en Streamlit Cloud desde un dispositivo móvil real (una columna, botones táctiles ≥ 48px).
-2. **Prueba en Vivo:** Carga de un clip corto (60 s) grabado con el celular para verificar transcripción y generación de mapa mental en ≤ 60 s.
-3. **Consumo de Memoria:** Verificación de estabilidad bajo el umbral de 2.7 GB de RAM en Streamlit Cloud.
-4. **Protección de Costos:** Comprobación de que la clave de API de Gemini (`GEMINI_API_KEY`) resida exclusivamente en secrets seguros y cuente con tope de gasto activo.
-5. **Comportamiento sin Almacenamiento:** Validación de que el audio cargado durante la sesión del usuario resida únicamente en memoria volátil y sea liberado al concluir la sesión.
+- **Audio:** no se versionan archivos `*.m4a`, `*.mp3`, `*.wav`, `*.ogg`, `*.webm` ni `*.aac`. El audio de evaluación queda en `data/privado/`, que está en `.gitignore`.
+- **Índice de Git:** `scripts/verificar.py` falla si encuentra `.env` o archivos de audio en `git ls-files`.
+- **Credenciales:** `scripts/verificar.py` busca patrones de claves de API (`AIza…`, `sk-…`, `ghp_…`, llaves privadas e identificadores de claves de AWS) en los archivos del árbol y en el historial (`git log -p`).
 
 ---
 
-## 6. Puertas de Calidad (Quality Gates)
+## 4. Verificación del despliegue (pendiente)
 
-| Puerta | Responsable | Criterio de Aprobación | Artefacto / Evidencia |
-|---|---|---|---|
-| **Puerta 1** | Lead PM | Decisión empírica de hipótesis base (H1 glosario, H2 velocidad Whisper, H3 memoria Streamlit, H6 validez JSON Ollama). | Entradas registradas en `odd/tasks/minuta.md` (Log). |
-| **Puerta 2** | Lead PM / QA | Diff revisado contra superficie permitida, pruebas unitarias locales en verde, commits convencionales con coautoría. | Ejecución puntual por componente y commits de unidad. |
-| **Puerta 3** | QA (Indep.) | URL pública funcionando, modo demo sin fallos, clip en vivo desde celular, sin audio guardado, sin claves expuestas. | Reporte formal en `docs/qa/despliegue.md`. |
-| **Cierre** | QA | `python scripts/verificar.py` exit code 0, checklist de la sección 9 completo y pitch cronometrado ≤ 3:00. | Reporte final y aprobación de entrega. |
+No hay URL pública todavía (H3 pendiente). Cuando exista, se verificará:
+1. la app desde un celular real (una columna y botones táctiles);
+2. un clip de 60 s grabado con el celular, procesado en ≤ 60 s;
+3. el uso de memoria bajo 2.7 GB en Streamlit Community Cloud;
+4. que `GEMINI_API_KEY` esté solo en los secrets y con un tope de gasto;
+5. que el audio subido no se guarde al terminar la sesión.
 
 ---
 
-## 7. Script Automatizado de Verificación (`scripts/verificar.py`)
+## 5. Puertas de calidad
 
-El script `scripts/verificar.py` actúa como la puerta de control técnica definitiva del repositorio. Termina con código 0 si y solo si:
-1. Los 4 módulos clave (`minuta.esquemas`, `app.streamlit_app`, `entrenamiento.generar_sinteticos`, `evaluacion.terminos`) cargan sin error.
-2. El archivo `.env` NO está presente en el índice de Git.
-3. Ningún archivo con extensión de audio (`*.m4a`, `*.mp3`, `*.wav`, `*.ogg`, `*.webm`, `*.aac`) está en el índice de Git.
-4. No existen patrones de credenciales reales ni en el historial (`git log -p`) ni en los archivos del árbol.
-5. La suite completa de pruebas (`pytest -q`) finaliza con código de salida 0.
+| Puerta | Criterio | Evidencia |
+|---|---|---|
+| **1. Hipótesis base** | H1, H2, H3 y H6 decididas. | [docs/resultados.md](../resultados.md) |
+| **2. Cada unidad de cambio** | Diff revisado, pruebas de la unidad en verde y commit propio con coautoría declarada. | Historial de Git. |
+| **3. Despliegue** | URL pública verificada según la sección 4. | Pendiente. |
+| **Cierre** | `python scripts/verificar.py` termina con código 0, el checklist de la sección 9 está completo y el pitch dura ≤ 3:00. | [checklist_seccion9.md](checklist_seccion9.md) y [docs/pitch.md](../pitch.md) |
+
+---
+
+## 6. `scripts/verificar.py`
+
+Termina con código 0 solo si:
+1. los módulos clave (`minuta.esquemas`, `app.streamlit_app`, `entrenamiento.generar_sinteticos` y `evaluacion.terminos`) se importan sin error;
+2. `.env` no está en el índice de Git;
+3. ningún archivo de audio está en el índice de Git;
+4. no hay patrones de credenciales en el historial (`git log -p`) ni en los archivos del árbol;
+5. la suite de pruebas (`pytest -q`) termina con código 0.
+
+Para correrlo hacen falta las dependencias de desarrollo: `pip install -r requirements-dev.txt`.
