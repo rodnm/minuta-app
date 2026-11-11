@@ -1,6 +1,6 @@
 # Minuta
 
-> Proyecto final de la Diplomatura de Especialización en Ciencia de Datos de Q-Lab PUCP. Prototipo que corre en local; la URL pública está pendiente.
+> Proyecto final de la Diplomatura de Especialización en Ciencia de Datos de Q-Lab PUCP. App pública: https://minuta-app.streamlit.app/
 
 ---
 
@@ -78,7 +78,7 @@ Minuta convierte las clases que los universitarios graban con su celular en nota
 
 ## 6. Demo
 
-- **URL pública:** pendiente. Por ahora corre en local.
+- **URL pública:** https://minuta-app.streamlit.app/ (Streamlit Community Cloud). También corre en local.
 - **Video de respaldo (60–90 s):** pendiente (enlace por agregar).
 
 ### Cómo correrlo
@@ -173,7 +173,7 @@ Con todas las horas usadas, el margen es de casi 60 % hoy y de cerca de 20 % en 
 ### Qué sigue
 
 1. La tercera conversación con usuarios.
-2. Publicar la URL y probarla desde el celular (H3).
+2. Probar la URL pública desde el celular con audios de 1 hora (H3).
 3. Bajar el costo por hora (detector mmBERT o modelo Flash-Lite) y medirlo con audios de 1 hora.
 4. Evaluar las tareas (H8) y el mapa mental (H9) con grabaciones reales.
 
