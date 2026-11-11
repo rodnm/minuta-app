@@ -83,16 +83,50 @@ class ProveedorLLM(ABC):
         pass
 
 
+URL_GEMINI = "https://generativelanguage.googleapis.com/v1beta/models/{modelo}:generateContent"
+
+# Campos que calcula Minuta y que no se le piden al modelo.
+CAMPOS_INTERNOS = ("descartados", "modo")
+
+
+def _esquema_para_modelo(esquema: type[BaseModel]) -> dict[str, Any]:
+    """JSON Schema que se envía a Gemini: el del modelo Pydantic sin los campos internos."""
+    schema = esquema.model_json_schema()
+    propiedades = schema.get("properties", {})
+    for campo in CAMPOS_INTERNOS:
+        propiedades.pop(campo, None)
+    if "required" in schema:
+        schema["required"] = [c for c in schema["required"] if c not in CAMPOS_INTERNOS]
+    return schema
+
+
+def _texto_de_respuesta_gemini(datos: dict[str, Any]) -> str | None:
+    """Une las partes de texto del primer candidato, sin las partes de razonamiento."""
+    candidatos = datos.get("candidates") or []
+    if not candidatos:
+        return None
+    partes = (candidatos[0].get("content") or {}).get("parts") or []
+    textos = [p["text"] for p in partes if "text" in p and not p.get("thought")]
+    return "".join(textos) if textos else None
+
+
 class ProveedorGemini(ProveedorLLM):
-    """Proveedor para la API REST de Google Gemini (v1beta) con salida estructurada Pydantic."""
+    """Proveedor para la API REST de Google Gemini (v1beta) con salida estructurada Pydantic.
+
+    La clave viaja en la cabecera x-goog-api-key, nunca en la URL. Ante 429 o 503 reintenta una
+    vez con espera y luego pasa al modelo de respaldo; también pasa al respaldo, sin reintentar,
+    si la respuesta no trae candidatos, si vence el timeout o ante cualquier otro error HTTP. Tras cada llamada exitosa expone el modelo
+    que respondió (ultimo_modelo) y su usageMetadata (ultimo_uso).
+    """
 
     def __init__(
         self,
         api_key: str | None = None,
         modelo: str = "gemini-3.8-flash",
-        modelo_fallback: str = "gemini-2.5-flash",
-        timeout: float = 60.0,
+        modelo_fallback: str = "gemini-3.6-flash",
+        timeout: float = 180.0,
         max_reintentos: int = 2,
+        espera_reintento_s: float = 2.0,
     ) -> None:
         self.api_key = api_key or _obtener_gemini_api_key()
         if not self.api_key:
@@ -102,7 +136,13 @@ class ProveedorGemini(ProveedorLLM):
         self.modelo = modelo
         self.modelo_fallback = modelo_fallback
         self.timeout = timeout
-        self.max_reintentos = max_reintentos
+        self.max_reintentos = max(1, max_reintentos)
+        self.espera_reintento_s = espera_reintento_s
+        self.ultimo_modelo: str | None = None
+        self.ultimo_uso: dict[str, Any] | None = None
+
+    def _ocultar_clave(self, texto: str) -> str:
+        return texto.replace(self.api_key, "***") if self.api_key else texto
 
     def generar_estructurado(self, prompt: str, esquema: type[T]) -> T:
         """Invoca la API REST de Gemini y valida la respuesta contra el esquema Pydantic."""
@@ -110,70 +150,92 @@ class ProveedorGemini(ProveedorLLM):
         if self.modelo_fallback and self.modelo_fallback not in modelos_a_probar:
             modelos_a_probar.append(self.modelo_fallback)
 
-        schema_json = esquema.model_json_schema()
+        payload = {
+            "contents": [{"parts": [{"text": prompt}]}],
+            "generationConfig": {
+                "temperature": 0.0,
+                "responseMimeType": "application/json",
+                "responseJsonSchema": _esquema_para_modelo(esquema),
+            },
+        }
+        cabeceras = {"x-goog-api-key": self.api_key, "Content-Type": "application/json"}
 
-        ultimo_error: str | None = None
+        errores: list[str] = []
 
         for mod in modelos_a_probar:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{mod}:generateContent?key={self.api_key}"
-            payload = {
-                "contents": [{"parts": [{"text": prompt}]}],
-                "generationConfig": {
-                    "temperature": 0.0,
-                    "responseMimeType": "application/json",
-                    "responseSchema": schema_json,
-                },
-            }
+            url = URL_GEMINI.format(modelo=mod)
+            error_modelo = "sin intentos"
 
             for intento in range(1, self.max_reintentos + 1):
+                hay_reintento = intento < self.max_reintentos
                 try:
-                    resp = requests.post(url, json=payload, timeout=self.timeout)
-                    if resp.status_code == 200:
-                        data = resp.json()
-                        candidates = data.get("candidates", [])
-                        if not candidates:
-                            raise ErrorProveedorLLM(f"Respuesta de Gemini sin candidatos en modelo {mod}")
-
-                        parts = candidates[0].get("content", {}).get("parts", [])
-                        if not parts or "text" not in parts[0]:
-                            raise ErrorProveedorLLM(f"Respuesta de Gemini sin texto en modelo {mod}")
-
-                        texto_crudo = parts[0]["text"]
-                        texto_limpio = _limpiar_texto_json(texto_crudo)
-                        return esquema.model_validate_json(texto_limpio)
-
-                    if resp.status_code in (429, 503):
-                        ultimo_error = f"HTTP {resp.status_code} ({mod}): demanda alta o límite excedido."
-                        time.sleep(1.0 * intento)
+                    resp = requests.post(url, json=payload, headers=cabeceras, timeout=self.timeout)
+                except requests.Timeout:
+                    # El servidor pudo procesar (y cobrar) la petición: no se repite, se pasa al respaldo
+                    error_modelo = f"sin respuesta en {self.timeout:.0f} s (timeout)"
+                    break
+                except requests.RequestException as exc:
+                    error_modelo = f"error de conexión: {exc}"
+                    if hay_reintento:
+                        time.sleep(self.espera_reintento_s * intento)
                         continue
-
-                    if resp.status_code == 404:
-                        ultimo_error = f"HTTP 404 ({mod}): modelo no disponible en endpoint v1beta."
-                        break
-
-                    ultimo_error = f"HTTP {resp.status_code} ({mod}): {resp.text[:200]}"
                     break
 
-                except (requests.RequestException, ValidationError) as exc:
-                    ultimo_error = f"Excepción en {mod} intento {intento}: {exc}"
-                    if intento < self.max_reintentos:
-                        time.sleep(1.0 * intento)
+                if resp.status_code == 200:
+                    datos = resp.json()
+                    texto_crudo = _texto_de_respuesta_gemini(datos)
+                    if texto_crudo is None:
+                        motivo = (datos.get("promptFeedback") or {}).get("blockReason")
+                        error_modelo = "respuesta sin candidatos" + (f" ({motivo})" if motivo else "")
+                        break
+                    try:
+                        resultado = esquema.model_validate_json(_limpiar_texto_json(texto_crudo))
+                    except ValidationError as exc:
+                        error_modelo = f"JSON no válido contra {esquema.__name__}: {exc}"
+                        if hay_reintento:
+                            time.sleep(self.espera_reintento_s * intento)
+                            continue
+                        break
+                    self.ultimo_modelo = mod
+                    self.ultimo_uso = datos.get("usageMetadata")
+                    return resultado
 
-        raise ErrorProveedorLLM(f"Fallo en llamada a Gemini API: {ultimo_error}")
+                error_modelo = f"HTTP {resp.status_code}: {resp.text[:200]}"
+                if resp.status_code in (429, 503) and hay_reintento:
+                    time.sleep(self.espera_reintento_s * intento)
+                    continue
+                break
+
+            errores.append(f"{mod}: {error_modelo}")
+
+        raise ErrorProveedorLLM(self._ocultar_clave("Fallo en llamada a Gemini API: " + " | ".join(errores)))
 
 
 class ProveedorOllama(ProveedorLLM):
-    """Proveedor para la API local de Ollama (/api/generate) con JSON Schema y temperatura 0."""
+    """Proveedor para la API local de Ollama (/api/generate) con JSON Schema y temperatura 0.
+
+    El timeout por defecto es de 600 s (un bloque de 10 min en CPU puede tardar varios minutos)
+    y se configura con el parámetro timeout o la variable de entorno OLLAMA_TIMEOUT.
+    """
+
+    TIMEOUT_POR_DEFECTO_S = 600.0
 
     def __init__(
         self,
         host: str | None = None,
         modelo: str = "qwen3:4b",
-        timeout: float = 120.0,
+        timeout: float | None = None,
+        num_ctx: int = 8192,
     ) -> None:
         self.host = (host or os.getenv("OLLAMA_HOST", "http://localhost:11434")).rstrip("/")
         self.modelo = modelo
-        self.timeout = timeout
+        if timeout is None:
+            try:
+                timeout = float(os.getenv("OLLAMA_TIMEOUT", self.TIMEOUT_POR_DEFECTO_S))
+            except ValueError:
+                timeout = self.TIMEOUT_POR_DEFECTO_S
+        self.timeout = float(timeout)
+        self.num_ctx = num_ctx
 
     def generar_estructurado(self, prompt: str, esquema: type[T]) -> T:
         """Invoca el endpoint /api/generate de Ollama con format=esquema.model_json_schema()."""
@@ -185,6 +247,7 @@ class ProveedorOllama(ProveedorLLM):
             "stream": False,
             "options": {
                 "temperature": 0.0,
+                "num_ctx": self.num_ctx,
                 "think": False,
             },
             "think": False,

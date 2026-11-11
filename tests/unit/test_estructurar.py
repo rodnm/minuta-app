@@ -18,7 +18,9 @@ if str(ROOT_DIR) not in sys.path:
 
 from minuta.esquemas import (
     Acuerdo,
+    CodigoLibro,
     Evidencia,
+    FragmentoCodificado,
     MapaMental,
     NodoMapa,
     Pendiente,
@@ -331,7 +333,7 @@ def test_map_reduce_multiples_bloques_agrega_resultados():
         preguntas=[
             Pendiente(
                 descripcion="Monto del grant",
-                evidencia=Evidencia(segmento_ids=[4], inicio_s=920.0, cita="grants nacionales."),
+                evidencia=Evidencia(segmento_ids=[4], inicio_s=920.0, cita="los grants nacionales."),
             )
         ],
         mapa=MapaMental(
@@ -343,7 +345,7 @@ def test_map_reduce_multiples_bloques_agrega_resultados():
                     NodoMapa(
                         id="n2",
                         titulo="Tema B",
-                        evidencia=Evidencia(segmento_ids=[3], inicio_s=610.0, cita="financiamiento."),
+                        evidencia=Evidencia(segmento_ids=[3], inicio_s=610.0, cita="mitad sobre financiamiento."),
                     )
                 ],
             ),
@@ -370,3 +372,163 @@ def test_map_reduce_multiples_bloques_agrega_resultados():
     titulos_hijos = {h.titulo for h in hijos_raiz}
     assert "Tema A" in titulos_hijos
     assert "Tema B" in titulos_hijos
+
+
+# ---------------------------------------------------------------------------
+# 6. Correcciones de la auditoría (T50, L51 Unidad A: A4, A5, A6, A7)
+# ---------------------------------------------------------------------------
+
+def _segmentos_por_bloques(n_bloques: int) -> list[Segmento]:
+    """Un segmento de 600 s por bloque, con texto distinto en cada uno."""
+    return [
+        Segmento(
+            id=i,
+            inicio_s=600.0 * (i - 1),
+            fin_s=600.0 * i,
+            texto=f"En el bloque {i} hablamos del tema número {i} con detalle.",
+        )
+        for i in range(1, n_bloques + 1)
+    ]
+
+
+def _evidencia_bloque(i: int) -> Evidencia:
+    return Evidencia(segmento_ids=[i], inicio_s=600.0 * (i - 1), cita=f"hablamos del tema número {i}")
+
+
+def _recorrer_ids(nodo: NodoMapa) -> list[str]:
+    ids = [nodo.id]
+    for hijo in nodo.hijos:
+        ids.extend(_recorrer_ids(hijo))
+    return ids
+
+
+def test_validacion_reescribe_inicio_s_con_el_segmento_donde_esta_la_cita():
+    segmentos = [
+        Segmento(id=1, inicio_s=0.0, fin_s=10.0, texto="El peer review es un proceso riguroso."),
+        Segmento(id=2, inicio_s=10.0, fin_s=20.0, texto="Debemos someter el paper antes del deadline."),
+    ]
+    resultado_crudo = ResultadoReunion(
+        resumen_general="Resumen",
+        temas=[],
+        acuerdos=[],
+        tareas=[
+            Tarea(
+                descripcion="Someter paper",
+                # inicio_s inventado y segmento equivocado
+                evidencia=Evidencia(segmento_ids=[1], inicio_s=999.0, cita="someter el paper antes del deadline"),
+            )
+        ],
+        pendientes=[],
+        mapa=MapaMental(
+            titulo="Mapa",
+            raiz=NodoMapa(
+                id="root",
+                titulo="Raíz",
+                hijos=[
+                    NodoMapa(
+                        id="n1",
+                        titulo="Revisión",
+                        # segmento correcto pero inicio_s inventado
+                        evidencia=Evidencia(segmento_ids=[1], inicio_s=999.0, cita="peer review es un proceso"),
+                    )
+                ],
+            ),
+        ),
+    )
+
+    filtrado, descartados = validar_y_descartar_no_literales(resultado_crudo, segmentos)
+
+    assert descartados == 0
+    assert filtrado.tareas[0].evidencia.inicio_s == 10.0
+    assert filtrado.tareas[0].evidencia.segmento_ids == [2]
+    assert filtrado.mapa.raiz.hijos[0].evidencia.inicio_s == 0.0
+    assert filtrado.mapa.raiz.hijos[0].evidencia.segmento_ids == [1]
+
+
+def test_reduce_entrevista_de_dos_bloques_no_lee_resumen_general():
+    segs = _segmentos_por_bloques(2)
+    tx = Transcripcion(audio_id="entrevista_larga", duracion_s=1200.0, modelo="small", segmentos=segs)
+
+    def res_bloque(i: int) -> ResultadoEntrevista:
+        return ResultadoEntrevista(
+            libro=[CodigoLibro(codigo=f"C{i}", descripcion=f"Código {i}")],
+            fragmentos=[FragmentoCodificado(codigo=f"C{i}", evidencia=_evidencia_bloque(i))],
+            resumen_por_codigo={f"C{i}": f"Resumen {i}", "COMUN": f"parte {i}"},
+            mapa=MapaMental(
+                titulo=f"Mapa {i}",
+                raiz=NodoMapa(id="root", titulo="Raíz", hijos=[
+                    NodoMapa(id="n1", titulo=f"Rama {i}", evidencia=_evidencia_bloque(i))
+                ]),
+            ),
+        )
+
+    mock = ProveedorMock(respuestas=[res_bloque(1), res_bloque(2)])
+    resultado = estructurar_transcripcion(tx, tipo_plantilla="entrevista", proveedor=mock)
+
+    assert isinstance(resultado, ResultadoEntrevista)
+    assert len(mock.llamadas) == 2
+    assert [l.codigo for l in resultado.libro] == ["C1", "C2"]
+    assert [f.codigo for f in resultado.fragmentos] == ["C1", "C2"]
+    assert resultado.resumen_por_codigo == {"C1": "Resumen 1", "COMUN": "parte 1 parte 2", "C2": "Resumen 2"}
+    assert [h.titulo for h in resultado.mapa.raiz.hijos] == ["Rama 1", "Rama 2"]
+    assert resultado.descartados == 0
+
+
+def test_reduce_ids_de_nodos_unicos_entre_bloques():
+    segs = _segmentos_por_bloques(2)
+    tx = Transcripcion(audio_id="ponencia_larga", duracion_s=1200.0, modelo="small", segmentos=segs)
+
+    def res_bloque(i: int) -> ResultadoPonencia:
+        ev = _evidencia_bloque(i)
+        return ResultadoPonencia(
+            resumen_general=f"Bloque {i}.",
+            ideas_clave=[],
+            preguntas=[],
+            mapa=MapaMental(
+                titulo=f"Mapa {i}",
+                raiz=NodoMapa(id="root", titulo="Raíz", hijos=[
+                    NodoMapa(id="n1", titulo=f"Rama A{i}", evidencia=ev),
+                    NodoMapa(id="n2", titulo=f"Rama B{i}", evidencia=ev, hijos=[
+                        NodoMapa(id="n3", titulo=f"Hoja {i}", evidencia=ev),
+                    ]),
+                ]),
+            ),
+        )
+
+    mock = ProveedorMock(respuestas=[res_bloque(1), res_bloque(2)])
+    resultado = estructurar_transcripcion(tx, tipo_plantilla="ponencia", proveedor=mock)
+
+    ids = _recorrer_ids(resultado.mapa.raiz)
+    assert len(ids) == len(set(ids))
+    assert ids == ["root", "b1-n1", "b1-n2", "b1-n3", "b2-n1", "b2-n2", "b2-n3"]
+
+
+def test_reduce_cupo_de_ramas_por_bloque_cubre_todo_el_audio():
+    segs = _segmentos_por_bloques(4)
+    tx = Transcripcion(audio_id="ponencia_4_bloques", duracion_s=2400.0, modelo="small", segmentos=segs)
+
+    def res_bloque(i: int) -> ResultadoPonencia:
+        ev = _evidencia_bloque(i)
+        return ResultadoPonencia(
+            resumen_general=f"Bloque {i}.",
+            ideas_clave=[],
+            preguntas=[],
+            mapa=MapaMental(
+                titulo=f"Mapa {i}",
+                raiz=NodoMapa(id="root", titulo="Raíz", hijos=[
+                    NodoMapa(id=f"n{k}", titulo=f"Rama {i}.{k}", evidencia=ev) for k in range(1, 4)
+                ]),
+            ),
+        )
+
+    mock = ProveedorMock(respuestas=[res_bloque(i) for i in range(1, 5)])
+    resultado = estructurar_transcripcion(tx, tipo_plantilla="ponencia", proveedor=mock)
+
+    titulos = [h.titulo for h in resultado.mapa.raiz.hijos]
+    # 8 ramas como máximo, 2 por bloque, en orden cronológico: el final del audio queda en el mapa
+    assert titulos == [
+        "Rama 1.1", "Rama 1.2",
+        "Rama 2.1", "Rama 2.2",
+        "Rama 3.1", "Rama 3.2",
+        "Rama 4.1", "Rama 4.2",
+    ]

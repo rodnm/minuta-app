@@ -377,9 +377,11 @@ def llamar_gemini_rest(
             candidatos.append(m_alt)
 
     ultimo_error: str | None = None
+    # La clave viaja en la cabecera, nunca en la URL: un error de conexión imprime la URL completa.
+    cabeceras = {"x-goog-api-key": key, "Content-Type": "application/json"}
 
     for mod in candidatos:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{mod}:generateContent?key={key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{mod}:generateContent"
         payload = {
             "contents": [{"parts": [{"text": prompt}]}],
             "generationConfig": {
@@ -390,7 +392,7 @@ def llamar_gemini_rest(
 
         for intento in range(1, max_reintentos + 1):
             try:
-                resp = requests.post(url, json=payload, timeout=(10, timeout))
+                resp = requests.post(url, json=payload, headers=cabeceras, timeout=(10, timeout))
                 if resp.status_code == 200:
                     data = resp.json()
                     candidates = data.get("candidates", [])
@@ -416,7 +418,7 @@ def llamar_gemini_rest(
                 ultimo_error = f"Excepción en {mod} intento {intento}: {e}"
                 time.sleep(2 * intento)
 
-    raise RuntimeError(f"Fallo en llamada a la API de Gemini: {ultimo_error}")
+    raise RuntimeError(f"Fallo en llamada a la API de Gemini: {ultimo_error}".replace(key, "***"))
 
 
 def _normalizar_segmentos_gemini(

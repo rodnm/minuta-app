@@ -6,6 +6,8 @@ Define los esquemas del sistema: transcripción, evidencias literales,
 
 from __future__ import annotations
 
+import re
+import unicodedata
 from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
@@ -57,34 +59,81 @@ class Evidencia(BaseModel):
         return v
 
 
-def validar_evidencia_literal(cita: str, segmentos: list[Segmento]) -> bool:
-    """Verifica si la cita es una subcadena exacta y literal de los segmentos dados.
+# Longitud mínima de una cita, medida tras normalizarla. Descarta citas triviales como "de",
+# que aparecen en cualquier transcripción. La cita más corta de data/fixtures/ y data/demo/
+# tiene 6 palabras y 37 caracteres, así que todas siguen validando.
+MIN_PALABRAS_CITA = 3
+MIN_CARACTERES_CITA = 12
 
-    Comprueba la presencia en textos individuales o en las concatenaciones con y sin espacio.
+_COMILLAS_TIPOGRAFICAS = str.maketrans(
+    {
+        "“": '"',  # “
+        "”": '"',  # ”
+        "„": '"',  # „
+        "‟": '"',  # ‟
+        "«": '"',  # «
+        "»": '"',  # »
+        "‘": "'",  # ‘
+        "’": "'",  # ’
+        "‚": "'",  # ‚
+        "‛": "'",  # ‛
+    }
+)
+
+
+def normalizar_texto_cita(texto: str) -> str:
+    """Normaliza un texto para comparar citas: NFC, comillas rectas y espacios colapsados."""
+    texto = unicodedata.normalize("NFC", texto).translate(_COMILLAS_TIPOGRAFICAS)
+    return re.sub(r"\s+", " ", texto).strip()
+
+
+def localizar_cita_literal(cita: str, segmentos: list[Segmento]) -> list[Segmento]:
+    """Devuelve los segmentos que abarca la primera aparición literal de la cita.
+
+    Compara ambos lados normalizados (NFC, espacios múltiples y comillas tipográficas).
+    Busca primero en cada segmento y luego en la unión de segmentos separados por un espacio;
+    nunca une segmentos sin espacio. Devuelve una lista vacía si la cita no aparece o si es
+    más corta que MIN_PALABRAS_CITA palabras o MIN_CARACTERES_CITA caracteres.
     """
     if not cita or not segmentos:
-        return False
+        return []
 
-    cita_limpia = cita.strip()
-    if not cita_limpia:
-        return False
+    cita_norm = normalizar_texto_cita(cita)
+    if len(cita_norm) < MIN_CARACTERES_CITA or len(cita_norm.split(" ")) < MIN_PALABRAS_CITA:
+        return []
 
-    # 1. Comprobar en cada segmento individual
-    for seg in segmentos:
-        if cita_limpia in seg.texto:
-            return True
+    textos = [normalizar_texto_cita(s.texto) for s in segmentos]
 
-    # 2. Concatenación con espacio
-    texto_con_espacio = " ".join(s.texto for s in segmentos)
-    if cita_limpia in texto_con_espacio:
-        return True
+    # 1. Dentro de un solo segmento
+    for seg, texto in zip(segmentos, textos):
+        if cita_norm in texto:
+            return [seg]
 
-    # 3. Concatenación directa sin espacio (útil en casos de palabras pegadas o puntuación)
-    texto_sin_espacio = "".join(s.texto for s in segmentos)
-    if cita_limpia in texto_sin_espacio:
-        return True
+    # 2. Entre segmentos consecutivos unidos por un espacio
+    unido = ""
+    tramos: list[tuple[int, int, Segmento]] = []
+    for seg, texto in zip(segmentos, textos):
+        if not texto:
+            continue
+        if unido:
+            unido += " "
+        inicio = len(unido)
+        unido += texto
+        tramos.append((inicio, len(unido), seg))
 
-    return False
+    pos = unido.find(cita_norm)
+    if pos < 0:
+        return []
+    fin = pos + len(cita_norm)
+    return [seg for inicio, final, seg in tramos if inicio < fin and final > pos]
+
+
+def validar_evidencia_literal(cita: str, segmentos: list[Segmento]) -> bool:
+    """Verifica si la cita es una subcadena literal de los segmentos dados.
+
+    Ver localizar_cita_literal para la normalización y la longitud mínima.
+    """
+    return bool(localizar_cita_literal(cita, segmentos))
 
 
 class NodoMapa(BaseModel):

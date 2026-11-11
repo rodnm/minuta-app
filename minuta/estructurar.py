@@ -32,7 +32,7 @@ from minuta.esquemas import (
     Tarea,
     Tema,
     Transcripcion,
-    validar_evidencia_literal,
+    localizar_cita_literal,
 )
 from minuta.proveedores import ProveedorLLM
 
@@ -73,29 +73,26 @@ def particionar_en_bloques(
 
 
 def _comprobar_cita_literal(ev: Evidencia, segmentos: list[Segmento]) -> bool:
-    """Verifica si la cita de evidencia es una subcadena literal exacta en los segmentos del bloque."""
+    """Verifica si la cita de evidencia es una subcadena literal en los segmentos del bloque.
+
+    Si la encuentra, reescribe segmento_ids con los segmentos donde está la cita e inicio_s con
+    el inicio del primero de ellos, para que el botón ▶ salte al lugar real y no al que inventó el LLM.
+    """
     if not ev.cita or not ev.cita.strip():
         return False
 
-    # 1. Comprobar si coincide con los segmentos específicamente referenciados
-    segs_referenciados = [
-        s for s in segmentos if s.id in ev.segmento_ids or str(s.id) in [str(x) for x in ev.segmento_ids]
-    ]
-    if segs_referenciados and validar_evidencia_literal(ev.cita, segs_referenciados):
-        return True
+    # 1. Buscar primero en los segmentos referenciados por el modelo; 2. luego en todo el bloque
+    ids_referenciados = {str(x) for x in ev.segmento_ids}
+    segs_referenciados = [s for s in segmentos if str(s.id) in ids_referenciados]
+    encontrados = localizar_cita_literal(ev.cita, segs_referenciados) if segs_referenciados else []
+    if not encontrados:
+        encontrados = localizar_cita_literal(ev.cita, segmentos)
+    if not encontrados:
+        return False
 
-    # 2. Comprobar en el conjunto completo de segmentos del bloque
-    if validar_evidencia_literal(ev.cita, segmentos):
-        # Localizar el segmento real donde aparece y ajustar segmento_ids si fuera necesario
-        ids_encontrados: list[str | int] = []
-        for s in segmentos:
-            if ev.cita.strip() in s.texto:
-                ids_encontrados.append(s.id)
-        if ids_encontrados:
-            ev.segmento_ids = ids_encontrados
-        return True
-
-    return False
+    ev.segmento_ids = [s.id for s in encontrados]
+    ev.inicio_s = encontrados[0].inicio_s
+    return True
 
 
 def _filtrar_nodos_recursivo(
@@ -298,25 +295,74 @@ TRANSCRIPCIÓN DEL BLOQUE:
 """
 
 
+def _prefijar_ids(nodo: NodoMapa, prefijo: str) -> NodoMapa:
+    """Copia el subárbol anteponiendo el prefijo a cada id, para que no choquen entre bloques."""
+    return nodo.model_copy(
+        update={
+            "id": f"{prefijo}{nodo.id}",
+            "hijos": [_prefijar_ids(hijo, prefijo) for hijo in nodo.hijos],
+        }
+    )
+
+
+def _seleccionar_ramas_por_cupo(
+    ramas_por_bloque: list[list[NodoMapa]],
+    max_ramas: int,
+) -> list[NodoMapa]:
+    """Reparte las max_ramas ramas principales entre los bloques para cubrir todo el audio.
+
+    Toma por turnos la siguiente rama de cada bloque, sin repetir títulos. Si hay más bloques
+    con ramas que cupos, elige bloques espaciados a lo largo del audio. El resultado conserva
+    el orden cronológico (bloque y posición dentro del bloque).
+    """
+    bloques = [i for i, ramas in enumerate(ramas_por_bloque) if ramas]
+    if max_ramas <= 0 or not bloques:
+        return []
+    if len(bloques) > max_ramas:
+        paso = (len(bloques) - 1) / (max_ramas - 1) if max_ramas > 1 else 0.0
+        bloques = [bloques[round(k * paso)] for k in range(max_ramas)]
+
+    siguiente = {i: 0 for i in bloques}
+    titulos_vistos: set[str] = set()
+    elegidas: list[tuple[int, int, NodoMapa]] = []
+
+    while len(elegidas) < max_ramas:
+        hubo_avance = False
+        for i in bloques:
+            if len(elegidas) >= max_ramas:
+                break
+            ramas = ramas_por_bloque[i]
+            while siguiente[i] < len(ramas):
+                pos = siguiente[i]
+                siguiente[i] += 1
+                clave = ramas[pos].titulo.strip().lower()
+                if clave not in titulos_vistos:
+                    titulos_vistos.add(clave)
+                    elegidas.append((i, pos, ramas[pos]))
+                    hubo_avance = True
+                    break
+        if not hubo_avance:
+            break
+
+    elegidas.sort(key=lambda e: (e[0], e[1]))
+    return [rama for _, _, rama in elegidas]
+
+
 def _unificar_mapas(
     mapas: list[MapaMental],
     titulo_general: str,
     max_ramas: int = 8,
 ) -> MapaMental:
-    """Unifica las ramas principales de múltiples árboles de mapa mental bajo una raíz común."""
-    todas_las_ramas: list[NodoMapa] = []
-    titulos_vistos: set[str] = set()
+    """Unifica las ramas principales de múltiples árboles de mapa mental bajo una raíz común.
 
-    for m in mapas:
-        for hijo in m.raiz.hijos:
-            clave = hijo.titulo.strip().lower()
-            if clave not in titulos_vistos:
-                titulos_vistos.add(clave)
-                todas_las_ramas.append(hijo)
-
-    # Si excede el máximo de ramas principales (8), conservar las primeras max_ramas
-    if len(todas_las_ramas) > max_ramas:
-        todas_las_ramas = todas_las_ramas[:max_ramas]
+    Los ids de cada bloque i se renumeran como b{i}-{id} y las ramas se eligen con un cupo
+    por bloque, para que el mapa no pierda el final del audio.
+    """
+    ramas_por_bloque = [
+        [_prefijar_ids(hijo, f"b{i}-") for hijo in m.raiz.hijos]
+        for i, m in enumerate(mapas, start=1)
+    ]
+    todas_las_ramas = _seleccionar_ramas_por_cupo(ramas_por_bloque, max_ramas)
 
     raiz_unificada = NodoMapa(
         id="root",
@@ -440,11 +486,14 @@ def estructurar_transcripcion(
 
     # Fase REDUCE: Unificar resultados parciales de múltiples bloques
     total_descartados = sum(r.descartados for r in resultados_bloques)
-    resumen_unificado = "\n\n".join(
-        f"[Bloque {i}] {r.resumen_general}" if len(resultados_bloques) > 1 else r.resumen_general
-        for i, r in enumerate(resultados_bloques, start=1)
-        if r.resumen_general.strip()
-    )
+
+    def _unificar_resumenes() -> str:
+        # Solo Ponencia y Reunión tienen resumen_general; Entrevista no lo tiene.
+        return "\n\n".join(
+            f"[Bloque {i}] {r.resumen_general}"
+            for i, r in enumerate(resultados_bloques, start=1)
+            if r.resumen_general.strip()
+        )
 
     titulo_mapa = resultados_bloques[0].mapa.titulo or transcripcion.audio_id
     mapas = [r.mapa for r in resultados_bloques]
@@ -467,7 +516,7 @@ def estructurar_transcripcion(
             todas_preguntas.extend(r.preguntas)
 
         return ResultadoPonencia(
-            resumen_general=resumen_unificado,
+            resumen_general=_unificar_resumenes(),
             ideas_clave=todas_ideas,
             preguntas=todas_preguntas,
             mapa=mapa_unificado,
@@ -497,7 +546,7 @@ def estructurar_transcripcion(
             todos_pendientes.extend(r.pendientes)
 
         return ResultadoReunion(
-            resumen_general=resumen_unificado,
+            resumen_general=_unificar_resumenes(),
             temas=todos_temas,
             acuerdos=todos_acuerdos,
             tareas=todas_tareas,

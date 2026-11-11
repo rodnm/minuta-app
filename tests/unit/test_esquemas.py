@@ -5,6 +5,7 @@ Metodología test-first (T01, S1, S2, S15).
 
 import json
 import sys
+import unicodedata
 from pathlib import Path
 import pytest
 from pydantic import ValidationError
@@ -97,7 +98,40 @@ def test_evidencia_invalida_segmento_ids_vacio():
 def test_validar_evidencia_literal_subcadena_exacta():
     seg = Segmento(id=1, inicio_s=0.0, fin_s=5.0, texto="Presentamos un paper en la conferencia Scopus.")
     assert validar_evidencia_literal("paper en la conferencia", [seg]) is True
-    assert validar_evidencia_literal("Scopus.", [seg]) is True
+    assert validar_evidencia_literal("la conferencia Scopus.", [seg]) is True
+
+
+def test_validar_evidencia_literal_normaliza_espacios_nfd_y_comillas():
+    seg = Segmento(
+        id=1,
+        inicio_s=0.0,
+        fin_s=6.0,
+        texto="El “peer review” es  clave para la publicación del paper.",
+    )
+    # Doble espacio en la transcripción y espacio simple en la cita
+    assert validar_evidencia_literal("es clave para la publicación", [seg]) is True
+    # Cita con espacios múltiples y saltos de línea
+    assert validar_evidencia_literal("clave   para\nla publicación", [seg]) is True
+    # Cita en NFD (tilde descompuesta) contra transcripción en NFC
+    cita_nfd = unicodedata.normalize("NFD", "para la publicación del paper")
+    assert cita_nfd != "para la publicación del paper"
+    assert validar_evidencia_literal(cita_nfd, [seg]) is True
+    # Comillas rectas en la cita frente a comillas tipográficas en la transcripción
+    assert validar_evidencia_literal('El "peer review" es', [seg]) is True
+
+
+def test_validar_evidencia_literal_descarta_citas_demasiado_cortas():
+    seg = Segmento(id=1, inicio_s=0.0, fin_s=5.0, texto="Presentamos un paper de la conferencia Scopus.")
+    assert validar_evidencia_literal("de", [seg]) is False
+    assert validar_evidencia_literal("Scopus.", [seg]) is False
+    assert validar_evidencia_literal("la conferencia", [seg]) is False
+
+
+def test_validar_evidencia_literal_rechaza_union_de_segmentos_sin_espacio():
+    seg1 = Segmento(id=1, inicio_s=0.0, fin_s=4.0, texto="Debemos revisar el pe")
+    seg2 = Segmento(id=2, inicio_s=4.0, fin_s=8.0, texto="er review antes del deadline.")
+    # Solo existe si se pegan los segmentos sin espacio: "pe" + "er" -> "peer"
+    assert validar_evidencia_literal("revisar el peer review antes", [seg1, seg2]) is False
 
 
 def test_validar_evidencia_literal_falsa_o_alterada():
@@ -282,6 +316,32 @@ def test_fixtures_todas_las_citas_son_literales(nombre_tx, nombre_res, modelo_re
         es_literal = validar_evidencia_literal(ev.cita, segs_referenciados)
         assert es_literal, (
             f"Cita no literal en {nombre_res}: '{ev.cita}' no encontrada en segmentos {ev.segmento_ids}"
+        )
+
+
+DEMO_DIR = Path(__file__).resolve().parents[2] / "data" / "demo"
+
+
+@pytest.mark.parametrize(
+    "nombre_tx,nombre_demo,modelo_res_cls",
+    [
+        ("transcripcion_ponencia.json", "ponencia.json", ResultadoPonencia),
+        ("transcripcion_reunion.json", "reunion.json", ResultadoReunion),
+        ("transcripcion_entrevista.json", "entrevista.json", ResultadoEntrevista),
+    ],
+)
+def test_demo_todas_las_citas_son_literales(nombre_tx, nombre_demo, modelo_res_cls):
+    tx = Transcripcion.model_validate_json((FIXTURES_DIR / nombre_tx).read_text(encoding="utf-8"))
+    res = modelo_res_cls.model_validate_json((DEMO_DIR / nombre_demo).read_text(encoding="utf-8"))
+
+    mapa_segmentos = {s.id: s for s in tx.segmentos}
+    todas_evidencias = _extraer_evidencias_de_objeto(res)
+    assert len(todas_evidencias) > 0
+
+    for ev in todas_evidencias:
+        segs_referenciados = [mapa_segmentos[sid] for sid in ev.segmento_ids if sid in mapa_segmentos]
+        assert validar_evidencia_literal(ev.cita, segs_referenciados), (
+            f"Cita no literal en demo {nombre_demo}: '{ev.cita}'"
         )
 
 
