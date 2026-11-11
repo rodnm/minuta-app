@@ -186,6 +186,41 @@
       ]
     }
   },
+  "terminos_ingles": [
+    {
+      "termino": "journal",
+      "transcrito": "journal",
+      "evidencia": {
+        "segmento_ids": [
+          2
+        ],
+        "inicio_s": 15.0,
+        "cita": "publicar en un journal indexado en Scopus y Web of Science."
+      }
+    },
+    {
+      "termino": "feedback",
+      "transcrito": "feedback",
+      "evidencia": {
+        "segmento_ids": [
+          11
+        ],
+        "inicio_s": 150.0,
+        "cita": "Subir un preprint a repositorios como arXiv o SSRN permite recibir feedback temprano"
+      }
+    },
+    {
+      "termino": "deadline",
+      "transcrito": "deadline",
+      "evidencia": {
+        "segmento_ids": [
+          18
+        ],
+        "inicio_s": 255.0,
+        "cita": "cronograma del grant respetando estrictamente el deadline fijado en las bases."
+      }
+    }
+  ],
   "descartados": 0,
   "modo": "solo_llm"
 }

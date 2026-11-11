@@ -82,3 +82,33 @@ def test_t69_opcion_ollama_en_streamlit_cloud(monkeypatch: pytest.MonkeyPatch):
     from app.streamlit_app import _formatear_proveedor, PROVEEDOR_OLLAMA
     etiqueta = _formatear_proveedor(PROVEEDOR_OLLAMA)
     assert "solo en tu laptop" in etiqueta.lower(), f"La opción debe indicar 'solo en tu laptop': {etiqueta}"
+
+
+def test_t79_seccion_terminos_ingles_en_modo_demo():
+    """T79: La sección 'Términos en inglés' aparece en modo demo en la plantilla Ponencia y textos estudiantiles."""
+    at = AppTest.from_file(str(ROOT_DIR / "app" / "streamlit_app.py"), default_timeout=30)
+    at.run()
+
+    # Activar modo demo
+    demo_toggle = [t for t in at.toggle if "demo" in (t.label or "").lower()][0]
+    demo_toggle.set_value(True).run()
+
+    # Seleccionar Ponencia / Clase / Charla
+    at.selectbox[0].select("Ponencia / Clase / Charla").run()
+    assert not at.exception, f"Excepción en modo demo: {at.exception}"
+
+    # Verificar que aparece el encabezado de Términos en inglés
+    textos_markdown = [m.value for m in at.markdown]
+    assert any("Términos en inglés" in m for m in textos_markdown), (
+        "Debe mostrarse la sección 'Términos en inglés' en modo demo"
+    )
+
+    # Verificar que el texto de opciones avanzadas dice 'Términos en inglés que esperas escuchar'
+    # y NO 'Glosario contextual de investigación'
+    textos_area = [ta.label for ta in at.text_area]
+    assert any("Términos en inglés que esperas escuchar" in t for t in textos_area), (
+        "El text_area de glosario debe llamarse 'Términos en inglés que esperas escuchar (opcional):'"
+    )
+    assert not any("Glosario contextual de investigación" in t for t in textos_area), (
+        "No debe quedar texto de 'Glosario contextual de investigación'"
+    )
