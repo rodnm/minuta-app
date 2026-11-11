@@ -19,6 +19,7 @@ Este documento reúne lo que se midió, lo que falta medir y el costo por hora d
 |---|---|
 | Confirmada | H2 (velocidad de Whisper en clip y en reunión real) y H7 (problema real, con n = 2) |
 | Falsada | H1 (glosario de términos en inglés) y H6 (Ollama local en CPU: timeout > 600 s) |
+| No concluyente | H1b (detección posterior con LLM: mejora +12.0 pts en zona intermedia) |
 | Pendiente | H3, H4, H5a, H5b, H8 y H9 |
 
 ---
@@ -28,6 +29,7 @@ Este documento reúne lo que se midió, lo que falta medir y el costo por hora d
 | H# | Hipótesis | Confirmada si | Falsada si | Resultado | Veredicto | Oráculo |
 |---|---|---|---|---|---|---|
 | **H1** | El glosario ES-EN en la transcripción mejora los términos técnicos en inglés | Recall ≥ 85 % y ≥ +15 pts sobre la línea base (25 frases) | Mejora < 10 pts o recall < 70 % | Línea base: 86 % (43 de 50). Con el glosario del producto (`hotwords`): 86 % (43 de 50). Mejora: **+0 pts**. En un clip continuo de 5 min: 90 % sin glosario y 88 % con `hotwords`. | **FALSADA** | `python -m evaluacion.terminos --audios data/privado/frases/ --modelo small --tipo-glosario producto` |
+| **H1b** | Detección posterior de términos en inglés con LLM | Recall ≥ 85 % y ≥ +15 pts sobre la línea base (50 términos) | Mejora < 10 pts o recall < 70 % | Línea base: 86.0 % (43 de 50). Con Gemini Flash: **98.0 %** (49 de 50) o 100.0 % normalizando guiones. Mejora: **+12.0 pts**. Clip demo (`docs/demo/clip_demo.m4a`): detecta JSON transcrito como 'Jason' con 0 descartes. | **NO CONCLUYENTE** | `python -m evaluacion.terminos` + detección estructurada LLM |
 | **H2** | `small` int8 con VAD procesa 1 hora de audio en CPU | ≤ 20 min por hora (RTF ≤ 0.33) | > 30 min por hora | Clip 300 s: RTF **0.1336** (8.0 min/h), 404.1 MB RAM. Reunión real (64.42 min, 2,396 segmentos): **12.68 min**, RTF **0.1969**. | **CONFIRMADA** | Fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local (`evaluacion.privado`); y clip de 300 s (`evaluacion.velocidad`) |
 | **H3** | La app cabe en Streamlit Community Cloud | < 2.7 GB de RAM y clip de 60 s en ≤ 60 s | Falla por memoria o > 120 s | Sin desplegar. Whisper `base` usó 225.9 MB de RAM en local. | **PENDIENTE** | Despliegue de prueba y clip de 60 s desde el celular |
 | **H4** | mmBERT-small afinado con sintéticos clasifica segmentos y generaliza | F1 macro ≥ 0.70 y recall de `tarea` ≥ 0.80 | F1 macro < 0.55 o recall de `tarea` < 0.65 | Hay 1,351 segmentos sintéticos (98.45 % únicos). El modelo no está entrenado ni evaluado. | **PENDIENTE** | `python -m evaluacion.detector --modelo <modelo> --etiquetas data/eval/reunion_etiquetada.csv` |
@@ -72,6 +74,23 @@ Los 7 errores de la línea base:
 **Limitación:** 29 de los 50 términos evaluados ya estaban en el glosario. Falta reportar el recall dentro y fuera del glosario.
 
 **Decisión:** el glosario no mejora el reconocimiento cuando un término en inglés suena casi igual que una palabra en español (*grant* → "gran"). Minuta no promete corregir términos: el LLM no tiene esa instrucción y las citas deben ser literales, así que conservan lo que transcribió Whisper. El error queda a la vista en la cita y se puede escuchar con ▶.
+
+#### 3.1.1 H1b: detección de términos en inglés con LLM (NO CONCLUYENTE)
+
+Como plan B pre-registrado de H1 ante la falsación del glosario en Whisper, se evaluó si el LLM (Gemini Flash) identifica los términos técnicos en inglés a partir de la transcripción cruda de `small` int8 sin glosario, asociando la forma canónica en inglés con el fragmento transcrito.
+
+Se evaluaron las mismas 25 frases (`data/privado/frases/`, 50 términos esperados):
+- **Línea base (sin glosario, `small` int8):** 43 de 50, recall 86.00 %.
+- **Detección posterior con Gemini Flash:** 49 de 50 (**98.00 %**) comparando texto sin guiones (50 de 50, 100.00 % si se normalizan guiones como en *coauthors* / *co-authors*).
+- **Mejora:** **+12.00 pts porcentuales** sobre la línea base.
+
+**Veredicto bajo los umbrales pre-registrados de H1:**
+- Confirmada requería: recall ≥ 85 % y mejora ≥ +15 pts. Con una línea base de 86 %, alcanzar +15 pts exigiría 101 % de recall en 50 términos.
+- Falsada requería: mejora < 10 pts o recall < 70 %. Al lograr +12.00 pts y 98.00 % de recall, **no queda falsada**.
+- Veredicto formal: **NO CONCLUYENTE** (zona intermedia de la regla HDD pre-registrada).
+
+**Prueba en camino real (`docs/demo/clip_demo.m4a`):**
+En un clip de clase de 57.2 s, Whisper transcribió *"siguiendo un formato estricto como Jason"*. El pipeline con Gemini Flash identificó el término `JSON` con `transcrito='Jason'`, marca de tiempo `13.92s` y cita literal verificada, con 0 elementos descartados.
 
 ---
 

@@ -39,7 +39,7 @@
 - Usan Zoom AI Notes y luego ChatGPT o Gemini para resumir (conversación 01). La referencia de esa persona es la prueba gratuita de 3 usos de Zoom, que coincide con la cuota del plan Básico (ver la competencia en la sección 7).
 - Existen grabadoras con IA como Plaud, pero ninguna de las 2 personas compraría una: "No pagaría porque es una inversión fuerte para algo que puedo hacer con mi celular" (conversación 02).
 
-**Términos en inglés dentro del español:** en nuestra medición (H1), Whisper `small` acertó 43 de 50 términos (86 %) en 25 frases grabadas con el celular. Confundió *arXiv* con "RCIP" y *editorial board* con "digital board". El glosario no mejoró el resultado (+0 pts). Minuta no promete corregir esos términos: las citas son literales, así que el error queda a la vista y se puede escuchar con ▶.
+**Términos en inglés dentro del español:** en nuestra medición (H1), Whisper `small` acertó 43 de 50 términos (86 %) en 25 frases grabadas con el celular. Confundió *arXiv* con "RCIP" y *editorial board* con "digital board". El glosario en Whisper no mejoró el resultado (+0 pts). Minuta no altera la transcripción cruda: las citas son literales, pero en la estructuración posterior (H1b) identifica los términos en inglés esperados (98 % de recall) y muestra la forma canónica junto a lo transcrito cuando difieren (por ejemplo, JSON cuando se transcribió «Jason»).
 
 **La nube:** una persona no subiría grabaciones con información personal o privada (conversación 02). La otra no sube grabaciones a la nube porque son archivos pesados (conversación 01).
 
