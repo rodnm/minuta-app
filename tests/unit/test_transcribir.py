@@ -139,6 +139,42 @@ def test_transcribir_audio_con_glosario_adicional(mock_whisper_class, tmp_path):
     assert termino_nuevo in t_kwargs.get("hotwords", "")
 
 
+@patch("minuta.transcribir.WhisperModel")
+def test_transcribir_audio_con_modelo_precargado_no_recarga(mock_whisper_class, tmp_path):
+    """B8: con un modelo ya cargado (caché de la app) no se instancia otro WhisperModel."""
+    modelo_precargado = MagicMock()
+    modelo_precargado.transcribe.return_value = (
+        iter([_crear_segmento_mock(1, 0.0, 3.0, " Hola a todos. ")]),
+        SimpleNamespace(duration=3.0, language="es"),
+    )
+    audio_fake = tmp_path / "audio_cache.wav"
+    audio_fake.write_bytes(b"dummy")
+
+    tx = transcribir_audio(audio_fake, modelo="base", modelo_cargado=modelo_precargado)
+
+    mock_whisper_class.assert_not_called()
+    modelo_precargado.transcribe.assert_called_once()
+    _, t_kwargs = modelo_precargado.transcribe.call_args
+    assert t_kwargs["language"] == "es"
+    assert tx.modelo == "base"
+    assert [s.texto for s in tx.segmentos] == ["Hola a todos."]
+
+
+@patch("minuta.transcribir.WhisperModel")
+def test_cargar_modelo_whisper_usa_cache_fuera_del_repo(mock_whisper_class):
+    """B8: cargar_modelo_whisper construye el modelo con int8 y la caché fuera del repo."""
+    from minuta.transcribir import cargar_modelo_whisper
+
+    modelo = cargar_modelo_whisper("base")
+
+    assert modelo is mock_whisper_class.return_value
+    args, kwargs = mock_whisper_class.call_args
+    assert args[0] == "base"
+    assert kwargs["device"] == "cpu"
+    assert kwargs["compute_type"] == "int8"
+    assert kwargs["download_root"]
+
+
 @patch("minuta.transcribir.transcribir_audio")
 def test_cli_ejecucion_con_salida_json(mock_transcribir, tmp_path):
     """Verifica la invocación CLI con argumento --salida guardando JSON validado con Pydantic."""

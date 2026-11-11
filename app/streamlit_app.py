@@ -6,39 +6,53 @@ Graba una ponencia, clase, reunión o entrevista, y genera:
 - Resumen ejecutivo estructurado.
 - Mapa mental interactivo con markmap.js.
 - Lista de acuerdos y to-do con citas textuales verificables.
+
+Se lanza con ``streamlit run app/streamlit_app.py`` desde la raíz del repositorio.
 """
 
 from __future__ import annotations
 
 import html
+import importlib.util
 import json
+import logging
 import os
 from pathlib import Path
+import re
+import sys
 import tempfile
 from typing import Any
 
-import streamlit as st
-import streamlit.components.v1 as components
+# B1: `streamlit run app/streamlit_app.py` solo agrega app/ a sys.path.
+# La raíz del repositorio debe estar en sys.path antes de importar el paquete minuta.
+RAIZ_REPO = Path(__file__).resolve().parent.parent
+if str(RAIZ_REPO) not in sys.path:
+    sys.path.insert(0, str(RAIZ_REPO))
 
-from minuta.detector import DetectorSegmentos
-from minuta.esquemas import (
+import requests  # noqa: E402
+import streamlit as st  # noqa: E402
+import streamlit.components.v1 as components  # noqa: E402
+
+from minuta.detector import DetectorSegmentos  # noqa: E402
+from minuta.esquemas import (  # noqa: E402
     NodoMapa,
-    MapaMental,
     ResultadoPonencia,
     ResultadoReunion,
     ResultadoEntrevista,
     Transcripcion,
 )
-from minuta.estructurar import estructurar_transcripcion, TipoPlantilla
-from minuta.exportar import (
+from minuta.estructurar import estructurar_transcripcion, TipoPlantilla  # noqa: E402
+from minuta.exportar import (  # noqa: E402
     exportar_docx,
     exportar_mapa_html,
     exportar_markdown,
     exportar_xlsx,
     exportar_transcripcion_texto,
 )
-from minuta.proveedores import ProveedorGemini, ProveedorMock, ProveedorOllama, ProveedorLLM
-from minuta.transcribir import transcribir_audio
+from minuta.proveedores import ProveedorGemini, ProveedorOllama, ProveedorLLM  # noqa: E402
+from minuta.transcribir import cargar_modelo_whisper, transcribir_audio  # noqa: E402
+
+logger = logging.getLogger(__name__)
 
 # Versión exacta y verificada de markmap-autoloader en CDN jsDelivr
 VERSION_MARKMAP_CDN = "0.17.2"
@@ -48,6 +62,22 @@ PLANTILLAS_DISPONIBLES = [
     "Reunión",
     "Entrevista",
 ]
+
+SLUG_POR_PLANTILLA: dict[str, str] = {
+    "Ponencia / Clase / Charla": "ponencia",
+    "Reunión": "reunion",
+    "Entrevista": "entrevista",
+}
+
+PROVEEDOR_GEMINI = "Gemini 3.8 Flash (Nube)"
+PROVEEDOR_OLLAMA = "Ollama local (qwen3:4b)"
+
+ETIQUETAS_MODO_ANALISIS: dict[str, str] = {
+    "solo_llm": "Solo LLM",
+    "detector": "Detector mmBERT + LLM (en desarrollo)",
+}
+
+OLLAMA_HOST_DEFECTO = "http://localhost:11434"
 
 GLOSARIO_DEFECTO = [
     "journal",
@@ -186,7 +216,7 @@ def cargar_fixture_demo(plantilla: str) -> tuple[Any, Transcripcion | None]:
         raise ValueError(f"Plantilla no reconocida: {plantilla}")
 
     archivo_res, archivo_trans = ARCHIVOS_FIXTURES[plantilla]
-    ruta_base = Path(__file__).resolve().parent.parent / "data" / "fixtures"
+    ruta_base = RAIZ_REPO / "data" / "fixtures"
 
     ruta_res = ruta_base / archivo_res
     ruta_trans = ruta_base / archivo_trans
@@ -213,6 +243,254 @@ def cargar_fixture_demo(plantilla: str) -> tuple[Any, Transcripcion | None]:
         transcripcion = Transcripcion.model_validate(datos_trans)
 
     return resultado, transcripcion
+
+
+# ---------------------------------------------------------------------------
+# Configuración del entorno, claves y modelos en caché
+# ---------------------------------------------------------------------------
+
+
+def cargar_variables_entorno() -> None:
+    """B2: lee el archivo .env de la raíz del repo, si existe, sin pisar variables ya definidas."""
+    try:
+        from dotenv import load_dotenv
+    except ImportError:  # pragma: no cover - python-dotenv figura en requirements.txt
+        return
+    load_dotenv(RAIZ_REPO / ".env")
+
+
+def obtener_api_key_gemini() -> str | None:
+    """Devuelve GEMINI_API_KEY desde el entorno (.env incluido) o desde los secrets de Streamlit."""
+    clave = (os.getenv("GEMINI_API_KEY") or "").strip()
+    if clave:
+        return clave
+    try:
+        # load_if_toml_exists() evita el st.error que Streamlit muestra si no hay secrets.toml.
+        if not st.secrets.load_if_toml_exists():
+            return None
+        clave = str(st.secrets.get("GEMINI_API_KEY") or "").strip()
+    except Exception:
+        return None
+    return clave or None
+
+
+def detector_disponible() -> bool:
+    """Indica si el detector mmBERT puede cargarse (requiere transformers, que no se despliega)."""
+    return importlib.util.find_spec("transformers") is not None
+
+
+@st.cache_resource(show_spinner="Cargando el modelo de transcripción (solo la primera vez)…")
+def obtener_modelo_whisper(modelo: str) -> Any:
+    """B8: carga el modelo Whisper una sola vez por proceso y lo reutiliza entre sesiones."""
+    return cargar_modelo_whisper(modelo)
+
+
+@st.cache_resource(show_spinner=False)
+def obtener_detector() -> DetectorSegmentos:
+    """Carga el detector mmBERT (en desarrollo) una sola vez por proceso."""
+    return DetectorSegmentos()
+
+
+def firma_entrada(fuente_audio: Any, plantilla: str) -> tuple[Any, ...]:
+    """Identifica la entrada actual (archivo subido y plantilla) para detectar cambios."""
+    if fuente_audio is None:
+        return (None, plantilla)
+    return (
+        getattr(fuente_audio, "file_id", None),
+        getattr(fuente_audio, "name", None),
+        getattr(fuente_audio, "size", None),
+        plantilla,
+    )
+
+
+def descartar_resultado_si_cambio_la_entrada(fuente_audio: Any, plantilla: str) -> None:
+    """B9: borra el resultado anterior cuando cambian el archivo subido o la plantilla."""
+    firma = firma_entrada(fuente_audio, plantilla)
+    if st.session_state.get("firma_entrada") == firma:
+        return
+    habia_resultado = "resultado_procesado" in st.session_state
+    st.session_state.pop("resultado_procesado", None)
+    st.session_state.pop("transcripcion_procesada", None)
+    if habia_resultado:
+        st.session_state["reproductor_inicio_s"] = 0.0
+    st.session_state["firma_entrada"] = firma
+
+
+# ---------------------------------------------------------------------------
+# Procesamiento del audio
+# ---------------------------------------------------------------------------
+
+
+def _transcribir_archivo_temporal(fuente_audio: Any, modelo_whisper: str, glosario: list[str]) -> Transcripcion:
+    """Transcribe el audio desde un archivo temporal que se borra siempre (no se guarda audio)."""
+    nombre_archivo = getattr(fuente_audio, "name", "audio.m4a")
+    sufijo = Path(nombre_archivo).suffix or ".m4a"
+    ruta_tmp: str | None = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=sufijo, delete=False) as tmp_file:
+            ruta_tmp = tmp_file.name
+            tmp_file.write(fuente_audio.getvalue())
+        return transcribir_audio(
+            ruta_tmp,
+            modelo=modelo_whisper,
+            glosario_adicional=glosario,
+            modelo_cargado=obtener_modelo_whisper(modelo_whisper),
+        )
+    finally:
+        if ruta_tmp and os.path.exists(ruta_tmp):
+            try:
+                os.unlink(ruta_tmp)
+            except OSError:
+                pass
+
+
+class OllamaNoDisponible(Exception):
+    """Ollama no responde: solo existe cuando la app se ejecuta en local."""
+
+
+_PATRONES_SENSIBLES: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"https?://\S+", re.IGNORECASE), "[dirección oculta]"),
+    (re.compile(r"HTTPS?ConnectionPool\([^)]*\)", re.IGNORECASE), "conexión"),
+    (re.compile(r"\burl:\s*\S+", re.IGNORECASE), "url: [oculta]"),
+    (re.compile(r"[\w.-]*googleapis\.com\S*", re.IGNORECASE), "[servicio de IA]"),
+    (re.compile(r"\b(key|api[_-]?key|x-goog-api-key)\s*[=:]\s*[^\s&,;]+", re.IGNORECASE), r"\1=[oculta]"),
+]
+
+
+def ocultar_datos_sensibles(texto: str, secretos: list[str | None] | None = None) -> str:
+    """Quita del texto las claves conocidas, las URL y los hosts de la API antes de mostrarlo."""
+    limpio = texto
+    for secreto in secretos or []:
+        if secreto:
+            limpio = limpio.replace(secreto, "[clave oculta]")
+    for patron, reemplazo in _PATRONES_SENSIBLES:
+        limpio = patron.sub(reemplazo, limpio)
+    limpio = " ".join(limpio.split())
+    return limpio[:300] + ("…" if len(limpio) > 300 else "")
+
+
+def _cadena_de_causas(exc: BaseException) -> list[BaseException]:
+    cadena: list[BaseException] = []
+    actual: BaseException | None = exc
+    while actual is not None and actual not in cadena:
+        cadena.append(actual)
+        actual = actual.__cause__ or actual.__context__
+    return cadena
+
+
+def mensaje_error_amigable(
+    exc: BaseException,
+    etapa: str,
+    usar_ollama: bool,
+    secretos: list[str | None] | None = None,
+) -> str:
+    """B4: traduce una excepción a un mensaje en español, con la causa y sin URL ni claves."""
+    causas = _cadena_de_causas(exc)
+    sin_conexion = any(isinstance(c, requests.ConnectionError) for c in causas)
+    if isinstance(exc, OllamaNoDisponible) or (usar_ollama and sin_conexion):
+        return (
+            "No se pudo conectar con Ollama. Ollama solo está disponible cuando ejecutas la app en local, "
+            "en tu computadora y con Ollama abierto. En la versión publicada, elige Gemini o activa el modo demo."
+        )
+
+    if any(isinstance(c, requests.Timeout) for c in causas):
+        causa = "el servicio tardó demasiado en responder"
+    elif sin_conexion:
+        causa = "no hay conexión con el servicio"
+    else:
+        causa = ocultar_datos_sensibles(str(exc) or type(exc).__name__, secretos)
+
+    if etapa == "transcripcion":
+        return (
+            f"No se pudo transcribir el audio. Causa: {causa}. "
+            "Prueba con otro archivo (m4a, mp3 o wav) o con el modelo Whisper `base`."
+        )
+    nombre_proveedor = "Ollama" if usar_ollama else "Gemini"
+    return (
+        f"No se pudo estructurar la transcripción con {nombre_proveedor}. Causa: {causa}. "
+        "Vuelve a intentarlo en unos minutos; si el problema sigue, activa el modo demo."
+    )
+
+
+def ollama_responde(host: str, timeout_s: float = 3.0) -> bool:
+    """Comprueba con una consulta corta que el servidor de Ollama esté en marcha."""
+    try:
+        requests.get(f"{host.rstrip('/')}/api/tags", timeout=timeout_s)
+    except requests.RequestException:
+        return False
+    return True
+
+
+def procesar_audio(
+    fuente_audio: Any,
+    clave_plantilla: str,
+    glosario: list[str],
+    modelo_whisper: str,
+    usar_ollama: bool,
+    api_key: str | None,
+    modo_analisis: str,
+) -> tuple[Any, Transcripcion] | None:
+    """Transcribe y estructura el audio subido. Devuelve (resultado, transcripción) o None si falla.
+
+    Los errores se muestran con st.error en español (sin traceback, URL ni clave) y el
+    estado del proceso queda marcado como error.
+    """
+    usa_detector = modo_analisis == "detector"
+    total_pasos = 3 if usa_detector else 2
+    nombre_proveedor = "Ollama" if usar_ollama else "Gemini"
+    etapa = "transcripcion"
+    mensaje_error: str | None = None
+    resultado: Any = None
+    transcripcion: Transcripcion | None = None
+
+    with st.status("Procesando audio con Minuta…", expanded=True) as estado:
+        try:
+            if usar_ollama and not ollama_responde(os.getenv("OLLAMA_HOST") or OLLAMA_HOST_DEFECTO):
+                raise OllamaNoDisponible()
+
+            st.write(f"🎙️ Paso 1 de {total_pasos}: transcribiendo el audio con faster-whisper…")
+            transcripcion = _transcribir_archivo_temporal(fuente_audio, modelo_whisper, glosario)
+
+            etapa = "estructuracion"
+            detector = None
+            if usa_detector:
+                # B6: este texto solo aparece cuando el detector se usa.
+                st.write("🧠 Paso 2 de 3: clasificando segmentos con el detector mmBERT (en desarrollo)…")
+                detector = obtener_detector()
+
+            st.write(
+                f"✨ Paso {total_pasos} de {total_pasos}: estructurando notas, mapa y tareas con {nombre_proveedor}…"
+            )
+            tipo_plantilla: TipoPlantilla = clave_plantilla  # type: ignore[assignment]
+            proveedor: ProveedorLLM = ProveedorOllama() if usar_ollama else ProveedorGemini(api_key=api_key)
+            resultado = estructurar_transcripcion(
+                transcripcion=transcripcion,
+                tipo_plantilla=tipo_plantilla,
+                proveedor=proveedor,
+                modo=modo_analisis,  # type: ignore[arg-type]
+                detector=detector,
+            )
+        except Exception as exc:  # noqa: BLE001 - todo error se muestra como mensaje amigable
+            mensaje_error = mensaje_error_amigable(exc, etapa, usar_ollama, secretos=[api_key])
+            logger.warning(
+                "Fallo al procesar el audio (%s, %s): %s",
+                etapa,
+                type(exc).__name__,
+                ocultar_datos_sensibles(str(exc), [api_key]),
+            )
+            estado.update(label="No se pudo procesar el audio", state="error", expanded=True)
+        else:
+            estado.update(label="¡Procesamiento completado!", state="complete", expanded=False)
+
+    if mensaje_error is not None or transcripcion is None:
+        st.error(mensaje_error or "No se pudo procesar el audio.")
+        return None
+    return resultado, transcripcion
+
+
+# ---------------------------------------------------------------------------
+# Presentación
+# ---------------------------------------------------------------------------
 
 
 def aplicar_estilos_movil() -> None:
@@ -291,187 +569,22 @@ def aplicar_estilos_movil() -> None:
     )
 
 
-def main() -> None:
-    """Punto de entrada de la aplicación Streamlit."""
-    st.set_page_config(
-        page_title="Minuta - Alternativa a Plaud con tu Celular",
-        page_icon="🎙️",
-        layout="centered",
-        initial_sidebar_state="collapsed",
-    )
+def _slug_de_resultado(resultado: Any) -> str:
+    if isinstance(resultado, ResultadoPonencia):
+        return "ponencia"
+    if isinstance(resultado, ResultadoReunion):
+        return "reunion"
+    return "entrevista"
 
-    aplicar_estilos_movil()
 
-    # Inicialización de estado en sesión
-    if "reproductor_inicio_s" not in st.session_state:
-        st.session_state["reproductor_inicio_s"] = 0.0
-    if "glosario_usuario" not in st.session_state:
-        st.session_state["glosario_usuario"] = ", ".join(GLOSARIO_DEFECTO)
+def renderizar_resultado(resultado: Any, transcripcion: Transcripcion | None, fuente_audio: Any = None) -> None:
+    """Muestra el reproductor, las pestañas de la plantilla y la sección de exportación.
 
-    # Encabezado principal
-    st.title("🎙️ Minuta")
-    st.caption("Tu alternativa económica a las grabadoras con IA (como Plaud) usando tu celular.")
-
-    # 1. Guía de grabación visible
-    st.info(
-        "📱 **Guía de grabación con celular:**\n\n"
-        "Graba con la grabadora de voz nativa del celular (preferentemente en **modo avión** "
-        "para charlas largas) y sube el archivo aquí."
-    )
-
-    # 2. Configuración y subida en acordeón o bloques limpios
-    with st.expander("⚙️ Configuración y Glosario", expanded=False):
-        plantilla = st.selectbox(
-            "Plantilla de análisis:",
-            options=PLANTILLAS_DISPONIBLES,
-            index=0,
-            help="Selecciona el formato adecuado según la naturaleza del audio.",
-        )
-
-        glosario_texto = st.text_area(
-            "Glosario contextual de investigación:",
-            value=st.session_state["glosario_usuario"],
-            help="Términos técnicos en inglés o español que deben ser reconocidos con precisión.",
-            height=75,
-        )
-        st.session_state["glosario_usuario"] = glosario_texto
-
-        modo_demo = st.toggle(
-            "🧪 Modo Demo (cargar datos precalculados sin red)",
-            value=True,
-            help="Carga fixtures locales instantáneamente sin llamar a modelos ni consumir cuota.",
-        )
-
-        proveedor_seleccionado = st.selectbox(
-            "Proveedor de IA para estructuración:",
-            options=["Gemini 3.8 Flash (Nube)", "Ollama local (qwen3:4b)"],
-            index=0,
-            help="Selecciona el motor de lenguaje para estructurar el resumen y mapa mental.",
-        )
-        modo_analisis = st.radio(
-            "Modo de análisis:",
-            options=["detector", "solo_llm"],
-            index=0,
-            format_func=lambda m: "Detector mmBERT + LLM (Ahorro de tokens)" if m == "detector" else "Solo LLM directo",
-            help="El detector filtra relleno acústico y prioriza tareas antes de consultar al LLM.",
-        )
-        modelo_whisper = st.selectbox(
-            "Modelo de transcripción Whisper:",
-            options=["small", "base"],
-            index=0,
-            help="small para mayor fidelidad acústica en laptop; base para bajo consumo de memoria.",
-        )
-
-    # Si no está en el expander, se muestra la plantilla seleccionada actualmente
-    if "plantilla" not in locals():
-        plantilla = "Ponencia / Clase / Charla"
-    if "modo_demo" not in locals():
-        modo_demo = True
-
-    # Clave de plantilla normalizada
-    clave_slug: str = "ponencia" if plantilla == "Ponencia / Clase / Charla" else ("reunion" if plantilla == "Reunión" else "entrevista")
-
-    # 3. Carga de audio
-    st.subheader("1. Audio de la sesión")
-
-    # Opción condicional si la versión de streamlit soporta st.audio_input
-    if hasattr(st, "audio_input"):
-        st.write("Graba un audio directo:")
-        audio_grabado = getattr(st, "audio_input")("Grabar audio con el micrófono")
-    else:
-        audio_grabado = None
-
-    archivo_audio = st.file_uploader(
-        "Sube tu archivo de audio (grabado con el celular):",
-        type=["m4a", "mp3", "wav"],
-        help="Formatos soportados: m4a, mp3, wav. Máximo 200 MB.",
-    )
-
-    fuente_audio = archivo_audio or audio_grabado
-
-    # 4. Procesamiento o carga de datos
-    resultado: Any = None
-    transcripcion: Transcripcion | None = None
-
-    if modo_demo:
-        st.success(f"⚡ Modo Demo activo: Mostrando datos precalculados de **{plantilla}**.")
-        try:
-            resultado, transcripcion = cargar_fixture_demo(plantilla)
-        except Exception as err:
-            st.error(f"Error al cargar fixture de demo: {err}")
-            return
-    else:
-        if fuente_audio is None:
-            st.warning("👈 Por favor sube un archivo de audio o activa el Modo Demo para ver un ejemplo inmediato.")
-            return
-
-        boton_procesar = st.button("🚀 Procesar Audio con Minuta", type="primary")
-        if boton_procesar:
-            with st.status("Procesando audio con Minuta...", expanded=True) as status_box:
-                st.write("🎙️ 1/3: Transcribiendo audio con faster-whisper...")
-                nombre_archivo = getattr(fuente_audio, "name", "audio.m4a")
-                sufijo = Path(nombre_archivo).suffix or ".m4a"
-                with tempfile.NamedTemporaryFile(suffix=sufijo, delete=False) as tmp_file:
-                    tmp_file.write(fuente_audio.getvalue())
-                    tmp_path = tmp_file.name
-
-                try:
-                    glosario_lista = [t.strip() for t in glosario_texto.split(",") if t.strip()]
-                    transcripcion = transcribir_audio(
-                        tmp_path,
-                        modelo=modelo_whisper,
-                        glosario_adicional=glosario_lista,
-                    )
-                finally:
-                    if os.path.exists(tmp_path):
-                        try:
-                            os.unlink(tmp_path)
-                        except Exception:
-                            pass
-
-                st.write("🧠 2/3: Clasificando y filtrando segmentos con mmBERT...")
-                detector = DetectorSegmentos() if modo_analisis == "detector" else None
-
-                st.write("✨ 3/3: Estructurando mapa mental, resumen y to-dos con IA...")
-                clave_plantilla: TipoPlantilla = clave_slug  # type: ignore
-
-                proveedor: ProveedorLLM
-                if "Gemini" in proveedor_seleccionado:
-                    api_key = os.getenv("GEMINI_API_KEY")
-                    if not api_key:
-                        try:
-                            api_key = st.secrets.get("GEMINI_API_KEY")
-                        except Exception:
-                            api_key = None
-                    if api_key:
-                        proveedor = ProveedorGemini(api_key=api_key)
-                    else:
-                        st.warning("GEMINI_API_KEY no detectada. Empleando proveedor de demostración offline.")
-                        proveedor = ProveedorMock()
-                else:
-                    proveedor = ProveedorOllama()
-
-                resultado = estructurar_transcripcion(
-                    transcripcion=transcripcion,
-                    tipo_plantilla=clave_plantilla,
-                    proveedor=proveedor,
-                    modo=modo_analisis,
-                    detector=detector,
-                )
-
-                st.session_state["resultado_procesado"] = resultado
-                st.session_state["transcripcion_procesada"] = transcripcion
-                status_box.update(label="¡Procesamiento completado con éxito!", state="complete", expanded=False)
-
-        if "resultado_procesado" in st.session_state and fuente_audio is not None:
-            resultado = st.session_state["resultado_procesado"]
-            transcripcion = st.session_state.get("transcripcion_procesada")
-        elif not boton_procesar:
-            st.info("Presiona **🚀 Procesar Audio con Minuta** para iniciar la transcripción y estructuración.")
-            return
-
-    if resultado is None:
-        return
+    B7: las claves de los botones se arman con posiciones (enumerate), nunca con ids de nodo
+    ni con prefijos de citas, porque el LLM puede repetirlos. B10: todo texto del modelo que
+    entra en HTML crudo pasa por html.escape.
+    """
+    clave_slug = _slug_de_resultado(resultado)
 
     # 5. Reproductor sincronizado con marcas de tiempo
     st.subheader("2. Reproductor y minuto")
@@ -513,14 +626,14 @@ def main() -> None:
             st.write(resultado.resumen_general)
 
             st.markdown("### Ideas Clave")
-            for idea in resultado.ideas_clave:
+            for i_idea, idea in enumerate(resultado.ideas_clave):
                 st.markdown(f"**• {idea.titulo}**")
                 st.write(idea.resumen)
-                for ev in idea.evidencias:
+                for i_ev, ev in enumerate(idea.evidencias):
                     tag = segundos_a_tiempo(ev.inicio_s)
                     col_t, col_c = st.columns([1, 4])
                     with col_t:
-                        if st.button(f"▶ {tag}", key=f"btn_idea_{ev.inicio_s}_{ev.cita[:10]}"):
+                        if st.button(f"▶ {tag}", key=f"btn_idea_{i_idea}_{i_ev}"):
                             st.session_state["reproductor_inicio_s"] = ev.inicio_s
                             st.rerun()
                     with col_c:
@@ -531,11 +644,11 @@ def main() -> None:
 
             st.markdown("### ❓ Preguntas del Público y Pendientes")
             if resultado.preguntas:
-                for p in resultado.preguntas:
+                for i_preg, p in enumerate(resultado.preguntas):
                     tag = segundos_a_tiempo(p.evidencia.inicio_s)
                     col_t, col_c = st.columns([1, 4])
                     with col_t:
-                        if st.button(f"▶ {tag}", key=f"btn_preg_{p.evidencia.inicio_s}_{p.descripcion[:10]}"):
+                        if st.button(f"▶ {tag}", key=f"btn_preg_{i_preg}"):
                             st.session_state["reproductor_inicio_s"] = p.evidencia.inicio_s
                             st.rerun()
                     with col_c:
@@ -559,11 +672,11 @@ def main() -> None:
             st.markdown("#### Nodos del mapa con marca temporal y cita literal")
             nodos_tiempo = extraer_nodos_con_tiempo(resultado.mapa.raiz)
 
-            for nodo in nodos_tiempo:
+            for i_nodo, nodo in enumerate(nodos_tiempo):
                 col_tiempo, col_titulo = st.columns([1, 3])
                 with col_tiempo:
                     boton_label = f"▶ {nodo['tiempo_tag']}"
-                    if st.button(boton_label, key=f"btn_nodo_{nodo['id']}"):
+                    if st.button(boton_label, key=f"btn_nodo_{i_nodo}"):
                         st.session_state["reproductor_inicio_s"] = nodo["inicio_s"]
                         st.rerun()
                 with col_titulo:
@@ -588,14 +701,14 @@ def main() -> None:
             st.write(resultado.resumen_general)
 
             st.markdown("### Temas Tratados")
-            for tema in resultado.temas:
+            for i_tema, tema in enumerate(resultado.temas):
                 st.markdown(f"**• {tema.titulo}**")
                 st.write(tema.resumen)
-                for ev in tema.evidencias:
+                for i_ev, ev in enumerate(tema.evidencias):
                     tag = segundos_a_tiempo(ev.inicio_s)
                     col_t, col_c = st.columns([1, 4])
                     with col_t:
-                        if st.button(f"▶ {tag}", key=f"btn_tema_{ev.inicio_s}_{ev.cita[:10]}"):
+                        if st.button(f"▶ {tag}", key=f"btn_tema_{i_tema}_{i_ev}"):
                             st.session_state["reproductor_inicio_s"] = ev.inicio_s
                             st.rerun()
                     with col_c:
@@ -606,11 +719,11 @@ def main() -> None:
 
             st.markdown("### 🤝 Acuerdos")
             if resultado.acuerdos:
-                for a in resultado.acuerdos:
+                for i_acuerdo, a in enumerate(resultado.acuerdos):
                     tag = segundos_a_tiempo(a.evidencia.inicio_s)
                     col_t, col_c = st.columns([1, 4])
                     with col_t:
-                        if st.button(f"▶ {tag}", key=f"btn_acuerdo_{a.evidencia.inicio_s}_{a.descripcion[:10]}"):
+                        if st.button(f"▶ {tag}", key=f"btn_acuerdo_{i_acuerdo}"):
                             st.session_state["reproductor_inicio_s"] = a.evidencia.inicio_s
                             st.rerun()
                     with col_c:
@@ -628,13 +741,13 @@ def main() -> None:
 
             st.markdown("### ✅ Tareas (To-Do)")
             if resultado.tareas:
-                for t in resultado.tareas:
-                    resp = f" — Responsable: **{t.responsable}**" if t.responsable else ""
-                    limite = f" (Límite: {t.fecha_limite})" if t.fecha_limite else ""
+                for i_tarea, t in enumerate(resultado.tareas):
+                    resp = f" — Responsable: **{html.escape(t.responsable)}**" if t.responsable else ""
+                    limite = f" (Límite: {html.escape(t.fecha_limite)})" if t.fecha_limite else ""
                     tag = segundos_a_tiempo(t.evidencia.inicio_s)
                     col_t, col_c = st.columns([1, 4])
                     with col_t:
-                        if st.button(f"▶ {tag}", key=f"btn_tarea_{t.evidencia.inicio_s}_{t.descripcion[:10]}"):
+                        if st.button(f"▶ {tag}", key=f"btn_tarea_{i_tarea}"):
                             st.session_state["reproductor_inicio_s"] = t.evidencia.inicio_s
                             st.rerun()
                     with col_c:
@@ -652,11 +765,11 @@ def main() -> None:
 
             st.markdown("### ❓ Preguntas y Pendientes")
             if resultado.pendientes:
-                for p in resultado.pendientes:
+                for i_pend, p in enumerate(resultado.pendientes):
                     tag = segundos_a_tiempo(p.evidencia.inicio_s)
                     col_t, col_c = st.columns([1, 4])
                     with col_t:
-                        if st.button(f"▶ {tag}", key=f"btn_pend_{p.evidencia.inicio_s}_{p.descripcion[:10]}"):
+                        if st.button(f"▶ {tag}", key=f"btn_pend_{i_pend}"):
                             st.session_state["reproductor_inicio_s"] = p.evidencia.inicio_s
                             st.rerun()
                     with col_c:
@@ -684,11 +797,11 @@ def main() -> None:
             st.caption("Estructura de la conversación en lista jerárquica con [mm:ss] y citas literales (sin diagrama markmap):")
 
             nodos_tiempo = extraer_nodos_con_tiempo(resultado.mapa.raiz)
-            for nodo in nodos_tiempo:
+            for i_nodo, nodo in enumerate(nodos_tiempo):
                 col_tiempo, col_titulo = st.columns([1, 3])
                 with col_tiempo:
                     boton_label = f"▶ {nodo['tiempo_tag']}"
-                    if st.button(boton_label, key=f"btn_esq_{nodo['id']}"):
+                    if st.button(boton_label, key=f"btn_esq_{i_nodo}"):
                         st.session_state["reproductor_inicio_s"] = nodo["inicio_s"]
                         st.rerun()
                 with col_titulo:
@@ -719,11 +832,11 @@ def main() -> None:
                 )
 
             st.markdown("### 🏷️ Fragmentos Codificados")
-            for f in resultado.fragmentos:
+            for i_frag, f in enumerate(resultado.fragmentos):
                 tag = segundos_a_tiempo(f.evidencia.inicio_s)
                 col_t, col_c = st.columns([1, 4])
                 with col_t:
-                    if st.button(f"▶ {tag}", key=f"btn_frag_{f.evidencia.inicio_s}_{f.codigo}"):
+                    if st.button(f"▶ {tag}", key=f"btn_frag_{i_frag}"):
                         st.session_state["reproductor_inicio_s"] = f.evidencia.inicio_s
                         st.rerun()
                 with col_c:
@@ -836,6 +949,170 @@ def main() -> None:
                 )
             except Exception as err:
                 st.caption(f"Error HTML: {err}")
+
+
+def main() -> None:
+    """Punto de entrada de la aplicación Streamlit."""
+    st.set_page_config(
+        page_title="Minuta - Alternativa a Plaud con tu Celular",
+        page_icon="🎙️",
+        layout="centered",
+        initial_sidebar_state="collapsed",
+    )
+
+    cargar_variables_entorno()
+    aplicar_estilos_movil()
+
+    # Inicialización de estado en sesión
+    if "reproductor_inicio_s" not in st.session_state:
+        st.session_state["reproductor_inicio_s"] = 0.0
+    if "glosario_usuario" not in st.session_state:
+        st.session_state["glosario_usuario"] = ", ".join(GLOSARIO_DEFECTO)
+
+    # Encabezado principal
+    st.title("🎙️ Minuta")
+    st.caption("Tu alternativa económica a las grabadoras con IA (como Plaud) usando tu celular.")
+
+    # B5: el modo demo arranca apagado y queda visible arriba, fuera del expander.
+    modo_demo = st.toggle(
+        "🧪 Modo demo: ver un ejemplo precalculado",
+        value=False,
+        help=(
+            "Muestra notas ya generadas a partir de una transcripción de ejemplo (data/fixtures/). "
+            "No procesa audio ni llama a ningún modelo de IA."
+        ),
+    )
+
+    # 1. Guía de grabación visible
+    st.info(
+        "📱 **Guía de grabación con celular:**\n\n"
+        "Graba con la grabadora de voz nativa del celular (preferentemente en **modo avión** "
+        "para charlas largas) y sube el archivo aquí."
+    )
+
+    # 2. Configuración en un bloque plegable
+    detector_listo = detector_disponible()
+    with st.expander("⚙️ Configuración y Glosario", expanded=False):
+        plantilla = st.selectbox(
+            "Plantilla de análisis:",
+            options=PLANTILLAS_DISPONIBLES,
+            index=0,
+            help="Selecciona el formato adecuado según la naturaleza del audio.",
+        )
+
+        glosario_texto = st.text_area(
+            "Glosario contextual de investigación:",
+            value=st.session_state["glosario_usuario"],
+            help="Términos técnicos en inglés o español que deben ser reconocidos con precisión.",
+            height=75,
+        )
+        st.session_state["glosario_usuario"] = glosario_texto
+
+        proveedor_seleccionado = st.selectbox(
+            "Proveedor de IA para estructuración:",
+            options=[PROVEEDOR_GEMINI, PROVEEDOR_OLLAMA],
+            index=0,
+            help="Gemini funciona en la versión publicada. Ollama solo funciona si ejecutas la app en local.",
+        )
+        # B6: "Solo LLM" por defecto; el detector está en desarrollo y se deshabilita si no puede cargarse.
+        modo_analisis = st.radio(
+            "Modo de análisis:",
+            options=list(ETIQUETAS_MODO_ANALISIS),
+            index=0,
+            format_func=lambda m: ETIQUETAS_MODO_ANALISIS[m],
+            disabled=not detector_listo,
+            help=(
+                "El detector está en desarrollo: prioriza tareas y filtra el relleno antes de consultar al LLM."
+                if detector_listo
+                else "El detector está en desarrollo y no está disponible en esta versión: el análisis usa solo el LLM."
+            ),
+        )
+        if not detector_listo:
+            modo_analisis = "solo_llm"
+        modelo_whisper = st.selectbox(
+            "Modelo de transcripción Whisper:",
+            options=["small", "base"],
+            index=0,
+            help="small para mayor fidelidad acústica en laptop; base para bajo consumo de memoria.",
+        )
+
+    clave_slug = SLUG_POR_PLANTILLA[plantilla]
+    usar_ollama = proveedor_seleccionado == PROVEEDOR_OLLAMA
+
+    # 3. Carga de audio
+    st.subheader("1. Audio de la sesión")
+
+    # Opción condicional si la versión de streamlit soporta st.audio_input
+    if hasattr(st, "audio_input"):
+        st.write("Graba un audio directo:")
+        audio_grabado = getattr(st, "audio_input")("Grabar audio con el micrófono")
+    else:
+        audio_grabado = None
+
+    archivo_audio = st.file_uploader(
+        "Sube tu archivo de audio (grabado con el celular):",
+        type=["m4a", "mp3", "wav"],
+        help="Formatos soportados: m4a, mp3, wav. Máximo 200 MB.",
+    )
+
+    fuente_audio = archivo_audio or audio_grabado
+    descartar_resultado_si_cambio_la_entrada(fuente_audio, plantilla)
+
+    # 4. Procesamiento o carga de datos
+    resultado: Any = None
+    transcripcion: Transcripcion | None = None
+
+    if modo_demo:
+        st.success(
+            f"⚡ Modo demo activo: se muestra un ejemplo precalculado de **{plantilla}**. "
+            "No se procesa audio ni se llama a ningún modelo."
+        )
+        try:
+            resultado, transcripcion = cargar_fixture_demo(plantilla)
+        except Exception as err:
+            st.error(f"No se pudo cargar el ejemplo precalculado: {err}")
+            return
+    else:
+        api_key: str | None = None
+        if not usar_ollama:
+            api_key = obtener_api_key_gemini()
+            if not api_key:
+                st.error(
+                    "Falta la clave de Gemini (GEMINI_API_KEY). Defínela en el archivo `.env` si ejecutas "
+                    "la app en local, o en los *Secrets* de Streamlit Community Cloud, y vuelve a cargar la página. "
+                    "Mientras tanto, puedes activar el modo demo para ver un ejemplo precalculado."
+                )
+                st.stop()
+
+        if fuente_audio is None:
+            st.warning("Sube un archivo de audio para procesarlo, o activa el modo demo para ver un ejemplo precalculado.")
+            return
+
+        if st.button("🚀 Procesar audio con Minuta", type="primary"):
+            glosario_lista = [t.strip() for t in glosario_texto.split(",") if t.strip()]
+            salida = procesar_audio(
+                fuente_audio,
+                clave_plantilla=clave_slug,
+                glosario=glosario_lista,
+                modelo_whisper=modelo_whisper,
+                usar_ollama=usar_ollama,
+                api_key=api_key,
+                modo_analisis=modo_analisis,
+            )
+            if salida is None:
+                return
+            st.session_state["resultado_procesado"], st.session_state["transcripcion_procesada"] = salida
+
+        if "resultado_procesado" not in st.session_state:
+            st.info("Presiona **🚀 Procesar audio con Minuta** para transcribir y estructurar el audio.")
+            return
+        resultado = st.session_state["resultado_procesado"]
+        transcripcion = st.session_state.get("transcripcion_procesada")
+
+    if resultado is None:
+        return
+
+    renderizar_resultado(resultado, transcripcion, fuente_audio)
 
 
 if __name__ == "__main__":

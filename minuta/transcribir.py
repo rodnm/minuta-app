@@ -28,6 +28,25 @@ from minuta.glosario import formatear_hotwords, normalizar_glosario
 logger = logging.getLogger(__name__)
 
 
+def cargar_modelo_whisper(
+    modelo: str = "small",
+    device: str = "cpu",
+    compute_type: str = "int8",
+) -> WhisperModel:
+    """Carga un modelo faster-whisper con la caché fuera del repositorio.
+
+    La app lo envuelve en ``st.cache_resource`` para cargarlo una sola vez por proceso
+    y lo pasa a ``transcribir_audio(modelo_cargado=...)``.
+    """
+    aplicar_parches_compatibilidad()
+    return WhisperModel(
+        modelo,
+        device=device,
+        compute_type=compute_type,
+        download_root=obtener_directorio_whisper_cache(),
+    )
+
+
 def transcribir_audio(
     audio: Union[str, Path, BinaryIO],
     modelo: str = "small",
@@ -37,6 +56,7 @@ def transcribir_audio(
     vad_filter: bool = True,
     usar_hotwords: bool = True,
     audio_id: str | None = None,
+    modelo_cargado: WhisperModel | None = None,
 ) -> Transcripcion:
     """Transcribe un archivo de audio usando faster-whisper con glosario de investigación.
 
@@ -49,6 +69,8 @@ def transcribir_audio(
     - vad_filter: Si True, activa Silero VAD para filtrar pausas y ruidos.
     - usar_hotwords: Si True, inyecta el glosario de investigación en cada ventana de 30 s.
     - audio_id: Identificador opcional para el objeto Transcripcion.
+    - modelo_cargado: Modelo ya cargado con ``cargar_modelo_whisper`` (por ejemplo, desde la
+      caché de la app). Si es None, se carga uno nuevo con ``modelo``, ``device`` y ``compute_type``.
 
     Retorna:
     - Objeto Transcripcion validado con Pydantic v2.
@@ -56,10 +78,7 @@ def transcribir_audio(
     # 1. Asegurar parches de compatibilidad de bajo nivel
     aplicar_parches_compatibilidad()
 
-    # 2. Resolver directorio de caché fuera del repositorio
-    dir_cache = obtener_directorio_whisper_cache()
-
-    # 3. Preparar glosario y hotwords
+    # 2-3. Preparar glosario y hotwords (la caché del modelo se resuelve en cargar_modelo_whisper)
     glosario_completo = normalizar_glosario(glosario_adicional)
     hotwords_str: str | None = None
     if usar_hotwords:
@@ -74,13 +93,10 @@ def transcribir_audio(
         else:
             audio_id = "audio"
 
-    # 5. Cargar modelo Whisper
-    whisper_model = WhisperModel(
-        modelo,
-        device=device,
-        compute_type=compute_type,
-        download_root=dir_cache,
-    )
+    # 5. Cargar modelo Whisper, salvo que ya venga cargado
+    whisper_model = modelo_cargado
+    if whisper_model is None:
+        whisper_model = cargar_modelo_whisper(modelo, device=device, compute_type=compute_type)
 
     # 6. Ejecutar transcripción determinista (temperature 0, idioma español)
     audio_param = str(audio) if isinstance(audio, Path) else audio

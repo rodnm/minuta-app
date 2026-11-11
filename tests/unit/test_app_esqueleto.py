@@ -39,6 +39,13 @@ from app.streamlit_app import (
 )
 
 
+@pytest.fixture(autouse=True)
+def entorno_sin_claves(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Evita que la app lea el .env real y cargue una clave en el proceso de pytest."""
+    monkeypatch.setenv("GEMINI_API_KEY", "")
+    monkeypatch.setattr("dotenv.load_dotenv", lambda *args, **kwargs: False)
+
+
 def test_segundos_a_tiempo() -> None:
     """Verifica el formateo de segundos a formato [mm:ss]."""
     assert segundos_a_tiempo(0.0) == "[00:00]"
@@ -135,8 +142,13 @@ def test_generar_html_markmap_arbol_vacio() -> None:
 
 def test_app_test_render_modo_demo() -> None:
     """Ejecuta la aplicación completa en modo demo con Streamlit AppTest y verifica ausencia de excepciones."""
-    app = AppTest.from_file("app/streamlit_app.py")
+    app = AppTest.from_file(str(ROOT_DIR / "app" / "streamlit_app.py"))
     app.run()
     assert not app.exception, f"Excepción en AppTest: {app.exception}"
     assert len(app.title) > 0
     assert "Minuta" in app.title[0].value
+
+    # El modo demo arranca apagado (L51 B5); al activarlo se muestra el ejemplo sin excepciones.
+    app.toggle[0].set_value(True).run()
+    assert not app.exception, f"Excepción en modo demo: {app.exception}"
+    assert any("Modo demo activo" in s.value for s in app.success)

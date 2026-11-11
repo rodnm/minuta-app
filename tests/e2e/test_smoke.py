@@ -1,7 +1,8 @@
 """Pruebas de humo de extremo a extremo (E2E) para la aplicación Minuta Streamlit.
 
 Verifica con Streamlit AppTest:
-- Inicialización sin excepciones en modo demo.
+- Inicialización sin excepciones (el modo demo arranca apagado, L51 B5).
+- Las 3 plantillas en modo demo y la sección de exportación.
 - Interacción con la interfaz y cambio entre plantillas.
 - Interacción con los botones de marca temporal del reproductor.
 - Conmutación del modo demo.
@@ -21,8 +22,18 @@ if str(ROOT_DIR) not in sys.path:
 RUTA_APP = str(ROOT_DIR / "app" / "streamlit_app.py")
 
 
+def _app_en_demo() -> AppTest:
+    """Arranca la app y activa el modo demo (que arranca apagado desde L51 B5)."""
+    at = AppTest.from_file(RUTA_APP)
+    at.run()
+    assert not at.exception, f"Excepción al iniciar aplicación: {at.exception}"
+    at.toggle[0].set_value(True).run()
+    assert not at.exception, f"Excepción al activar el modo demo: {at.exception}"
+    return at
+
+
 def test_smoke_inicio_app_modo_demo() -> None:
-    """Verifica que la aplicación inicie correctamente en modo demo por defecto."""
+    """Verifica que la aplicación inicie correctamente, con el modo demo apagado por defecto."""
     at = AppTest.from_file(RUTA_APP)
     at.run()
 
@@ -36,16 +47,14 @@ def test_smoke_inicio_app_modo_demo() -> None:
     assert len(at.selectbox) > 0
     assert at.selectbox[0].value == "Ponencia / Clase / Charla"
 
-    # Verificar que el modo demo esté activo por defecto
+    # Verificar que el modo demo esté apagado por defecto (L51 B5)
     assert len(at.toggle) > 0
-    assert at.toggle[0].value is True
+    assert at.toggle[0].value is False
 
 
 def test_smoke_cambio_plantilla_reunion() -> None:
     """Verifica el cambio a la plantilla 'Reunión' y renderizado de sus pestañas."""
-    at = AppTest.from_file(RUTA_APP)
-    at.run()
-    assert not at.exception
+    at = _app_en_demo()
 
     # Cambiar a plantilla Reunión
     at.selectbox[0].select("Reunión").run()
@@ -61,9 +70,7 @@ def test_smoke_cambio_plantilla_reunion() -> None:
 
 def test_smoke_interaccion_reproductor_nodo() -> None:
     """Verifica que hacer clic en una marca de tiempo actualice la sesión sin excepciones."""
-    at = AppTest.from_file(RUTA_APP)
-    at.run()
-    assert not at.exception
+    at = _app_en_demo()
 
     # Localizar botones de salto temporal
     botones_tiempo = [b for b in at.button if "▶" in (b.label or "")]
@@ -75,11 +82,11 @@ def test_smoke_interaccion_reproductor_nodo() -> None:
     assert at.session_state["reproductor_inicio_s"] >= 0.0
 
 
-def test_smoke_toggle_modo_demo() -> None:
+def test_smoke_toggle_modo_demo(monkeypatch: pytest.MonkeyPatch) -> None:
     """Verifica que desactivar y reactivar el modo demo no lance excepciones no controladas."""
-    at = AppTest.from_file(RUTA_APP)
-    at.run()
-    assert not at.exception
+    # Con una clave falsa (sin llamadas a la API) el flujo real pide el audio.
+    monkeypatch.setenv("GEMINI_API_KEY", "clave-falsa-de-prueba")
+    at = _app_en_demo()
 
     # Desactivar modo demo (sin audio debe mostrar advertencia sin caer)
     at.toggle[0].set_value(False).run()
@@ -94,9 +101,7 @@ def test_smoke_toggle_modo_demo() -> None:
 
 def test_smoke_cambio_plantilla_entrevista() -> None:
     """Verifica el cambio a la plantilla 'Entrevista'."""
-    at = AppTest.from_file(RUTA_APP)
-    at.run()
-    assert not at.exception
+    at = _app_en_demo()
 
     at.selectbox[0].select("Entrevista").run()
     assert not at.exception, f"Excepción en plantilla Entrevista: {at.exception}"
@@ -105,9 +110,7 @@ def test_smoke_cambio_plantilla_entrevista() -> None:
 
 def test_smoke_botones_exportacion_disponibles() -> None:
     """Verifica que los botones de exportación se rendericen según la plantilla activa (L45)."""
-    at = AppTest.from_file(RUTA_APP)
-    at.run()
-    assert not at.exception
+    at = _app_en_demo()
 
     # En Ponencia (plantilla por defecto) se ofrecen 5 botones (incluye Mapa HTML y Transcripción)
     botones_descarga = at.get("download_button")
@@ -122,9 +125,7 @@ def test_smoke_botones_exportacion_disponibles() -> None:
 
 def test_apptest_plantilla_clase_secciones_y_mapa() -> None:
     """Valida que la plantilla Clase / Ponencia muestre Notas de clase, Mapa mental y Transcripción (L45)."""
-    at = AppTest.from_file(RUTA_APP)
-    at.run()
-    assert not at.exception
+    at = _app_en_demo()
 
     # Verificar que el selectbox esté en Ponencia
     assert at.selectbox[0].value == "Ponencia / Clase / Charla"
@@ -142,8 +143,7 @@ def test_apptest_plantilla_clase_secciones_y_mapa() -> None:
 
 def test_apptest_plantilla_reunion_sin_mapa_mental() -> None:
     """Valida que la plantilla Reunión muestre Notas de reunión, To-dos, Acuerdos y NUNCA el mapa mental (L45)."""
-    at = AppTest.from_file(RUTA_APP)
-    at.run()
+    at = _app_en_demo()
     at.selectbox[0].select("Reunión").run()
     assert not at.exception
 
@@ -161,8 +161,7 @@ def test_apptest_plantilla_reunion_sin_mapa_mental() -> None:
 
 def test_apptest_plantilla_entrevista_esquema_sin_markmap() -> None:
     """Valida que la plantilla Entrevista muestre Esquema por temas en lista y NO el diagrama markmap (L45)."""
-    at = AppTest.from_file(RUTA_APP)
-    at.run()
+    at = _app_en_demo()
     at.selectbox[0].select("Entrevista").run()
     assert not at.exception
 
@@ -179,15 +178,14 @@ def test_apptest_plantilla_entrevista_esquema_sin_markmap() -> None:
 
 def test_modo_demo_tres_plantillas() -> None:
     """Verifica que el modo demo cargue y funcione sin excepciones en las 3 plantillas (L45)."""
-    at = AppTest.from_file(RUTA_APP)
-    at.run()
+    at = _app_en_demo()
 
     for plantilla in ["Ponencia / Clase / Charla", "Reunión", "Entrevista"]:
         at.selectbox[0].select(plantilla).run()
         assert not at.exception, f"Fallo al cargar modo demo en {plantilla}: {at.exception}"
         # Comprobar que se informa el modo demo activo
         success_texts = " ".join(s.value for s in at.success)
-        assert "Modo Demo activo" in success_texts
+        assert "Modo demo activo" in success_texts
         # Debe haber botones de marca de tiempo [mm:ss] en todas las plantillas
         botones_tiempo = [b for b in at.button if "▶" in (b.label or "")]
         assert len(botones_tiempo) > 0, f"Debe haber botones de tiempo en demo para {plantilla}"
