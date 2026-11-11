@@ -80,16 +80,11 @@ ETIQUETAS_MODO_ANALISIS: dict[str, str] = {
 OLLAMA_HOST_DEFECTO = "http://localhost:11434"
 
 GLOSARIO_DEFECTO = [
-    "journal",
-    "Scopus",
-    "paper",
-    "deadline",
-    "peer review",
-    "APC",
-    "grant",
-    "preprint",
-    "publisher",
-    "citation rate",
+    "machine learning",
+    "JSON",
+    "prompt",
+    "pipeline",
+    "benchmark",
 ]
 
 ARCHIVOS_FIXTURES: dict[str, tuple[str, str]] = {
@@ -597,6 +592,34 @@ def _slug_de_resultado(resultado: Any) -> str:
     return "entrevista"
 
 
+def _renderizar_terminos_ingles(terminos: list[Any], prefijo: str) -> None:
+    """Renderiza la sección de términos en inglés con botón ▶ [mm:ss] y transcripción original."""
+    st.markdown("### 🇬🇧 Términos en inglés")
+    if not terminos:
+        st.info("No se detectaron términos en inglés en este audio.")
+        return
+    for i_term, t in enumerate(terminos):
+        tag = segundos_a_tiempo(t.evidencia.inicio_s)
+        col_t, col_c = st.columns([1, 4])
+        with col_t:
+            if st.button(f"▶ {tag}", key=f"btn_term_{prefijo}_{i_term}"):
+                st.session_state["reproductor_inicio_s"] = t.evidencia.inicio_s
+                st.rerun()
+        with col_c:
+            trans_extra = ""
+            if t.transcrito.strip().lower() != t.termino.strip().lower():
+                trans_extra = f' <span style="color: #6c757d; font-size: 0.9em;">(se transcribió «{html.escape(t.transcrito)}»)</span>'
+            st.markdown(
+                f"""
+                <div class="minuta-card">
+                  <strong>• {html.escape(t.termino)}</strong>{trans_extra}<br>
+                  <div class="minuta-quote"><span class="minuta-badge">{tag}</span>"{html.escape(t.evidencia.cita)}"</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
 def renderizar_resultado(resultado: Any, transcripcion: Transcripcion | None, fuente_audio: Any = None) -> None:
     """Muestra el reproductor, las pestañas de la plantilla y la sección de exportación.
 
@@ -683,6 +706,8 @@ def renderizar_resultado(resultado: Any, transcripcion: Transcripcion | None, fu
                         )
             else:
                 st.info("No se identificaron preguntas abiertas en la sesión.")
+
+            _renderizar_terminos_ingles(getattr(resultado, "terminos_ingles", []), "ponencia")
 
         with pestana_mapa:
             st.markdown(f"**Árbol temático interactivo:** *{resultado.mapa.titulo}*")
@@ -805,6 +830,8 @@ def renderizar_resultado(resultado: Any, transcripcion: Transcripcion | None, fu
             else:
                 st.info("No quedaron preguntas pendientes.")
 
+            _renderizar_terminos_ingles(getattr(resultado, "terminos_ingles", []), "reunion")
+
     else:
         # En plantilla Entrevista: Esquema por temas en lista indentada sin diagrama markmap (L45)
         pestana_esquema, pestana_trans = st.tabs([
@@ -839,7 +866,7 @@ def renderizar_resultado(resultado: Any, transcripcion: Transcripcion | None, fu
                 st.markdown(f"**• Código [{cod}]**")
                 st.write(res_cod)
 
-            st.markdown("### 📚 Libro de Códigos de Investigación")
+            st.markdown("### 📚 Códigos temáticos")
             for c in resultado.libro:
                 st.markdown(
                     f"""
@@ -871,6 +898,8 @@ def renderizar_resultado(resultado: Any, transcripcion: Transcripcion | None, fu
                         """,
                         unsafe_allow_html=True,
                     )
+
+            _renderizar_terminos_ingles(getattr(resultado, "terminos_ingles", []), "entrevista")
 
     # PESTAÑA COMÚN: TRANSCRIPCIÓN COMPLETA
     with pestana_trans:
@@ -1070,9 +1099,9 @@ def main() -> None:
             modo_analisis = "solo_llm"
 
         glosario_texto = st.text_area(
-            "Glosario contextual de investigación:",
+            "Términos en inglés que esperas escuchar (opcional):",
             value=st.session_state["glosario_usuario"],
-            help="Términos técnicos en inglés o español que deben ser reconocidos con precisión.",
+            help="Pista opcional de términos en inglés esperados para ayudar a detectarlos en la transcripción.",
             height=75,
         )
         st.session_state["glosario_usuario"] = glosario_texto

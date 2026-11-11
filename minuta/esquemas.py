@@ -227,6 +227,14 @@ class FragmentoCodificado(BaseModel):
     nota: str | None = None
 
 
+class TerminoIngles(BaseModel):
+    """Término o frase dicha en inglés detectada en la transcripción."""
+
+    termino: str = Field(..., description="Forma correcta en inglés (ejemplo: 'JSON')")
+    transcrito: str = Field(..., description="Cómo quedó, literal, en la transcripción (ejemplo: 'Jason')")
+    evidencia: Evidencia = Field(..., description="Cita literal de la transcripción que contiene el término")
+
+
 class ResultadoPonencia(BaseModel):
     """Estructuración completa para plantilla de Ponencia, Clase o Charla."""
 
@@ -234,6 +242,9 @@ class ResultadoPonencia(BaseModel):
     ideas_clave: list[Tema]
     preguntas: list[Pendiente]
     mapa: MapaMental
+    terminos_ingles: list[TerminoIngles] = Field(
+        default_factory=list, description="Términos en inglés detectados en el audio"
+    )
     descartados: int = 0
     modo: Literal["solo_llm", "detector"] = "solo_llm"
 
@@ -247,6 +258,9 @@ class ResultadoReunion(BaseModel):
     tareas: list[Tarea]
     pendientes: list[Pendiente]
     mapa: MapaMental
+    terminos_ingles: list[TerminoIngles] = Field(
+        default_factory=list, description="Términos en inglés detectados en el audio"
+    )
     descartados: int = 0
     modo: Literal["solo_llm", "detector"] = "solo_llm"
 
@@ -258,5 +272,8 @@ class ResultadoEntrevista(BaseModel):
     fragmentos: list[FragmentoCodificado]
     resumen_por_codigo: dict[str, str]
     mapa: MapaMental
+    terminos_ingles: list[TerminoIngles] = Field(
+        default_factory=list, description="Términos en inglés detectados en el audio"
+    )
     descartados: int = 0
     modo: Literal["solo_llm", "detector"] = "solo_llm"

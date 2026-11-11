@@ -26,6 +26,7 @@ from minuta.esquemas import (
     Tema,
     CodigoLibro,
     FragmentoCodificado,
+    TerminoIngles,
     ResultadoPonencia,
     ResultadoReunion,
     ResultadoEntrevista,
@@ -358,3 +359,40 @@ def test_validacion_modo_literal():
         ResultadoPonencia(
             resumen_general="Error", ideas_clave=[], preguntas=[], mapa=mapa, modo="invalido"
         )
+
+
+def test_termino_ingles_contrato_y_resultados():
+    ev = Evidencia(segmento_ids=[1], inicio_s=12.0, cita="guardamos los datos en formato Jason.")
+    t = TerminoIngles(termino="JSON", transcrito="Jason", evidencia=ev)
+    assert t.termino == "JSON"
+    assert t.transcrito == "Jason"
+    assert t.evidencia.cita == "guardamos los datos en formato Jason."
+
+    # Falla si falta algún campo obligatorio
+    with pytest.raises(ValidationError):
+        TerminoIngles(termino="JSON", transcrito="Jason")  # falta evidencia
+    with pytest.raises(ValidationError):
+        TerminoIngles(transcrito="Jason", evidencia=ev)  # falta termino
+    with pytest.raises(ValidationError):
+        TerminoIngles(termino="JSON", evidencia=ev)  # falta transcrito
+
+    # Valor por defecto vacío en las 3 plantillas
+    raiz = NodoMapa(id="r", titulo="Raíz")
+    mapa = MapaMental(titulo="M", raiz=raiz)
+
+    rp = ResultadoPonencia(resumen_general="G", ideas_clave=[], preguntas=[], mapa=mapa)
+    assert rp.terminos_ingles == []
+
+    rr = ResultadoReunion(resumen_general="G", temas=[], acuerdos=[], tareas=[], pendientes=[], mapa=mapa)
+    assert rr.terminos_ingles == []
+
+    re_res = ResultadoEntrevista(libro=[], fragmentos=[], resumen_por_codigo={}, mapa=mapa)
+    assert re_res.terminos_ingles == []
+
+    # Admite lista con TerminoIngles
+    rp_con_t = ResultadoPonencia(
+        resumen_general="G", ideas_clave=[], preguntas=[], mapa=mapa, terminos_ingles=[t]
+    )
+    assert len(rp_con_t.terminos_ingles) == 1
+    assert rp_con_t.terminos_ingles[0].termino == "JSON"
+
