@@ -532,3 +532,101 @@ def test_reduce_cupo_de_ramas_por_bloque_cubre_todo_el_audio():
         "Rama 3.1", "Rama 3.2",
         "Rama 4.1", "Rama 4.2",
     ]
+
+
+# ---------------------------------------------------------------------------
+# Mapa vacío del modelo: se arma desde el contenido ya validado
+# ---------------------------------------------------------------------------
+# En llamadas reales (10/11/2026), Gemini devolvió la raíz del mapa sin hijos aunque el
+# prompt pide 4 a 8 ramas; las ideas, temas y fragmentos sí venían con citas literales.
+
+def _tx_corta() -> Transcripcion:
+    segs = [
+        Segmento(id=1, inicio_s=0.0, fin_s=20.0, texto="Primero revisamos el alcance de la revista indexada en Scopus."),
+        Segmento(id=2, inicio_s=20.0, fin_s=40.0, texto="Luego preparamos la carta al editor con los hallazgos principales."),
+        Segmento(id=3, inicio_s=40.0, fin_s=60.0, texto="Queda la duda de cuántos revisores asigna la revista."),
+    ]
+    return Transcripcion(audio_id="clase_corta", duracion_s=60.0, modelo="small", segmentos=segs)
+
+
+def _ev(seg: int, inicio: float, cita: str) -> Evidencia:
+    return Evidencia(segmento_ids=[seg], inicio_s=inicio, cita=cita)
+
+
+def _mapa_vacio() -> MapaMental:
+    return MapaMental(titulo="Clase", raiz=NodoMapa(id="raiz", titulo="Clase"))
+
+
+def test_ponencia_con_mapa_vacio_arma_ramas_desde_ideas_y_preguntas():
+    respuesta = ResultadoPonencia(
+        resumen_general="Cómo publicar.",
+        ideas_clave=[
+            Tema(titulo="Elegir la revista", resumen="Revisar el alcance.",
+                 evidencias=[_ev(1, 0.0, "revisamos el alcance de la revista")]),
+            Tema(titulo="Carta al editor", resumen="Presentar los hallazgos.",
+                 evidencias=[_ev(2, 20.0, "preparamos la carta al editor")]),
+        ],
+        preguntas=[Pendiente(descripcion="¿Cuántos revisores?", evidencia=_ev(3, 40.0, "cuántos revisores asigna la revista"))],
+        mapa=_mapa_vacio(),
+    )
+    resultado = estructurar_transcripcion(_tx_corta(), "ponencia", ProveedorMock(respuestas=[respuesta]))
+
+    ramas = resultado.mapa.raiz.hijos
+    assert [r.titulo for r in ramas] == ["Elegir la revista", "Carta al editor", "Preguntas abiertas"]
+    assert ramas[0].evidencia is not None and ramas[0].evidencia.inicio_s == 0.0
+    assert ramas[1].hijos[0].evidencia.cita == "preparamos la carta al editor"
+    assert ramas[2].hijos[0].titulo == "¿Cuántos revisores?"
+    assert resultado.ideas_clave[0].titulo == "Elegir la revista"  # el contenido no cambia
+
+
+def test_reunion_con_mapa_vacio_arma_ramas_de_temas_acuerdos_y_tareas():
+    respuesta = ResultadoReunion(
+        resumen_general="Reunión.",
+        temas=[Tema(titulo="Revista", resumen="Alcance.", evidencias=[_ev(1, 0.0, "revisamos el alcance de la revista")])],
+        acuerdos=[Acuerdo(descripcion="Enviar la carta", evidencia=_ev(2, 20.0, "preparamos la carta al editor"))],
+        tareas=[Tarea(descripcion="Preguntar por revisores", evidencia=_ev(3, 40.0, "cuántos revisores asigna la revista"))],
+        pendientes=[],
+        mapa=_mapa_vacio(),
+    )
+    resultado = estructurar_transcripcion(_tx_corta(), "reunion", ProveedorMock(respuestas=[respuesta]))
+
+    assert [r.titulo for r in resultado.mapa.raiz.hijos] == ["Revista", "Acuerdos", "Tareas"]
+    assert resultado.mapa.raiz.hijos[2].hijos[0].titulo == "Preguntar por revisores"
+
+
+def test_entrevista_con_mapa_vacio_arma_una_rama_por_codigo():
+    respuesta = ResultadoEntrevista(
+        libro=[CodigoLibro(codigo="PUBLICACION", descripcion="Proceso de publicación"),
+               CodigoLibro(codigo="DUDAS", descripcion="Preguntas abiertas")],
+        fragmentos=[
+            FragmentoCodificado(codigo="PUBLICACION", evidencia=_ev(1, 0.0, "revisamos el alcance de la revista")),
+            FragmentoCodificado(codigo="PUBLICACION", evidencia=_ev(2, 20.0, "preparamos la carta al editor")),
+            FragmentoCodificado(codigo="DUDAS", evidencia=_ev(3, 40.0, "cuántos revisores asigna la revista")),
+        ],
+        resumen_por_codigo={"PUBLICACION": "Pasos para publicar."},
+        mapa=_mapa_vacio(),
+    )
+    resultado = estructurar_transcripcion(_tx_corta(), "entrevista", ProveedorMock(respuestas=[respuesta]))
+
+    ramas = resultado.mapa.raiz.hijos
+    assert [r.titulo for r in ramas] == ["PUBLICACION", "DUDAS"]
+    assert len(ramas[0].hijos) == 2
+    assert ramas[0].resumen == "Pasos para publicar."
+    assert ramas[1].resumen == "Preguntas abiertas"
+
+
+def test_mapa_del_modelo_con_dos_o_mas_ramas_se_conserva():
+    ev1 = _ev(1, 0.0, "revisamos el alcance de la revista")
+    ev2 = _ev(2, 20.0, "preparamos la carta al editor")
+    respuesta = ResultadoPonencia(
+        resumen_general="Cómo publicar.",
+        ideas_clave=[Tema(titulo="Otra idea", resumen="x", evidencias=[ev1])],
+        preguntas=[],
+        mapa=MapaMental(titulo="Clase", raiz=NodoMapa(id="raiz", titulo="Clase", hijos=[
+            NodoMapa(id="a", titulo="Rama del modelo A", evidencia=ev1),
+            NodoMapa(id="b", titulo="Rama del modelo B", evidencia=ev2),
+        ])),
+    )
+    resultado = estructurar_transcripcion(_tx_corta(), "ponencia", ProveedorMock(respuestas=[respuesta]))
+
+    assert [r.titulo for r in resultado.mapa.raiz.hijos] == ["Rama del modelo A", "Rama del modelo B"]
