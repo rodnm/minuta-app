@@ -25,7 +25,18 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
 # Extensiones de audio prohibidas en el índice según regla L21
-EXTENSIONES_AUDIO = {".m4a", ".mp3", ".wav", ".ogg", ".webm", ".aac"}
+EXTENSIONES_AUDIO = {
+    ".flac",
+    ".opus",
+    ".3gp",
+    ".amr",
+    ".aac",
+    ".ogg",
+    ".webm",
+    ".m4a",
+    ".mp3",
+    ".wav",
+}
 
 # Patrones de secretos (construidos para evitar auto-coincidencia)
 PATRONES_SECRETOS = [
@@ -155,7 +166,7 @@ def check_secretos() -> tuple[bool, str]:
                     if "scripts/verificar.py" in fragmento:
                         continue
                     hallazgos.append(
-                        f"Posible secreto en git log ({nombre_patron}): {texto_coincidente[:12]}..."
+                        f"Posible secreto detectado en git log ({nombre_patron})"
                     )
     except subprocess.CalledProcessError as err:
         return False, f"Error al ejecutar git log -p: {err}"
@@ -189,7 +200,7 @@ def check_secretos() -> tuple[bool, str]:
                     texto_coincidente = match.group(0)
                     if not _es_falso_positivo(texto_coincidente):
                         hallazgos.append(
-                            f"Posible secreto en {rel_path} ({nombre_patron}): {texto_coincidente[:12]}..."
+                            f"Posible secreto detectado en {rel_path} ({nombre_patron})"
                         )
     except subprocess.CalledProcessError as err:
         return False, f"Error al listar archivos para escaneo: {err}"

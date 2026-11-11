@@ -22,9 +22,13 @@ modelos/
 *.safetensors
 
 # Todo archivo de audio (L21 - ningún audio se versiona ni se publica)
+*.flac
+*.opus
+*.3gp
+*.amr
+*.aac
+*.ogg
+*.webm
 *.m4a
 *.mp3
 *.wav
-*.ogg
-*.webm
-*.aac
