@@ -13,6 +13,7 @@ Aplica estrategia Map-Reduce:
 from __future__ import annotations
 
 import copy
+import re
 from typing import Any, Literal, Sequence
 from pydantic import BaseModel
 
@@ -31,8 +32,10 @@ from minuta.esquemas import (
     Segmento,
     Tarea,
     Tema,
+    TerminoIngles,
     Transcripcion,
     localizar_cita_literal,
+    normalizar_texto_cita,
 )
 from minuta.proveedores import ProveedorLLM
 
@@ -92,6 +95,41 @@ def _comprobar_cita_literal(ev: Evidencia, segmentos: list[Segmento]) -> bool:
 
     ev.segmento_ids = [s.id for s in encontrados]
     ev.inicio_s = encontrados[0].inicio_s
+    return True
+
+
+def _comprobar_termino_ingles(
+    termino: TerminoIngles,
+    segmentos: list[Segmento],
+) -> bool:
+    """Valida un término en inglés según las reglas de Minuta (T79).
+
+    Condiciones requeridas (si alguna falla, se descarta):
+    1. evidencia.cita cumple la regla de cita literal vigente contra los segmentos del bloque;
+    2. transcrito aparece como palabra completa, normalizada y sin distinguir mayúsculas, en los segmentos de su evidencia;
+    3. evidencia.cita contiene transcrito (como palabra completa normalizada).
+    """
+    if not termino.transcrito or not termino.transcrito.strip():
+        return False
+    if not _comprobar_cita_literal(termino.evidencia, segmentos):
+        return False
+
+    transcrito_norm = normalizar_texto_cita(termino.transcrito)
+    cita_norm = normalizar_texto_cita(termino.evidencia.cita)
+
+    patron_palabra = rf"(?:\b|^){re.escape(transcrito_norm)}(?:\b|$)"
+    if not re.search(patron_palabra, cita_norm, re.IGNORECASE):
+        return False
+
+    ids_ev = {str(x) for x in termino.evidencia.segmento_ids}
+    segs_ev = [s for s in segmentos if str(s.id) in ids_ev]
+    if not segs_ev:
+        segs_ev = segmentos
+
+    texto_segs = " ".join(normalizar_texto_cita(s.texto) for s in segs_ev)
+    if not re.search(patron_palabra, texto_segs, re.IGNORECASE):
+        return False
+
     return True
 
 
@@ -169,11 +207,19 @@ def validar_y_descartar_no_literales(
             else:
                 descartados += 1
 
+        terminos_filtrados: list[TerminoIngles] = []
+        for t in getattr(resultado, "terminos_ingles", []):
+            if _comprobar_termino_ingles(t, segmentos):
+                terminos_filtrados.append(t)
+            else:
+                descartados += 1
+
         resultado_filtrado = ResultadoPonencia(
             resumen_general=resultado.resumen_general,
             ideas_clave=ideas_filtradas,
             preguntas=preguntas_filtradas,
             mapa=nuevo_mapa,
+            terminos_ingles=terminos_filtrados,
             descartados=resultado.descartados + descartados,
             modo=resultado.modo,
         )
@@ -210,6 +256,13 @@ def validar_y_descartar_no_literales(
             else:
                 descartados += 1
 
+        terminos_filtrados = []
+        for t in getattr(resultado, "terminos_ingles", []):
+            if _comprobar_termino_ingles(t, segmentos):
+                terminos_filtrados.append(t)
+            else:
+                descartados += 1
+
         resultado_filtrado = ResultadoReunion(
             resumen_general=resultado.resumen_general,
             temas=temas_filtrados,
@@ -217,6 +270,7 @@ def validar_y_descartar_no_literales(
             tareas=tareas_filtradas,
             pendientes=pendientes_filtrados,
             mapa=nuevo_mapa,
+            terminos_ingles=terminos_filtrados,
             descartados=resultado.descartados + descartados,
             modo=resultado.modo,
         )
@@ -230,11 +284,19 @@ def validar_y_descartar_no_literales(
             else:
                 descartados += 1
 
+        terminos_filtrados = []
+        for t in getattr(resultado, "terminos_ingles", []):
+            if _comprobar_termino_ingles(t, segmentos):
+                terminos_filtrados.append(t)
+            else:
+                descartados += 1
+
         resultado_filtrado = ResultadoEntrevista(
             libro=resultado.libro,
             fragmentos=fragmentos_filtrados,
             resumen_por_codigo=resultado.resumen_por_codigo,
             mapa=nuevo_mapa,
+            terminos_ingles=terminos_filtrados,
             descartados=resultado.descartados + descartados,
             modo=resultado.modo,
         )
@@ -249,6 +311,7 @@ def _generar_prompt_map(
     bloque_idx: int = 1,
     total_bloques: int = 1,
     candidatos_todo: list[Segmento] | None = None,
+    glosario: list[str] | None = None,
 ) -> str:
     """Construye el prompt para la fase Map del procesamiento estructurado."""
     texto_segmentos = "\n".join(
@@ -278,6 +341,25 @@ def _generar_prompt_map(
             + "\n"
         )
 
+    seccion_glosario = ""
+    if glosario:
+        terminos_pista = ", ".join(f"'{g}'" for g in glosario if g.strip())
+        if terminos_pista:
+            seccion_glosario = (
+                f"\nGLOSARIO SUGERIDO (pistas opcionales de términos esperados):\n"
+                f"{terminos_pista}\n"
+            )
+
+    instruccion_terminos = (
+        "4. TÉRMINOS EN INGLÉS ('terminos_ingles'):\n"
+        "   - Lista las palabras o frases dichas en inglés dentro de la transcripción,\n"
+        "     incluidas aquellas que quedaron mal transcritas o deformadas fonéticamente.\n"
+        "   - 'transcrito': CÓMO QUEDÓ escrita exactamente en la transcripción literal (por ejemplo, 'Jason').\n"
+        "   - 'termino': la forma canónica y correcta en inglés (por ejemplo, 'JSON').\n"
+        "   - 'evidencia': cita literal exacta del segmento donde aparece el término, con su tiempo de inicio.\n"
+        "   - Usa los términos del glosario sugerido como pista para detectar menciones."
+    )
+
     return f"""Eres el sistema NLP de estructuración de audio de Minuta.
 Analiza la siguiente transcripción correspondiente al Bloque {bloque_idx} de {total_bloques}.
 
@@ -289,7 +371,8 @@ INSTRUCCIONES CLAVE:
    - El árbol debe tener entre 2 y 4 niveles de profundidad y entre 4 y 8 ramas principales.
    - El nodo raíz no lleva evidencia ('evidencia': null).
    - Todos los nodos hijos y hojas DEBEN llevar 'evidencia' con su respectiva cita literal exacta y tiempo de inicio.
-{seccion_candidatos}
+{instruccion_terminos}
+{seccion_candidatos}{seccion_glosario}
 TRANSCRIPCIÓN DEL BLOQUE:
 {texto_segmentos}
 """
@@ -441,6 +524,21 @@ def _unificar_mapas(
     return MapaMental(titulo=titulo_general, raiz=raiz_unificada)
 
 
+def _reducir_terminos_ingles(
+    resultados: list[ResultadoPonencia | ResultadoReunion | ResultadoEntrevista],
+) -> list[TerminoIngles]:
+    """Une los términos de todos los bloques y elimina duplicados por termino conservando la primera aparición."""
+    terminos_unificados: list[TerminoIngles] = []
+    vistos: set[str] = set()
+    for r in resultados:
+        for t in getattr(r, "terminos_ingles", []):
+            clave = t.termino.strip().lower()
+            if clave not in vistos:
+                vistos.add(clave)
+                terminos_unificados.append(t)
+    return terminos_unificados
+
+
 def estructurar_transcripcion(
     transcripcion: Transcripcion,
     tipo_plantilla: TipoPlantilla,
@@ -538,6 +636,7 @@ def estructurar_transcripcion(
             bloque_idx=idx,
             total_bloques=len(bloques),
             candidatos_todo=cands_bloque,
+            glosario=transcripcion.glosario,
         )
         res_bloque = proveedor.generar_estructurado(prompt, esquema_cls)
 
@@ -549,10 +648,12 @@ def estructurar_transcripcion(
     if len(resultados_bloques) == 1:
         res_unico = resultados_bloques[0]
         res_unico.modo = modo_efectivo
+        res_unico.terminos_ingles = _reducir_terminos_ingles([res_unico])
         return _asegurar_mapa(res_unico)
 
     # Fase REDUCE: Unificar resultados parciales de múltiples bloques
     total_descartados = sum(r.descartados for r in resultados_bloques)
+    terminos_unificados = _reducir_terminos_ingles(resultados_bloques)
 
     def _unificar_resumenes() -> str:
         # Solo Ponencia y Reunión tienen resumen_general; Entrevista no lo tiene.
@@ -587,6 +688,7 @@ def estructurar_transcripcion(
             ideas_clave=todas_ideas,
             preguntas=todas_preguntas,
             mapa=mapa_unificado,
+            terminos_ingles=terminos_unificados,
             descartados=total_descartados,
             modo=modo_efectivo,
         ))
@@ -619,6 +721,7 @@ def estructurar_transcripcion(
             tareas=todas_tareas,
             pendientes=todos_pendientes,
             mapa=mapa_unificado,
+            terminos_ingles=terminos_unificados,
             descartados=total_descartados,
             modo=modo_efectivo,
         ))
@@ -647,6 +750,7 @@ def estructurar_transcripcion(
         fragmentos=todos_fragmentos,
         resumen_por_codigo=resumen_codigos,
         mapa=mapa_unificado,
+        terminos_ingles=terminos_unificados,
         descartados=total_descartados,
         modo=modo_efectivo,
     ))
