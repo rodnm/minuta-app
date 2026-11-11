@@ -1,0 +1,8 @@
+# Minuta: pruebas y evaluación (tests/, evaluacion/, entrenamiento/).
+-r requirements.txt
+pytest==7.4.4
+# evaluacion/velocidad.py
+psutil==7.0.0
+numpy==1.26.0
+# torch, transformers y datasets no se fijan aquí: el afinamiento de mmBERT
+# (entrenamiento/finetune_mmbert.ipynb) corre en Colab con su propio entorno.

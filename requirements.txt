@@ -1,10 +1,15 @@
-# Minuta - Dependencias de producción y evaluación
-pydantic>=2.0.0
-pytest>=7.4.0
-python-dotenv>=1.0.0
-streamlit>=1.35.0
-faster-whisper>=1.0.0
-requests>=2.31.0
-pandas>=2.0.0
-openpyxl>=3.1.0
-python-docx>=1.1.0
+# Minuta: dependencias de ejecución de app/ y minuta/.
+# Versiones fijas, probadas con Python 3.12. Pruebas y evaluación: requirements-dev.txt.
+# Sin torch ni transformers: el detector mmBERT está en desarrollo y no se activa en la app.
+streamlit==1.37.1
+# streamlit 1.37.1 exige pillow<11
+pillow==10.4.0
+pydantic==2.8.2
+python-dotenv==1.0.1
+requests==2.32.5
+faster-whisper==1.2.1
+# av y httpx2 llegan con faster-whisper; se fijan porque minuta/compat.py los parchea
+av==19.0.2
+httpx2==2.16.0
+python-docx==1.2.0
+openpyxl==3.1.5
