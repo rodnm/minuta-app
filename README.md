@@ -54,6 +54,15 @@
 
 **Insight:** No buscan otro resumen: quieren volver al minuto exacto de una explicación sin reescuchar 2 horas (conversación 02).
 
+### Hoy vs. con Minuta
+
+| Paso del flujo | Hoy (lo que contaron las 2 personas) | Con Minuta |
+|---|---|---|
+| **1. Grabar** | Graban con el celular: *"grababa todas mis clases de la universidad en el celular"* (conversación 01) y *"Sí, suelo grabar clases de la universidad y algunas charlas con mi celular"* (conversación 02). Rechazan comprar un aparato dedicado: *"No pagaría porque es una inversión fuerte para algo que puedo hacer con mi celular y que me funciona bien aun si no es perfecto siempre."* (conversación 02). | Sigues usando tu celular como grabadora, sin comprar hardware adicional. |
+| **2. Repasar** | Reescuchan audios completos de 1 a 2 horas para no transcribir a mano: *"Si dura 1-2 horas lo voy a escuchar nuevamente."* y *"Podría tardar más de 5 horas solo para una reunión"* (conversación 01); *"usualmente hago grabaciones de 2 horas de mis clases y las escucho completas"* (conversación 02). | Subes el audio y obtienes notas estructuradas (resumen, ideas clave, tareas y preguntas) en minutos. |
+| **3. Buscar una explicación** | Adelantan a ciegas buscando el momento exacto: *"si estoy apurada voy momento exacto donde quiero escuchar nuevamente la explicación para complementar mis apuntes."* (conversación 02). | Cada idea, nodo del mapa y tarea incluye el botón ▶ `[mm:ss]` para saltar al inicio del segmento que contiene la cita. |
+| **4. Términos técnicos y mapa mental** | Las herramientas que usan tienen límites con términos o no conectan con el audio: *"no siempre recoge con precisión algunos términos técnicos o palabras en inglés"* (conversación 02 sobre NotebookLM). | Cada punto del resumen y del mapa mental se valida contra la transcripción: solo se conservan citas textuales comprobadas con la marca de tiempo de su segmento. |
+
 **Qué construí:**
 - **Captura con el celular:** grabas con la grabadora del teléfono y subes el archivo (`.m4a`, `.mp3` o `.wav`) desde el navegador.
 - **Un formato por tipo de grabación:**
@@ -65,14 +74,14 @@
 - **▶ [mm:ss]:** salta a ese minuto en el audio subido en la sesión.
 - **Mapa mental:** se le pide al modelo un árbol de 2 a 4 niveles y de 4 a 8 ramas. Si devuelve menos de 2 ramas (en pruebas reales, Gemini devolvió la raíz vacía), la app arma el mapa desde las ideas clave ya comprobadas: cada idea es una rama y cada cita, una hoja con su minuto.
 - **Exportación:** Markdown, Word, Excel, la transcripción en `.txt` y el mapa mental en HTML.
-- **Modo local (experimental):** faster-whisper transcribe en la laptop (12.7 min para 64 min de audio en CPU). La estructuración local con Ollama necesita GPU (en CPU supera los 600 s por bloque); con CPU se recomienda transcribir en local y estructurar en la nube con Gemini Flash.
+- **Modo local (experimental):** la transcripción corre en la laptop (12.7 min para 64 min de audio en CPU). La estructuración local necesita GPU (en CPU supera los 600 s por bloque); con CPU se recomienda transcribir en local y estructurar en la nube con un modelo ligero.
 
 ---
 
 ## 5. Why now
 
-1. **Whisper ya corre en CPU:** faster-whisper `small` int8 con VAD transcribe una hora de audio en unos 8 a 13 minutos (RTF 0.1336 en clip de 5 min y RTF 0.1969 en reunión de 64 min, 404 MB de RAM), medido en una computadora con AMD Ryzen 5 5600G y 32 GB de RAM, sin GPU (H2, fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local, y [docs/resultados.md](docs/resultados.md)).
-2. **Los LLM devuelven salida estructurada a bajo costo:** con Gemini 3.8 Flash y el razonamiento en nivel bajo, una hora de audio cuesta S/ 0.27 con los precios de 2026 y S/ 0.51 con los de 2027. La cifra se midió en una llamada real y se extrapoló a 1 hora (sección 7).
+1. **La transcripción ya corre en CPU:** modelos modernos de transcripción optimizados en precisión entera (int8) con detección de actividad de voz transcriben una hora de audio en unos 8 a 13 minutos (RTF 0.1336 en clip de 5 min y RTF 0.1969 en reunión de 64 min, 404 MB de RAM), medido en una computadora con procesador AMD Ryzen 5 5600G y 32 GB de RAM, sin GPU (H2, fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local, y [docs/resultados.md](docs/resultados.md)).
+2. **Los modelos de lenguaje devuelven salida estructurada a bajo costo:** con salida estructurada en formato JSON y nivel bajo de razonamiento, estructurar una hora de audio cuesta S/ 0.27 con los precios de 2026 y S/ 0.51 con los de 2027. La cifra se midió en una llamada real y se extrapoló a 1 hora (sección 7).
 
 ---
 
