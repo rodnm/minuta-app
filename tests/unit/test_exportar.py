@@ -145,7 +145,7 @@ def test_exportar_markdown_entrevista(entrevista_fixture: ResultadoEntrevista):
     md = exportar_markdown(entrevista_fixture)
     assert "# Minuta: Esquema por temas" in md
     assert "## Esquema por Temas" in md
-    assert "## Libro de Códigos" in md
+    assert "## Códigos temáticos" in md
     assert "BARR_TIEMPO" in md
     assert "USO_IA" in md
     assert "## Resumen por Código" in md
@@ -342,3 +342,48 @@ def test_exportar_reunion_sin_tareas_ni_acuerdos():
     assert len(xlsx_bytes) > 0
     wb = openpyxl.load_workbook(io.BytesIO(xlsx_bytes))
     assert len(wb.sheetnames) >= 1
+
+
+def test_exportar_markdown_incluye_terminos_ingles(ponencia_fixture: ResultadoPonencia):
+    from minuta.exportar import exportar_markdown
+
+    md = exportar_markdown(ponencia_fixture)
+    assert "Términos en inglés" in md
+    assert "journal" in md
+    assert "feedback" in md
+    assert "deadline" in md
+
+
+def test_exportar_docx_incluye_terminos_ingles(ponencia_fixture: ResultadoPonencia):
+    from minuta.exportar import exportar_docx
+
+    docx_bytes = exportar_docx(ponencia_fixture)
+    doc = docx.Document(io.BytesIO(docx_bytes))
+    texto_completo = " ".join(p.text for p in doc.paragraphs)
+    for tabla in doc.tables:
+        for fila in tabla.rows:
+            texto_completo += " " + " ".join(c.text for c in fila.cells)
+
+    assert "Términos en inglés" in texto_completo
+    assert "journal" in texto_completo
+
+
+def test_exportar_entrevista_codigos_tematicos(entrevista_fixture: ResultadoEntrevista):
+    from minuta.exportar import exportar_markdown, exportar_docx
+
+    md = exportar_markdown(entrevista_fixture)
+    assert "Libro de Códigos de Investigación" not in md
+    assert "Códigos temáticos" in md
+
+    docx_bytes = exportar_docx(entrevista_fixture)
+    doc = docx.Document(io.BytesIO(docx_bytes))
+    texto_doc = " ".join(p.text for p in doc.paragraphs)
+    assert "Libro de Códigos de Investigación" not in texto_doc
+    assert "Códigos temáticos" in texto_doc
+
+    from minuta.exportar import exportar_xlsx
+    xlsx_bytes = exportar_xlsx(entrevista_fixture)
+    wb = openpyxl.load_workbook(io.BytesIO(xlsx_bytes))
+    assert "Códigos temáticos" in wb.sheetnames
+    assert "Libro de Códigos" not in wb.sheetnames
+

@@ -55,12 +55,12 @@ def test_segundos_a_tiempo() -> None:
 
 
 def test_glosario_defecto_contiene_terminos_clave() -> None:
-    """Verifica que el glosario inicial incluya términos de investigación en inglés y español."""
-    assert "journal" in GLOSARIO_DEFECTO
-    assert "Scopus" in GLOSARIO_DEFECTO
-    assert "peer review" in GLOSARIO_DEFECTO
-    assert "deadline" in GLOSARIO_DEFECTO
-    assert "grant" in GLOSARIO_DEFECTO
+    """Verifica que el glosario inicial incluya términos universitarios en inglés."""
+    assert "machine learning" in GLOSARIO_DEFECTO
+    assert "JSON" in GLOSARIO_DEFECTO
+    assert "prompt" in GLOSARIO_DEFECTO
+    assert "pipeline" in GLOSARIO_DEFECTO
+    assert "benchmark" in GLOSARIO_DEFECTO
 
 
 def test_cargar_fixture_demo_ponencia() -> None:

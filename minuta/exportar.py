@@ -207,7 +207,7 @@ def exportar_markdown(
         lineas.extend(_formatear_arbol_como_esquema_md(resultado.mapa.raiz))
         lineas.append("")
 
-        lineas.append("## Libro de Códigos")
+        lineas.append("## Códigos temáticos")
         lineas.append("")
         for cod in resultado.libro:
             lineas.append(f"- **`{cod.codigo}`**: {cod.descripcion}")
@@ -220,6 +220,17 @@ def exportar_markdown(
             nota = f" *(Nota: {f.nota})*" if f.nota else ""
             lineas.append(f"- **[{f.codigo}]**{nota}")
             lineas.append(f"  > {tag} \"{f.evidencia.cita}\"")
+        lineas.append("")
+
+    terminos = getattr(resultado, "terminos_ingles", [])
+    if terminos:
+        lineas.append("## Términos en inglés")
+        lineas.append("")
+        for t in terminos:
+            tag = _segundos_a_tiempo(t.evidencia.inicio_s)
+            extra = f" *(se transcribió «{t.transcrito}»)*" if t.transcrito.strip().lower() != t.termino.strip().lower() else ""
+            lineas.append(f"- **{t.termino}**{extra} `{tag}`")
+            lineas.append(f"  > \"{t.evidencia.cita}\"")
         lineas.append("")
 
     if transcripcion is not None:
@@ -546,7 +557,7 @@ def exportar_docx(
             doc.add_paragraph("No quedaron temas pendientes.")
 
     elif isinstance(resultado, ResultadoEntrevista):
-        doc.add_heading("Libro de Códigos de Investigación", level=2)
+        doc.add_heading("Códigos temáticos", level=2)
         tabla_cod = doc.add_table(rows=1, cols=2)
         tabla_cod.alignment = WD_TABLE_ALIGNMENT.CENTER
         hdr_cod = tabla_cod.rows[0].cells
@@ -601,6 +612,16 @@ def exportar_docx(
             else:
                 p_f.add_run("\n")
             _formatear_parrafo_evidencia(p_f, _segundos_a_tiempo(f.evidencia.inicio_s), f.evidencia.cita)
+
+    terminos = getattr(resultado, "terminos_ingles", [])
+    if terminos:
+        doc.add_heading("Términos en inglés", level=2)
+        for t in terminos:
+            p_term = doc.add_paragraph(style="List Bullet")
+            extra = f" (se transcribió «{t.transcrito}»)" if t.transcrito.strip().lower() != t.termino.strip().lower() else ""
+            r_tit = p_term.add_run(f"{t.termino}{extra}\n")
+            r_tit.bold = True
+            _formatear_parrafo_evidencia(p_term, _segundos_a_tiempo(t.evidencia.inicio_s), t.evidencia.cita)
 
     # Anexar transcripción si se proveyó
     if transcripcion is not None:
@@ -670,7 +691,7 @@ def exportar_xlsx(
     - Para Reunión: Hoja 'Tareas y Acuerdos' estilizada (ID, Tipo, Descripción,
       Responsable, Cita Literal, Inicio, Fin, Estado) y Hoja 'Resumen y Temas'.
     - Para Ponencia: Hoja 'Ideas Clave' y Hoja 'Preguntas y Resumen'.
-    - Para Entrevista: Hoja 'Fragmentos Codificados' y Hoja 'Libro de Códigos'.
+    - Para Entrevista: Hoja 'Fragmentos Codificados' y Hoja 'Códigos temáticos'.
 
     Args:
         resultado: Estructuración de Ponencia, Reunión o Entrevista.
@@ -857,8 +878,8 @@ def exportar_xlsx(
             _aplicar_estilo_fila(ws_frag, ws_frag.max_row, es_header=False)
         _autoajustar_columnas(ws_frag)
 
-        # Hoja 2: 'Libro de Códigos'
-        ws_libro = wb.create_sheet(title="Libro de Códigos")
+        # Hoja 2: 'Códigos temáticos'
+        ws_libro = wb.create_sheet(title="Códigos temáticos")
         ws_libro.append(["Código", "Descripción", "Resumen Sintetizado"])
         _aplicar_estilo_fila(ws_libro, 1, es_header=True)
 
