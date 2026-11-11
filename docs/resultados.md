@@ -36,7 +36,7 @@ Este documento reúne lo que se midió, lo que falta medir y el costo por hora d
 | **H6** | Ollama `qwen3:4b` devuelve JSON válido, incluido el mapa | ≥ 95 % válido y < 60 s por bloque | < 85 % o > 120 s por bloque | En reunión real de 64 min (6 bloques), el bloque 1 no respondió en 600 s (timeout, 0 de 1 válidos, 0.0 % válido, latencia > 120 s). Limitación: transcribe en tu PC; la estructuración local necesita GPU. | **FALSADA** | Fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local (`evaluacion.privado`); fixtures en `evaluacion.validez_json` |
 | **H7** | El problema es real para quien graba con el celular | ≥ 2 de 3 graban ≥ 2 veces al mes, dedican ≥ 30 min por grabación y no pagarían un aparato como Plaud | 0 o 1 de 3 | 2 de 2 cumplen los 3 criterios, con 2 de las 3 conversaciones requeridas | **CONFIRMADA** (n = 2) | Notas en `docs/research/conversacion-01.md` y `docs/research/conversacion-02.md` |
 | **H8** | Las tareas son confiables | Precisión ≥ 0.80, recall ≥ 0.70 y 100 % de citas literales | Precisión < 0.65 o alguna cita no literal | Falta la referencia etiquetada a mano (no hay lista de referencia de la reunión real). | **PENDIENTE** | `python -m evaluacion.todos --pred <salida.json> --ref data/eval/todos_manual.csv` |
-| **H9** | El mapa mental es verificable y útil (solo plantilla Clase) | ≥ 90 % de nodos con cita literal, 2–4 niveles, 4–8 ramas en 1 h y mediana de utilidad ≥ 4/5 | < 75 % con cita o mediana < 3/5 | Falta una grabación real completa. El fixture de prueba tiene 3 ramas. | **PENDIENTE** | `python -m evaluacion.mapa --pred <salida.json> --transcripcion <transcripcion.json>` |
+| **H9** | El mapa mental es verificable y útil (solo plantilla Clase) | ≥ 90 % de nodos con cita literal, 2–4 niveles, 4–8 ramas en 1 h y mediana de utilidad ≥ 4/5 | < 75 % con cita o mediana < 3/5 | En llamada real con Gemini (T70): 4 ramas y 0 citas descartadas en 19 s. H9 sigue PENDIENTE hasta evaluar la utilidad con usuarios (HU10). | **PENDIENTE** | `python -m evaluacion.mapa --pred <salida.json> --transcripcion <transcripcion.json>` |
 
 ---
 
@@ -138,7 +138,7 @@ Hay notas de 2 de las 3 conversaciones requeridas (`docs/research/conversacion-0
 ### 3.6 H8 y H9: tareas y mapa mental (PENDIENTES)
 
 - **H8 (tareas):** falta una reunión transcrita y etiquetada a mano. Las pruebas unitarias comprueban que el contrato descarta las citas que no aparecen en la transcripción.
-- **H9 (mapa mental):** aplica solo a la plantilla **Ponencia / Clase / Charla**. El fixture de prueba tiene 3 ramas principales y el criterio pide 4 a 8 en 1 hora. Falta una grabación real completa y el formulario de utilidad.
+- **H9 (mapa mental):** aplica solo a la plantilla **Ponencia / Clase / Charla**. En la llamada real con Gemini (T70) sobre la transcripción de clase se obtuvieron 4 ramas principales y 0 citas descartadas en 19 s. H9 sigue **PENDIENTE** hasta completar la evaluación de utilidad con usuarios (HU10).
 
 ---
 
