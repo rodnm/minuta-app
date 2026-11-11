@@ -18,9 +18,11 @@ from entrenamiento.finetune_mmbert_cpu import (
     CLASES_ESTANDAR,
     ID2LABEL,
     LABEL2ID,
+    calcular_metricas_clasificacion,
     calcular_pesos_clase,
     cargar_dataset_sintetico,
     construir_parser_cli,
+    dividir_dataset_por_conversacion,
     entrenar_cpu,
 )
 
@@ -176,3 +178,92 @@ def test_entrenar_cpu_comportamiento_sin_torch_o_transformers(monkeypatch):
             salida_dir="modelos/test",
             prueba_rapida=True,
         )
+
+
+# ---------------------------------------------------------------------------
+# 6. Pruebas de Partición sin Fuga por Conversación (T81)
+# ---------------------------------------------------------------------------
+
+def test_dividir_dataset_por_conversacion_sin_fugas():
+    """Verifica que ninguna conversación quede repartida en dos particiones."""
+    train_items, val_items, test_items, info = dividir_dataset_por_conversacion(
+        RUTA_SINTETICOS,
+        prop_train=0.70,
+        prop_val=0.15,
+        prop_test=0.15,
+        semilla=42,
+    )
+
+    convs_train = set(info["conv_ids_train"])
+    convs_val = set(info["conv_ids_val"])
+    convs_test = set(info["conv_ids_test"])
+
+    # Invariante crítica: intersección vacía entre las tres particiones
+    assert convs_train.isdisjoint(convs_val), "Fuga detectada entre train y val"
+    assert convs_train.isdisjoint(convs_test), "Fuga detectada entre train y test"
+    assert convs_val.isdisjoint(convs_test), "Fuga detectada entre val y test"
+
+    # La suma de conversaciones debe ser el total (90)
+    assert len(convs_train) + len(convs_val) + len(convs_test) == 90
+
+    # Todos los segmentos en cada partición provienen exclusivamente de sus conversaciones asignadas
+    for item in train_items:
+        assert item["conv_id"] in convs_train
+    for item in val_items:
+        assert item["conv_id"] in convs_val
+    for item in test_items:
+        assert item["conv_id"] in convs_test
+
+
+def test_dividir_dataset_por_conversacion_estratificado():
+    """Verifica que cada tipo de conversación esté representado en train, val y test."""
+    _, _, _, info = dividir_dataset_por_conversacion(
+        RUTA_SINTETICOS,
+        prop_train=0.70,
+        prop_val=0.15,
+        prop_test=0.15,
+        semilla=42,
+    )
+
+    tipos_esperados = {"ponencia", "reunion", "entrevista"}
+    assert set(info["tipos_en_train"]) == tipos_esperados
+    assert set(info["tipos_en_val"]) == tipos_esperados
+    assert set(info["tipos_en_test"]) == tipos_esperados
+
+
+def test_dividir_dataset_por_conversacion_determinista():
+    """Verifica reproducibilidad exacta con la misma semilla."""
+    _, _, _, info1 = dividir_dataset_por_conversacion(RUTA_SINTETICOS, semilla=42)
+    _, _, _, info2 = dividir_dataset_por_conversacion(RUTA_SINTETICOS, semilla=42)
+    _, _, _, info3 = dividir_dataset_por_conversacion(RUTA_SINTETICOS, semilla=99)
+
+    assert info1["conv_ids_train"] == info2["conv_ids_train"]
+    assert info1["conv_ids_val"] == info2["conv_ids_val"]
+    assert info1["conv_ids_test"] == info2["conv_ids_test"]
+
+    # Semilla distinta debe dar particiones distintas
+    assert info1["conv_ids_train"] != info3["conv_ids_train"]
+
+
+def test_calcular_metricas_clasificacion():
+    """Valida cálculo determinista de macro F1, precisión, recall y matriz de confusión."""
+    y_true = ["idea", "tarea", "acuerdo", "pregunta", "relleno"]
+    y_pred = ["idea", "tarea", "acuerdo", "relleno", "relleno"]  # 4 aciertos, 1 fallo (pregunta predicho como relleno)
+
+    metricas = calcular_metricas_clasificacion(y_true, y_pred, clases=CLASES_ESTANDAR)
+    assert metricas["exactitud"] == 0.8  # 4/5
+    assert "f1_macro" in metricas
+    assert "por_clase" in metricas
+    assert "matriz_confusion" in metricas
+    assert len(metricas["matriz_confusion"]) == 5
+    assert len(metricas["matriz_confusion"][0]) == 5
+
+    # Tarea tuvo 100% precision y recall
+    assert metricas["por_clase"]["tarea"]["precision"] == 1.0
+    assert metricas["por_clase"]["tarea"]["recall"] == 1.0
+    assert metricas["por_clase"]["tarea"]["f1_score"] == 1.0
+
+    # Pregunta tuvo 0 recall (fue clasificada como relleno)
+    assert metricas["por_clase"]["pregunta"]["recall"] == 0.0
+
+
