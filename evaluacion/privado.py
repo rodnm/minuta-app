@@ -69,7 +69,7 @@ def verificar_fugas(
     if root_dir is None:
         root_dir = ROOT_DIR
     if dir_privado is None:
-        dir_privado = root_dir / "data" / "privado"
+        dir_privado = root_dir / "data" / "privado" / "reunion_real"
 
     if not dir_privado.exists():
         return 0
@@ -290,6 +290,7 @@ def main() -> int:
     parser.add_argument("--modelo-llm", type=str, default="qwen3:4b", help="Modelo local de Ollama.")
     parser.add_argument("--plantilla", type=str, default="reunion", choices=["reunion", "ponencia", "entrevista"])
     parser.add_argument("--salida-dir", type=str, default=None, help="Directorio para salidas privadas.")
+    parser.add_argument("--dir-privado", type=str, default=None, help="Directorio con transcripciones privadas.")
     parser.add_argument("--verificar-fugas", action="store_true", help="Ejecuta compuerta G4 contra el repo.")
     parser.add_argument("--ref", type=str, default=None, help="Archivo CSV de referencia para to-dos.")
 
@@ -297,7 +298,8 @@ def main() -> int:
 
     # Compuerta G4: Detector de fugas
     if args.verificar_fugas:
-        coincidencias = verificar_fugas()
+        dir_p = Path(args.dir_privado) if args.dir_privado else None
+        coincidencias = verificar_fugas(dir_privado=dir_p)
         print(f"coincidencias: {coincidencias}")
         return 0 if coincidencias == 0 else 1
 
