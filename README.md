@@ -63,15 +63,15 @@
   - **En todas:** la transcripción completa con marcas `[mm:ss]`.
 - **Cada punto con su cita:** cada idea, tarea y nodo lleva una cita comprobada como texto literal de la transcripción, y el minuto del inicio del segmento que contiene la cita. Las citas que no aparecen en la transcripción se descartan.
 - **▶ [mm:ss]:** salta a ese minuto en el audio subido en la sesión.
-- **Mapa mental:** se le pide al modelo un árbol de 2 a 4 niveles y de 4 a 8 ramas. Si devuelve menos de 2 ramas (en pruebas reales, Gemini devolvió la raíz vacía), la app arma el mapa desde las ideas clave ya validadas: cada idea es una rama y cada cita, una hoja con su minuto.
+- **Mapa mental:** se le pide al modelo un árbol de 2 a 4 niveles y de 4 a 8 ramas. Si devuelve menos de 2 ramas (en pruebas reales, Gemini devolvió la raíz vacía), la app arma el mapa desde las ideas clave ya comprobadas: cada idea es una rama y cada cita, una hoja con su minuto.
 - **Exportación:** Markdown, Word, Excel, la transcripción en `.txt` y el mapa mental en HTML.
-- **Modo local (experimental):** faster-whisper y Ollama (`qwen3:4b`) en la laptop. El audio y el texto no salen de ella, pero markmap se carga desde un CDN y los modelos se descargan la primera vez.
+- **Modo local (experimental):** faster-whisper transcribe en la laptop (12.7 min para 64 min de audio en CPU). La estructuración local con Ollama necesita GPU (en CPU supera los 600 s por bloque); con CPU se recomienda transcribir en local y estructurar en la nube con Gemini Flash.
 
 ---
 
 ## 5. Why now
 
-1. **Whisper ya corre en CPU:** faster-whisper `small` int8 con VAD transcribe una hora de audio en unos 8 minutos (RTF 0.1336, 404 MB de RAM), medido en una computadora de escritorio con AMD Ryzen 5 5600G y 32 GB de RAM, sin GPU (H2, [docs/resultados.md](docs/resultados.md)).
+1. **Whisper ya corre en CPU:** faster-whisper `small` int8 con VAD transcribe una hora de audio en unos 8 a 13 minutos (RTF 0.1336 en clip de 5 min y RTF 0.1969 en reunión de 64 min, 404 MB de RAM), medido en una computadora con AMD Ryzen 5 5600G y 32 GB de RAM, sin GPU (H2, fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local, y [docs/resultados.md](docs/resultados.md)).
 2. **Los LLM devuelven salida estructurada a bajo costo:** con Gemini 3.8 Flash y el razonamiento en nivel bajo, una hora de audio cuesta S/ 0.27 con los precios de 2026 y S/ 0.51 con los de 2027. La cifra se midió en una llamada real y se extrapoló a 1 hora (sección 7).
 
 ---
@@ -117,9 +117,9 @@ Más detalle en [docs/arquitectura.md](docs/arquitectura.md).
 
 ### Modelos y por qué
 
-- **faster-whisper `small` int8:** transcribe una hora en unos 8 minutos en CPU, sin GPU (H2).
+- **faster-whisper `small` int8:** transcribe una hora en 8 a 13 minutos en CPU, sin GPU (H2, fuente: reunión de trabajo real (no publicada), 64 min, procesada solo en local).
 - **Gemini 3.8 Flash (nube):** devuelve JSON que se valida con Pydantic, a un costo medido de S/ 0.27 a S/ 0.51 por hora de audio. El razonamiento va en nivel bajo: con el nivel por defecto, el costo casi se triplicaba.
-- **Ollama `qwen3:4b` (local, experimental):** para que el audio y el texto no salgan de la laptop. Devolvió JSON válido en 2 de 2 bloques, con 64 s por bloque (H6, no concluyente).
+- **Ollama `qwen3:4b` (local, experimental):** para que el audio y el texto no salgan de la laptop. En CPU dio timeout de > 600 s en la reunión real (H6 falsada: 'transcribe en tu PC; la estructuración local necesita GPU'). La estructuración local completa requiere aceleración por GPU.
 - **mmBERT-small:** en desarrollo, no activo en el producto (H4 pendiente).
 
 ### Capturas

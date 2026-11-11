@@ -378,19 +378,39 @@ def _cadena_de_causas(exc: BaseException) -> list[BaseException]:
     return cadena
 
 
+def en_streamlit_cloud() -> bool:
+    """T69: detecta si la app corre en Streamlit Community Cloud."""
+    return bool(
+        os.getenv("STREAMLIT_SHARING_MODE")
+        or os.getenv("IS_STREAMLIT_CLOUD")
+        or os.getenv("STREAMLIT_COMMUNITY_CLOUD")
+        or os.path.exists("/app")
+        or (os.getenv("HOME") == "/home/appuser")
+    )
+
+
+def _formatear_proveedor(proveedor: str) -> str:
+    """T69: en Streamlit Cloud la opción Ollama indica 'solo en tu laptop'."""
+    if proveedor == PROVEEDOR_OLLAMA and en_streamlit_cloud():
+        return f"{proveedor} (solo en tu laptop)"
+    return proveedor
+
+
 def mensaje_error_amigable(
     exc: BaseException,
     etapa: str,
     usar_ollama: bool,
     secretos: list[str | None] | None = None,
 ) -> str:
-    """B4: traduce una excepción a un mensaje en español, con la causa y sin URL ni claves."""
+    """B4 / T69: traduce una excepción a un mensaje en español, con la causa y sin URL ni claves."""
     causas = _cadena_de_causas(exc)
     sin_conexion = any(isinstance(c, requests.ConnectionError) for c in causas)
     if isinstance(exc, OllamaNoDisponible) or (usar_ollama and sin_conexion):
         return (
-            "No se pudo conectar con Ollama. Ollama solo está disponible cuando ejecutas la app en local, "
-            "en tu computadora y con Ollama abierto. En la versión publicada, elige Gemini o activa el modo demo."
+            "No se pudo conectar con Ollama. Para encenderlo, ejecuta 'ollama serve' en tu terminal y asegúrate "
+            "de tener el modelo descargado con 'ollama run qwen3:4b'. "
+            "Ollama solo está disponible cuando ejecutas la app en local (en tu laptop). "
+            "En la versión publicada (Streamlit Cloud), elige Gemini o activa el modo demo."
         )
 
     if any(isinstance(c, requests.Timeout) for c in causas):
@@ -990,29 +1010,48 @@ def main() -> None:
         "para charlas largas) y sube el archivo aquí."
     )
 
-    # 2. Configuración en un bloque plegable
+    # 2. Paso 1 a la vista: "¿Qué grabaste?" (T68)
+    plantilla = st.selectbox(
+        "¿Qué grabaste?",
+        options=PLANTILLAS_DISPONIBLES,
+        index=0,
+        help="Selecciona el formato adecuado según la naturaleza del audio.",
+    )
+
+    # 3. Paso 2 a la vista: "Sube tu audio" (T68)
+    st.subheader("1. Audio de la sesión")
+
+    # Opción condicional si la versión de streamlit soporta st.audio_input
+    if hasattr(st, "audio_input"):
+        st.write("Graba un audio directo:")
+        audio_grabado = getattr(st, "audio_input")("Grabar audio con el micrófono")
+    else:
+        audio_grabado = None
+
+    archivo_audio = st.file_uploader(
+        "Sube tu audio (grabado con el celular):",
+        type=["m4a", "mp3", "wav"],
+        help="Formatos soportados: m4a, mp3, wav. Máximo 200 MB.",
+    )
+
+    fuente_audio = archivo_audio or audio_grabado
+    descartar_resultado_si_cambio_la_entrada(fuente_audio, plantilla)
+
+    # 4. Opciones avanzadas en un bloque plegable cerrado por defecto (T68)
     detector_listo = detector_disponible()
-    with st.expander("⚙️ Configuración y Glosario", expanded=False):
-        plantilla = st.selectbox(
-            "Plantilla de análisis:",
-            options=PLANTILLAS_DISPONIBLES,
-            index=0,
-            help="Selecciona el formato adecuado según la naturaleza del audio.",
-        )
-
-        glosario_texto = st.text_area(
-            "Glosario contextual de investigación:",
-            value=st.session_state["glosario_usuario"],
-            help="Términos técnicos en inglés o español que deben ser reconocidos con precisión.",
-            height=75,
-        )
-        st.session_state["glosario_usuario"] = glosario_texto
-
+    with st.expander("⚙️ Opciones avanzadas", expanded=False):
         proveedor_seleccionado = st.selectbox(
             "Proveedor de IA para estructuración:",
             options=[PROVEEDOR_GEMINI, PROVEEDOR_OLLAMA],
             index=0,
+            format_func=_formatear_proveedor,
             help="Gemini funciona en la versión publicada. Ollama solo funciona si ejecutas la app en local.",
+        )
+        modelo_whisper = st.selectbox(
+            "Modelo de transcripción Whisper:",
+            options=["small", "base"],
+            index=0,
+            help="small para mayor fidelidad acústica en laptop; base para bajo consumo de memoria.",
         )
         # B6: "Solo LLM" por defecto; el detector está en desarrollo y se deshabilita si no puede cargarse.
         modo_analisis = st.radio(
@@ -1029,36 +1068,19 @@ def main() -> None:
         )
         if not detector_listo:
             modo_analisis = "solo_llm"
-        modelo_whisper = st.selectbox(
-            "Modelo de transcripción Whisper:",
-            options=["small", "base"],
-            index=0,
-            help="small para mayor fidelidad acústica en laptop; base para bajo consumo de memoria.",
+
+        glosario_texto = st.text_area(
+            "Glosario contextual de investigación:",
+            value=st.session_state["glosario_usuario"],
+            help="Términos técnicos en inglés o español que deben ser reconocidos con precisión.",
+            height=75,
         )
+        st.session_state["glosario_usuario"] = glosario_texto
 
     clave_slug = SLUG_POR_PLANTILLA[plantilla]
     usar_ollama = proveedor_seleccionado == PROVEEDOR_OLLAMA
 
-    # 3. Carga de audio
-    st.subheader("1. Audio de la sesión")
-
-    # Opción condicional si la versión de streamlit soporta st.audio_input
-    if hasattr(st, "audio_input"):
-        st.write("Graba un audio directo:")
-        audio_grabado = getattr(st, "audio_input")("Grabar audio con el micrófono")
-    else:
-        audio_grabado = None
-
-    archivo_audio = st.file_uploader(
-        "Sube tu archivo de audio (grabado con el celular):",
-        type=["m4a", "mp3", "wav"],
-        help="Formatos soportados: m4a, mp3, wav. Máximo 200 MB.",
-    )
-
-    fuente_audio = archivo_audio or audio_grabado
-    descartar_resultado_si_cambio_la_entrada(fuente_audio, plantilla)
-
-    # 4. Procesamiento o carga de datos
+    # 5. Procesamiento o carga de datos
     resultado: Any = None
     transcripcion: Transcripcion | None = None
 
