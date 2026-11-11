@@ -582,6 +582,8 @@ def _inyectar_estilos() -> None:
             justify-content: center;
             gap: 12px;
             margin-bottom: 4px;
+            padding-top: 8px;
+            overflow: visible;
         }
 
         .minuta-mic-svg {
@@ -593,7 +595,7 @@ def _inyectar_estilos() -> None:
         .minuta-logo-text {
             font-family: 'Archivo Black', sans-serif;
             font-size: 2.6rem;
-            line-height: 1;
+            line-height: 1.25;
             color: #FFFFFF;
             letter-spacing: -0.04em;
         }
@@ -661,6 +663,11 @@ def _inyectar_estilos() -> None:
             font-family: 'Inter', sans-serif !important;
             font-weight: 700 !important;
             font-size: 16px !important;
+        }
+        /* El texto vive en un <p> interno que hereda el blanco del tema */
+        .stButton > button[kind="primary"] *,
+        .stButton > button[data-testid="baseButton-primary"] * {
+            color: #0B0B0F !important;
         }
         .stButton > button[kind="primary"]:hover,
         .stButton > button[data-testid="baseButton-primary"]:hover {
